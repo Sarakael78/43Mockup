@@ -25,8 +25,8 @@ import {
 const periodMonthsMap = { '1M': 1, '3M': 3, '6M': 6 };
 
 const getLatestTransactionDate = (transactions) => {
-  if (!transactions?.length) return null;
-  return transactions.reduce((latest, tx) => (tx.date > latest ? tx.date : latest), transactions[0].date);
+  if (!transactions?.length || !transactions[0]?.date) return null;
+  return transactions.reduce((latest, tx) => (tx?.date && tx.date > latest ? tx.date : latest), transactions[0].date);
 };
 
 const filterTransactionsByPeriod = (transactions, periodFilter, latestDateIso) => {
@@ -76,10 +76,15 @@ const exportProject = (appData, transactions, claims, caseName) => {
   const safeCaseName = (caseName || 'Rademan_v_Rademan').replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
   const dateStr = new Date().toISOString().split('T')[0];
   a.download = `${safeCaseName}_${dateStr}.r43`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  
+  try {
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  } finally {
+    // Always revoke URL to prevent memory leak
+    URL.revokeObjectURL(url);
+  }
 };
 
 const loadProject = (file, setAppData, setTransactions, setClaims, setCaseName, setNotes) => {
@@ -87,12 +92,21 @@ const loadProject = (file, setAppData, setTransactions, setClaims, setCaseName, 
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
   if (file.size > MAX_FILE_SIZE) {
     alert(`File too large. Maximum size is ${MAX_FILE_SIZE / 1024 / 1024}MB.`);
-    return;
+    return () => {}; // Return cleanup function for consistency
+  }
+
+  // Validate file type
+  if (!file.name.endsWith('.r43') && !file.name.endsWith('.json')) {
+    alert('Invalid file type. Please select a .r43 or .json file.');
+    return () => {};
   }
 
   const reader = new FileReader();
+  let isCancelled = false;
   
   reader.onload = (e) => {
+    if (isCancelled) return;
+    
     try {
       const projectData = JSON.parse(e.target.result);
       
@@ -131,11 +145,21 @@ const loadProject = (file, setAppData, setTransactions, setClaims, setCaseName, 
   };
   
   reader.onerror = () => {
-    alert('Error reading file. Please try again.');
-    console.error('FileReader error');
+    if (!isCancelled) {
+      alert('Error reading file. Please try again.');
+      console.error('FileReader error');
+    }
   };
   
   reader.readAsText(file);
+  
+  // Return cleanup function
+  return () => {
+    isCancelled = true;
+    if (reader.readyState === FileReader.LOADING) {
+      reader.abort();
+    }
+  };
 };
 
 // --- COMPONENTS ---
@@ -186,14 +210,27 @@ const FileUploadModal = ({ isOpen, onClose, onUpload }) => {
 
   const handleUpload = async () => {
     setUploading(true);
-    // Simulate upload progress
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    if (onUpload) {
-      onUpload(files);
+    let uploadTimeout;
+    
+    try {
+      // Simulate upload progress
+      await new Promise(resolve => {
+        uploadTimeout = setTimeout(resolve, 1000);
+      });
+      if (onUpload) {
+        onUpload(files);
+      }
+      setFiles([]);
+      setUploading(false);
+      onClose();
+    } catch (error) {
+      console.error('Upload error:', error);
+      setUploading(false);
+    } finally {
+      if (uploadTimeout) {
+        clearTimeout(uploadTimeout);
+      }
     }
-    setFiles([]);
-    setUploading(false);
-    onClose();
   };
 
   if (!isOpen) return null;
@@ -365,7 +402,7 @@ const NoteModal = ({ isOpen, onClose, transaction, note, onSave }) => {
   if (!isOpen) return null;
 
   const handleSave = () => {
-    if (onSave) {
+    if (onSave && transaction?.id) {
       onSave(transaction.id, noteText);
     }
     onClose();
@@ -475,7 +512,12 @@ const TopBar = ({ title, subtitle, caseName, onCaseNameChange, onSave, saved }) 
               type="text"
               value={editValue}
               onChange={(e) => {
-                const sanitized = e.target.value.replace(/[<>\"']/g, '');
+                // Sanitize input: remove HTML tags, script tags, and dangerous characters
+                const sanitized = e.target.value
+                  .replace(/<[^>]*>/g, '') // Remove HTML tags
+                  .replace(/[<>\"'&]/g, '') // Remove dangerous characters
+                  .replace(/javascript:/gi, '') // Remove javascript: protocol
+                  .replace(/on\w+=/gi, ''); // Remove event handlers
                 setEditValue(sanitized);
               }}
               onBlur={handleSave}
@@ -1016,7 +1058,7 @@ const WorkbenchView = ({ data, transactions, setTransactions, claims, notes, set
         </div>
         <div className="h-10 bg-slate-50 border-t border-slate-200 flex items-center justify-between px-4 text-xs font-bold text-slate-600 shrink-0">
           <span>Total Visible:</span>
-          <span className="font-mono">{filteredTx.reduce((sum, t) => sum + t.amount, 0).toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR' })}</span>
+          <span className="font-mono">{filteredTx.length > 0 ? filteredTx.reduce((sum, t) => sum + (t.amount || 0), 0).toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR' }) : 'R 0.00'}</span>
         </div>
       </div>
       <NoteModal
@@ -1041,6 +1083,7 @@ const App = () => {
   const [fileUploadModal, setFileUploadModal] = useState(false);
   const [saved, setSaved] = useState(false);
   const saveTimeoutRef = useRef(null);
+  const savedTimeoutRef = useRef(null);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -1113,7 +1156,11 @@ const App = () => {
       try {
         localStorage.setItem('r43_project', JSON.stringify(projectData));
         setSaved(true);
-        setTimeout(() => setSaved(false), 3000);
+        // Clear previous saved timeout if exists
+        if (savedTimeoutRef.current) {
+          clearTimeout(savedTimeoutRef.current);
+        }
+        savedTimeoutRef.current = setTimeout(() => setSaved(false), 3000);
       } catch (storageError) {
         console.error('Failed to save to localStorage:', storageError);
         // Continue - auto-save failure shouldn't break the app
@@ -1123,6 +1170,11 @@ const App = () => {
     return () => {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
+      }
+      if (savedTimeoutRef.current) {
+        clearTimeout(savedTimeoutRef.current);
+        savedTimeoutRef.current = null;
       }
     };
   }, [appData, transactions, claims, notes, caseName]);
