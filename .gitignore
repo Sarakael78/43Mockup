@@ -27,3 +27,6 @@ dev_server.log
 coverage/
 *.tgz
 *.log
+
+# example data
+example_data/
