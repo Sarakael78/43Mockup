@@ -1,7 +1,7 @@
 # 43Mockup
 # 43Mockup
 
-A minimal Vite + React scaffold for the Rule 43 workspace mockup.
+A Vite + React implementation of the Rule 43 financial intelligence workspace. TODO: harden for production and connect to real data sources.
 
 ## Quick start
 

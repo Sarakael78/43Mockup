@@ -3,7 +3,7 @@
 This document describes how to run, build and modify the 43Mockup project (React + Vite).
 
 **Overview**
-- **Purpose**: Local mockup of a Rule 43 financial reconciliation workspace.
+- **Purpose**: Rule 43 financial reconciliation workspace (forensic analysis tool). TODO: review all flows for production-readiness.
 - **Primary files**: `src/` (React app), `financial_data.json` (data used at runtime), `frontend.html` (original static preview), `run.sh` (dev convenience), `build.sh` (production build + optional serve).
 
 **Prerequisites**
