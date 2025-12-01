@@ -21,7 +21,7 @@ npm run dev
 Or run the helper script which finds a free port and opens your browser:
 
 ```bash
-./run.sh
+./scripts/run.sh
 ```
 
 Open the URL shown by Vite (typically `http://localhost:5173`) in your browser.
@@ -32,8 +32,8 @@ Open the URL shown by Vite (typically `http://localhost:5173`) in your browser.
 - `index.html` — Vite entry that mounts `#root`.
 - `financial_data.json` — Mock data loaded at runtime by the app.
 - `frontend.html` — Original single-file preview (kept for reference).
-- `run.sh` — Dev helper: installs deps if needed, picks a free port, starts dev server and opens browser.
-- `build.sh` — Production build helper; `./build.sh --serve` serves `dist/` on a free port.
+- `scripts/run.sh` — Dev helper: installs deps if needed, picks a free port, starts dev server and opens browser.
+- `scripts/build.sh` — Production build helper; `./scripts/build.sh --serve` serves `dist/` on a free port.
 - `tailwind.config.cjs`, `postcss.config.cjs`, `src/index.css` — Tailwind setup.
 
 ## Workspace modes & UX highlights
@@ -59,7 +59,7 @@ npm run build
 Or use the helper that builds and serves `dist/`:
 
 ```bash
-./build.sh --serve
+./scripts/build.sh --serve
 ```
 
 After a successful build the `dist/` folder will contain the static site ready for deployment.
@@ -83,7 +83,7 @@ npm run dev
 
 - `financial_data.json` fetch fails: confirm the file exists at the project root and the dev server is running.
 
-- Port conflicts: `run.sh` and `build.sh --serve` pick ephemeral free ports. To use a fixed port run `npm run dev -- --port 5173`.
+- Port conflicts: `scripts/run.sh` and `scripts/build.sh --serve` pick ephemeral free ports. To use a fixed port run `npm run dev -- --port 5173`.
 
 ## Deployment
 
@@ -96,8 +96,8 @@ Deploy the contents of `dist/` to any static host (Netlify, S3, GitHub Pages, ng
 
 ## Running the helpers
 
-- Dev helper: `./run.sh` — installs, starts dev server, opens browser.
-- Build helper: `./build.sh` — runs `npm run build` and optionally serves `dist/` with `--serve`.
+- Dev helper: `./scripts/run.sh` — installs, starts dev server, opens browser.
+- Build helper: `./scripts/build.sh` — runs `npm run build` and optionally serves `dist/` with `--serve`.
 
 If you'd like CI to also publish the artifact or deploy to a hosting provider, I can add that in a follow-up.
 

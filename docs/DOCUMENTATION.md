@@ -4,7 +4,7 @@ This document describes how to run, build and modify the 43Mockup project (React
 
 **Overview**
 - **Purpose**: Rule 43 financial reconciliation workspace (forensic analysis tool). TODO: review all flows for production-readiness.
-- **Primary files**: `src/` (React app), `financial_data.json` (data used at runtime), `frontend.html` (original static preview), `run.sh` (dev convenience), `build.sh` (production build + optional serve).
+- **Primary files**: `src/` (React app), `financial_data.json` (data used at runtime), `frontend.html` (original static preview), `scripts/run.sh` (dev convenience), `scripts/build.sh` (production build + optional serve).
 
 **Prerequisites**
 - Node.js (16+) and `npm` on PATH.
@@ -28,7 +28,7 @@ npm run dev
 Or run the helper that picks an available port and opens your browser:
 
 ```bash
-./run.sh
+./scripts/run.sh
 ```
 
 - The app will fetch `financial_data.json` from the project root at `http://localhost:<port>/financial_data.json`.
@@ -45,7 +45,7 @@ npm run build
 - To build and serve `dist/` locally (picks a free port and opens browser):
 
 ```bash
-./build.sh --serve
+./scripts/build.sh --serve
 ```
 
 **Tailwind CSS**
@@ -58,8 +58,8 @@ npm run build
 - `src/App.jsx` — Main app and components (Dashboard, Workbench, etc.).
 - `financial_data.json` — Data source used at runtime by `App`.
 - `frontend.html` — Original single-file preview (kept for reference). Prefer the Vite app.
-- `run.sh` — Dev helper: installs (if needed), finds a free port, starts dev server, opens browser.
-- `build.sh` — Production build helper; optionally serves `dist/`.
+- `scripts/run.sh` — Dev helper: installs (if needed), finds a free port, starts dev server, opens browser.
+- `scripts/build.sh` — Production build helper; optionally serves `dist/`.
 
 **Editing data**
 - Edit `financial_data.json` to change the mock data. The dev server will pick up changes to the JSON when the page is reloaded.
@@ -74,7 +74,7 @@ npm run dev
 
 - `financial_data.json` fetch fails: confirm the file is present in the project root and the dev server is serving from the project root.
 
-- Port conflicts: `run.sh` and `build.sh --serve` pick ephemeral free ports. If you want a fixed port, run `npm run dev -- --port 5173`.
+- Port conflicts: `scripts/run.sh` and `scripts/build.sh --serve` pick ephemeral free ports. If you want a fixed port, run `npm run dev -- --port 5173`.
 
 - If the browser does not open automatically, copy the URL printed by the script and open it manually.
 

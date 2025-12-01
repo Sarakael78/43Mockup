@@ -244,7 +244,6 @@ const FileUploadModal = ({ isOpen, onClose, onUpload }) => {
                 <FileTriageRow
                   key={`${file.name}-${file.size}-${index}`}
                   file={file}
-                  index={index}
                   onRemove={() => handleRemoveFile(index)}
                   onSubmit={(data) => handleTriageSubmit(index, data)}
                 />
@@ -272,7 +271,7 @@ const FileUploadModal = ({ isOpen, onClose, onUpload }) => {
   );
 };
 
-const FileTriageRow = ({ file, index, onRemove, onSubmit }) => {
+const FileTriageRow = ({ file, onRemove, onSubmit }) => {
   const [triage, setTriage] = useState({
     type: 'Bank Statement',
     entity: 'PERSONAL',
@@ -475,9 +474,13 @@ const TopBar = ({ title, subtitle, caseName, onCaseNameChange, onSave, saved }) 
             <input
               type="text"
               value={editValue}
-              onChange={(e) => setEditValue(e.target.value)}
+              onChange={(e) => {
+                const sanitized = e.target.value.replace(/[<>\"']/g, '');
+                setEditValue(sanitized);
+              }}
               onBlur={handleSave}
               onKeyDown={handleKeyDown}
+              maxLength={100}
               className="px-2 py-0.5 bg-white text-amber-700 text-[10px] font-bold uppercase rounded-full tracking-wider border-2 border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-400"
               autoFocus
             />
