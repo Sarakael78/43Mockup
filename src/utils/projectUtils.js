@@ -3,6 +3,7 @@
  */
 
 import { FILE_SIZE_LIMIT_BYTES } from './constants';
+import { ensureTransactionEntities } from './transactionUtils';
 
 /**
  * Export project data to a downloadable file
@@ -120,7 +121,8 @@ export const loadProject = (file, setAppData, setTransactions, setClaims, setCas
         charts: Array.isArray(projectData.charts) ? projectData.charts : [],
         alerts: Array.isArray(projectData.alerts) ? projectData.alerts : []
       });
-      setTransactions(projectData.transactions || []);
+      const normalizedTransactions = ensureTransactionEntities(projectData.transactions || [], projectData.files || []);
+      setTransactions(normalizedTransactions);
       setClaims(projectData.claims || []);
       if (projectData.caseName && typeof projectData.caseName === 'string') {
         setCaseName(projectData.caseName);

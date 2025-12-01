@@ -4,6 +4,8 @@ import { processBankStatement, processFinancialAffidavit } from './utils/filePro
 import { mapCategory } from './utils/categoryMapper';
 import { exportProject, loadProject } from './utils/projectUtils';
 import { TOAST_DELAY_MS, AUTO_SAVE_DEBOUNCE_MS, SAVED_INDICATOR_DURATION_MS } from './utils/constants';
+import { ensureTransactionEntities } from './utils/transactionUtils';
+import { defaultCategories } from './config/categories';
 import NavSidebar from './components/NavSidebar';
 import TopBar from './components/TopBar';
 import FileUploadModal from './components/FileUploadModal';
@@ -12,12 +14,6 @@ import WorkbenchView from './views/WorkbenchView';
 import EvidenceLockerView from './views/EvidenceLockerView';
 
 const App = () => {
-  // Default categories for the application
-  const defaultCategories = [
-    'Groceries/Household', 'School Fees', 'Medical', 'Utilities', 'Transport',
-    'Insurance', 'Bond Repayment', 'Rent', 'Maintenance', 'Child Maintenance',
-    'Legal Fees', 'Clothing', 'Entertainment', 'Uncategorized'
-  ];
 
   const [view, setView] = useState('dashboard');
   const [appData, setAppData] = useState({
@@ -55,7 +51,8 @@ const App = () => {
             charts: projectData.charts || [],
             alerts: projectData.alerts || []
           });
-          setTransactions(projectData.transactions || []);
+          const normalizedTransactions = ensureTransactionEntities(projectData.transactions || [], projectData.files || []);
+          setTransactions(normalizedTransactions);
           setClaims(projectData.claims || []);
           if (projectData.caseName) {
             setCaseName(projectData.caseName);
@@ -257,6 +254,7 @@ const App = () => {
         const fileId = `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 
         if (file.triage.type === 'Bank Statement') {
+          const normalizedEntity = (file.triage.entity || 'PERSONAL').toUpperCase();
           const result = await processBankStatement(
             file,
             file.triage.parser || 'Generic CSV',
@@ -268,9 +266,16 @@ const App = () => {
             errors.push(...result.errors);
           }
 
-          if (result.transactions && result.transactions.length > 0) {
-            setTransactions(prev => [...prev, ...result.transactions]);
-            transactionCount += result.transactions.length;
+          const transactionsWithEntity = (result.transactions || [])
+            .filter(Boolean)
+            .map(tx => {
+              const txEntity = tx?.entity ? String(tx.entity).toUpperCase() : normalizedEntity;
+              return { ...tx, entity: txEntity };
+            });
+
+          if (transactionsWithEntity.length > 0) {
+            setTransactions(prev => [...prev, ...transactionsWithEntity]);
+            transactionCount += transactionsWithEntity.length;
             processedCount++;
           }
 

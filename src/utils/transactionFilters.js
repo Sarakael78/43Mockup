@@ -1,6 +1,7 @@
 /**
  * Transaction filtering utilities
  */
+import { transactionMatchesEntity } from './transactionUtils';
 
 const periodMonthsMap = { '1M': 1, '3M': 3, '6M': 6 };
 
@@ -44,12 +45,9 @@ export const filterTransactionsByPeriod = (transactions, periodFilter, latestDat
  * @returns {Array} Filtered transactions
  */
 export const filterTransactionsByEntity = (transactions, entity, accounts) => {
-  if (!accounts) return transactions;
-  if (entity === 'PERSONAL') return transactions.filter((t) => t.acc === accounts.PERSONAL || t.acc === accounts.TRUST);
-  if (entity === 'BUSINESS') return transactions.filter((t) => t.acc === accounts.BUSINESS || t.acc === accounts.MYMOBIZ);
-  if (entity === 'CREDIT') return transactions.filter((t) => t.acc === accounts.CREDIT);
-  if (entity === 'TRUST') return transactions.filter((t) => t.acc === accounts.TRUST);
-  return transactions;
+  if (!transactions || !Array.isArray(transactions) || transactions.length === 0) return [];
+  if (!entity || entity === 'ALL') return transactions;
+  return transactions.filter(tx => transactionMatchesEntity(tx, entity, accounts));
 };
 
 /**

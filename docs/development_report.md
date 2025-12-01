@@ -8,6 +8,21 @@ This report identifies all features, TODOs, and development requirements for the
 
 ---
 
+## ✅ Fix Log — 2025-12-01
+
+### Workbench Entity Sync
+**Status:** Completed  
+**Scope:** `fileProcessors`, `transactionFilters`, `PDFViewer`, project load path  
+
+**Details:**
+- Transactions now inherit the source file's entity tag during ingestion, and legacy cases hydrate this metadata when loaded.
+- The reconciliation filters and PDF viewer reuse a shared matcher so the left Evidence pane and right transaction grid respond to the same entity selection.
+- CSV/PDF detection prefers files whose transactions match the active entity, preventing mismatched documents in the viewer.
+
+**Impact:** Selecting PERSONAL/BUSINESS/TRUST in the Workbench keeps both panes aligned with the chosen source, eliminating cross-entity bleed-through during demos.
+
+---
+
 ## 🔴 Critical: Production Readiness
 
 ### 1. Error Handling & User Feedback
