@@ -12,19 +12,29 @@ export const parseCSV = (csvText) => {
     const results = Papa.parse(csvText, {
       header: true,
       skipEmptyLines: true,
-      encoding: 'UTF-8'
+      encoding: 'UTF-8',
+      // Limit rows to prevent DoS attacks
+      preview: 100000
     });
 
     // CSV parsing errors are handled silently - invalid rows are filtered out
     // If needed, errors can be collected and returned to caller
 
-    const transactions = results.data
+    // Limit rows to prevent DoS attacks
+    const MAX_ROWS = 100000;
+    const dataRows = results.data.slice(0, MAX_ROWS);
+    if (results.data.length > MAX_ROWS) {
+      console.warn(`CSV file contains ${results.data.length} rows. Processing first ${MAX_ROWS} rows only.`);
+    }
+
+    const transactions = dataRows
       .filter(row => row && (row.Date || row.DATE || row.date))
       .map(row => {
         // Try various column name variations
         const dateStr = row.Date || row.DATE || row.date || '';
         const desc = row.Description || row.DESCRIPTION || row.description || row.Details || row.DETAILS || '';
         const amountStr = row.Amount || row.AMOUNT || row.amount || row['Transaction Amount'] || '0';
+        const categoryStr = row.Category || row.CATEGORY || row.category || row.Cat || row.CAT || '';
         
         // Parse date - Standard Bank format is usually YYYY-MM-DD or DD/MM/YYYY
         let date = '';
@@ -41,6 +51,16 @@ export const parseCSV = (csvText) => {
 
         // Parse amount - remove currency symbols and commas
         const amount = parseFloat(String(amountStr).replace(/[R,\s]/g, '')) || 0;
+        
+        // Sanitize category to prevent CSV injection
+        let category = 'Uncategorized';
+        if (categoryStr && categoryStr.trim()) {
+          // Remove potentially dangerous characters (=, +, -, @, etc.) that could be formula injection
+          const sanitized = String(categoryStr).trim().replace(/^[=+\-@]/, '').substring(0, 100);
+          if (sanitized) {
+            category = sanitized;
+          }
+        }
 
         return {
           id: generateId(),
@@ -49,7 +69,7 @@ export const parseCSV = (csvText) => {
           clean: cleanDescription(desc),
           amount,
           acc: 'PERSONAL',
-          cat: 'Uncategorized',
+          cat: category,
           status: 'pending',
           type: amount < 0 ? 'expense' : 'income'
         };

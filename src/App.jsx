@@ -257,7 +257,7 @@ const createClaimsImportHandler = (setClaims, onError) => {
 
 // --- COMPONENTS ---
 
-const FileUploadModal = ({ isOpen, onClose, onUpload }) => {
+const FileUploadModal = ({ isOpen, onClose, onUpload, showToast }) => {
   const [dragActive, setDragActive] = useState(false);
   const [files, setFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
@@ -280,12 +280,20 @@ const FileUploadModal = ({ isOpen, onClose, onUpload }) => {
     
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-      const newFiles = Array.from(e.dataTransfer.files).filter(file => {
+      const allFiles = Array.from(e.dataTransfer.files);
+      const rejectedFiles = [];
+      const newFiles = allFiles.filter(file => {
         if (file.size > MAX_FILE_SIZE) {
+          rejectedFiles.push(file.name);
           return false;
         }
         return true;
       });
+      
+      if (rejectedFiles.length > 0 && showToast) {
+        showToast(`${rejectedFiles.length} file(s) rejected: exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit. ${rejectedFiles.slice(0, 3).join(', ')}${rejectedFiles.length > 3 ? '...' : ''}`, 'warning');
+      }
+      
       setFiles(prev => [...prev, ...newFiles]);
     }
   };
@@ -293,12 +301,20 @@ const FileUploadModal = ({ isOpen, onClose, onUpload }) => {
   const handleFileInput = (e) => {
     if (e.target.files && e.target.files.length > 0) {
       const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-      const newFiles = Array.from(e.target.files).filter(file => {
+      const allFiles = Array.from(e.target.files);
+      const rejectedFiles = [];
+      const newFiles = allFiles.filter(file => {
         if (file.size > MAX_FILE_SIZE) {
+          rejectedFiles.push(file.name);
           return false;
         }
         return true;
       });
+      
+      if (rejectedFiles.length > 0 && showToast) {
+        showToast(`${rejectedFiles.length} file(s) rejected: exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit. ${rejectedFiles.slice(0, 3).join(', ')}${rejectedFiles.length > 3 ? '...' : ''}`, 'warning');
+      }
+      
       setFiles(prev => [...prev, ...newFiles]);
     }
   };
@@ -681,25 +697,6 @@ const TopBar = ({ title, subtitle, caseName, onCaseNameChange, onSave, saved, on
           <Save size={14} />
           Export Analysis
         </button>
-        {/* Download Report button hidden for MVP demo - to be implemented in future release */}
-        {false && (
-          <button 
-            onClick={() => {
-              // Download Report functionality - to be implemented
-              if (onError) {
-                onError({ 
-                  message: 'Download Report functionality is not yet available.', 
-                  type: 'warning' 
-                });
-              }
-            }}
-            className="inline-flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-md bg-blue-600 text-white shadow-sm hover:bg-blue-500 transition-colors"
-            title="Download Report (Not yet implemented)"
-          >
-            <Download size={14} />
-            Download Report
-          </button>
-        )}
       </div>
     </div>
   );
@@ -1398,7 +1395,7 @@ const App = () => {
         }
       } catch (error) {
         // Error loading from localStorage - continue with empty state
-        console.error('Error loading project from localStorage:', error);
+        // Silently fail - user can still use the app with empty state
       }
     }
     // No fallback to mock data - app starts empty
@@ -1632,6 +1629,7 @@ const App = () => {
         isOpen={fileUploadModal}
         onClose={() => setFileUploadModal(false)}
         onUpload={handleFileUpload}
+        showToast={showToast}
       />
     </div>
   );

@@ -12,7 +12,9 @@ export const parseCSV = (csvText) => {
     const results = Papa.parse(csvText, {
       header: true,
       skipEmptyLines: true,
-      encoding: 'UTF-8'
+      encoding: 'UTF-8',
+      // Limit rows to prevent DoS attacks
+      preview: 100000
     });
 
     // CSV parsing errors are handled silently - invalid rows are filtered out
@@ -35,17 +37,26 @@ export const parseCSV = (csvText) => {
     const dateCol = findColumn(['date', 'transaction date', 'posting date', 'value date']);
     const descCol = findColumn(['description', 'details', 'narrative', 'transaction description', 'memo']);
     const amountCol = findColumn(['amount', 'transaction amount', 'debit', 'credit', 'balance']);
+    const categoryCol = findColumn(['category', 'cat', 'categories', 'expense category', 'transaction category']);
 
     if (!dateCol) {
       throw new Error('Could not find date column in CSV');
     }
 
-    const transactions = results.data
+    // Limit rows to prevent DoS attacks
+    const MAX_ROWS = 100000;
+    const dataRows = results.data.slice(0, MAX_ROWS);
+    if (results.data.length > MAX_ROWS) {
+      console.warn(`CSV file contains ${results.data.length} rows. Processing first ${MAX_ROWS} rows only.`);
+    }
+
+    const transactions = dataRows
       .filter(row => row && row[dateCol])
       .map(row => {
         const dateStr = row[dateCol] || '';
         const desc = (descCol && row[descCol]) || '';
         const amountStr = (amountCol && row[amountCol]) || '0';
+        const categoryStr = (categoryCol && row[categoryCol]) || '';
         
         // Try to parse date
         let date = '';
@@ -67,6 +78,16 @@ export const parseCSV = (csvText) => {
 
         // Parse amount
         const amount = parseFloat(String(amountStr).replace(/[R,\s]/g, '')) || 0;
+        
+        // Sanitize category to prevent CSV injection
+        let category = 'Uncategorized';
+        if (categoryStr && categoryStr.trim()) {
+          // Remove potentially dangerous characters (=, +, -, @, etc.) that could be formula injection
+          const sanitized = String(categoryStr).trim().replace(/^[=+\-@]/, '').substring(0, 100);
+          if (sanitized) {
+            category = sanitized;
+          }
+        }
 
         return {
           id: generateId(),
@@ -75,7 +96,7 @@ export const parseCSV = (csvText) => {
           clean: cleanDescription(desc),
           amount,
           acc: 'PERSONAL',
-          cat: 'Uncategorized',
+          cat: category,
           status: 'pending',
           type: amount < 0 ? 'expense' : 'income'
         };

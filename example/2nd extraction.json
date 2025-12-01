@@ -1,0 +1,22 @@
+{
+  "files": [
+    "StandardBank_MyMobizCurrentAccount_InnovitaMarketingPtyLtd_10240533435.csv",
+    "FNB_GoldBusinessAccount_InnovitaMarketingPtyLtd_62880866200.csv",
+    "StandardBank_PlatinumCreditCard_KPRademan_55202483.csv"
+  ],
+  "unparse": [],
+  "ambig": [
+    {
+      "file": "StandardBank_MyMobizCurrentAccount_InnovitaMarketingPtyLtd_10240533435.csv",
+      "date": "05/06/2025",
+      "desc": "PAYSHAP PAYMENT TO FARMMUSHY",
+      "reason": "Statement lists this description but no explicit amount on the line, only a balance decrease of 7.00 labeled 'FEE'. The 7.00 fee is extracted. The principal amount is likely 0 or failed."
+    }
+  ],
+  "miss_desc": [],
+  "skipped": [
+    "Typed 'LIVING EXPENSES' summaries (Pages 12, 16, 20)",
+    "Invoices/Quotes/Legal Docs (Pages 4-11, 24-29)"
+  ],
+  "notes": "FNB Sep 2025 statement duplicates content from scan 1.pdf. Credit Card purchases treated as negative values."
+}

@@ -1,0 +1,30 @@
+{
+  "files": [
+    "StandardBank_BusinessCurrentAccount_TechnicalProductMarketingTrust_080530397.csv",
+    "StandardBank_PrivateBankingPlus_KPRademan_080737420.csv",
+    "FNB_GoldBusinessAccount_InnovitaMarketingPtyLtd_62880866200.csv",
+    "StandardBank_MyMobizCurrentAccount_InnovitaMarketingPtyLtd_10240533435.csv"
+  ],
+  "unparse": [],
+  "ambig": [
+    {
+      "file": "StandardBank_MyMobizCurrentAccount_InnovitaMarketingPtyLtd_10240533435.csv",
+      "date": "12/08/2025",
+      "desc": "MAGTAPE CREDIT EARTHLY ELEMENTS",
+      "reason": "Description says 'Credit' but column alignment and balance impact indicate Debit (-5573.20)."
+    },
+    {
+      "file": "FNB_GoldBusinessAccount_InnovitaMarketingPtyLtd_62880866200.csv",
+      "date": "02/06/2025",
+      "desc": "FNB OB Pmt Aqua Spa",
+      "reason": "Description suggests Payment (Debit) but amount is tagged 'Cr' and balance increases. Extracted as Credit."
+    }
+  ],
+  "miss_desc": [],
+  "skipped": [
+    "Opening/Closing Balances",
+    "Headers/Footers",
+    "Page 14-15 (Duplicate Statement Period)"
+  ],
+  "notes": "Year 2025 assumed for all files based on header context. FNB Amounts with 'Cr' treated as positive, others as negative."
+}
