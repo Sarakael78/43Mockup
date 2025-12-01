@@ -1,6 +1,7 @@
 import Papa from 'papaparse';
-
-const generateId = () => `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+import { generateId } from '../constants';
+import { CSV_MAX_ROWS } from '../constants';
+import { logger } from '../logger';
 
 const cleanDescription = (desc) => {
   if (!desc) return '';
@@ -14,17 +15,16 @@ export const parseCSV = (csvText) => {
       skipEmptyLines: true,
       encoding: 'UTF-8',
       // Limit rows to prevent DoS attacks
-      preview: 100000
+      preview: CSV_MAX_ROWS
     });
 
     // CSV parsing errors are handled silently - invalid rows are filtered out
     // If needed, errors can be collected and returned to caller
 
     // Limit rows to prevent DoS attacks
-    const MAX_ROWS = 100000;
-    const dataRows = results.data.slice(0, MAX_ROWS);
-    if (results.data.length > MAX_ROWS) {
-      console.warn(`CSV file contains ${results.data.length} rows. Processing first ${MAX_ROWS} rows only.`);
+    const dataRows = results.data.slice(0, CSV_MAX_ROWS);
+    if (results.data.length > CSV_MAX_ROWS) {
+      logger.warn(`CSV file contains ${results.data.length} rows. Processing first ${CSV_MAX_ROWS} rows only.`);
     }
 
     const transactions = dataRows

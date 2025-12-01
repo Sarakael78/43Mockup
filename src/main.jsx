@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App';
 import ErrorBoundary from './ErrorBoundary';
 import { ToastProvider } from './contexts/ToastContext';
+import './utils/pdfConfig'; // Initialize PDF.js worker configuration early
 import './index.css';
 
 const container = document.getElementById('root');

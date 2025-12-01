@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import Papa from 'papaparse';
 import { FileText } from 'lucide-react';
+import { CSV_PREVIEW_ROWS } from '../utils/constants';
+import { logger } from '../utils/logger';
 
 const CSVViewer = ({ file, fileUrl }) => {
   const [csvData, setCsvData] = useState([]);
@@ -41,10 +43,10 @@ const CSVViewer = ({ file, fileUrl }) => {
           header: true,
           skipEmptyLines: true,
           encoding: 'UTF-8',
-          preview: 1000, // Limit to 1000 rows for display
+          preview: CSV_PREVIEW_ROWS, // Limit rows for display
           complete: (results) => {
             if (results.errors && results.errors.length > 0) {
-              console.warn('CSV parsing warnings:', results.errors);
+              logger.warn('CSV parsing warnings:', results.errors);
             }
             
             if (results.data && results.data.length > 0) {
@@ -144,7 +146,7 @@ const CSVViewer = ({ file, fileUrl }) => {
             </tbody>
           </table>
         </div>
-        {csvData.length >= 1000 && (
+        {csvData.length >= CSV_PREVIEW_ROWS && (
           <div className="px-4 py-2 bg-amber-50 border-t border-amber-200 text-xs text-amber-700">
             Showing first 1000 rows. CSV file may contain more data.
           </div>

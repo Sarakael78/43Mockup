@@ -2,22 +2,16 @@ import mammoth from 'mammoth';
 import { parseCSV as standardBankParseCSV } from './parsers/standardBankParser.js';
 import { parseCSV as fnbParseCSV } from './parsers/fnbParser.js';
 import { parseCSV as genericParseCSV } from './parsers/genericCSVParser.js';
-
-// Dynamic import for pdf-parse to handle ESM/CJS differences
-const getPdfParse = async () => {
-  try {
-    const module = await import('pdf-parse');
-    return module.default || module;
-  } catch (e) {
-    // Fallback if import fails
-    return null;
-  }
-};
-
-const generateId = () => `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+import { extractTextFromPDFSimple } from './pdfExtractor';
+import { generateId } from './constants';
 
 const readFileAsText = (file) => {
   return new Promise((resolve, reject) => {
+    // Ensure file is a Blob/File object by checking for Blob methods
+    if (!file || typeof file.slice !== 'function' || typeof file.stream !== 'function') {
+      reject(new Error('Invalid file object: expected Blob or File'));
+      return;
+    }
     const reader = new FileReader();
     reader.onload = (e) => resolve(e.target.result);
     reader.onerror = (e) => reject(new Error('Failed to read file'));
@@ -27,6 +21,11 @@ const readFileAsText = (file) => {
 
 const readFileAsArrayBuffer = (file) => {
   return new Promise((resolve, reject) => {
+    // Ensure file is a Blob/File object by checking for Blob methods
+    if (!file || typeof file.slice !== 'function' || typeof file.stream !== 'function') {
+      reject(new Error('Invalid file object: expected Blob or File'));
+      return;
+    }
     const reader = new FileReader();
     reader.onload = (e) => resolve(e.target.result);
     reader.onerror = (e) => reject(new Error('Failed to read file'));
@@ -34,11 +33,15 @@ const readFileAsArrayBuffer = (file) => {
   });
 };
 
-export const processBankStatement = async (file, parser, entity) => {
+export const processBankStatement = async (file, parser, entity, fileId = null) => {
   const errors = [];
   const transactions = [];
 
   try {
+    if (!file || !file.name) {
+      throw new Error('File name is missing');
+    }
+
     if (!file.triage || !file.triage.type || file.triage.type !== 'Bank Statement') {
       throw new Error('Invalid file type for bank statement processing');
     }
@@ -79,20 +82,18 @@ export const processBankStatement = async (file, parser, entity) => {
           tx.acc = entityMap[entity] || tx.acc;
         }
         // If account was parsed from CSV (contains account identifier), keep it as-is
+        // Add fileId to track source
+        if (fileId) {
+          tx.fileId = fileId;
+        }
       });
 
       transactions.push(...parsed);
 
     } else if (fileExtension === 'pdf') {
-      // PDF processing - basic text extraction
-      const pdfParse = await getPdfParse();
-      if (!pdfParse) {
-        throw new Error('PDF parsing not available');
-      }
+      // PDF processing - basic text extraction using pdfjs-dist
       const arrayBuffer = await readFileAsArrayBuffer(file);
-      // pdf-parse can accept ArrayBuffer directly in browser environments
-      const pdfData = await pdfParse(arrayBuffer);
-      const text = pdfData.text;
+      const text = await extractTextFromPDF(arrayBuffer);
       
       // Basic regex parsing for transactions in PDF
       // This is simplified - real implementation would need more sophisticated parsing
@@ -128,7 +129,8 @@ export const processBankStatement = async (file, parser, entity) => {
               acc: entity || 'PERSONAL',
               cat: 'Uncategorized',
               status: 'pending',
-              type: amount < 0 ? 'expense' : 'income'
+              type: amount < 0 ? 'expense' : 'income',
+              fileId: fileId || null
             });
           }
         }
@@ -150,11 +152,15 @@ export const processBankStatement = async (file, parser, entity) => {
   }
 };
 
-export const processFinancialAffidavit = async (file) => {
+export const processFinancialAffidavit = async (file, fileId = null) => {
   const errors = [];
   const claims = [];
 
   try {
+    if (!file || !file.name) {
+      throw new Error('File name is missing');
+    }
+
     if (!file.triage || !file.triage.type || file.triage.type !== 'Financial Affidavit') {
       throw new Error('Invalid file type for financial affidavit processing');
     }
@@ -180,7 +186,8 @@ export const processFinancialAffidavit = async (file) => {
             id: generateId(),
             category: category.trim(),
             claimed: amount,
-            desc: ''
+            desc: '',
+            fileId: fileId || null
           });
         }
       }
@@ -209,7 +216,8 @@ export const processFinancialAffidavit = async (file) => {
                 id: generateId(),
                 category: currentCategory,
                 claimed: amount,
-                desc: ''
+                desc: '',
+                fileId: fileId || null
               });
             }
           }
@@ -221,14 +229,9 @@ export const processFinancialAffidavit = async (file) => {
       }
 
     } else if (fileExtension === 'pdf') {
-      const pdfParse = await getPdfParse();
-      if (!pdfParse) {
-        throw new Error('PDF parsing not available');
-      }
+      // Use pdfjs-dist for browser-compatible PDF text extraction
       const arrayBuffer = await readFileAsArrayBuffer(file);
-      // pdf-parse can accept ArrayBuffer directly in browser environments
-      const pdfData = await pdfParse(arrayBuffer);
-      const text = pdfData.text;
+      const text = await extractTextFromPDF(arrayBuffer);
 
       // Similar parsing logic for PDF
       const categoryPattern = /([A-Z][a-zA-Z\s/]+?):\s*R?\s*([\d,]+\.?\d*)/g;
@@ -243,7 +246,8 @@ export const processFinancialAffidavit = async (file) => {
             id: generateId(),
             category: category.trim(),
             claimed: amount,
-            desc: ''
+            desc: '',
+            fileId: fileId || null
           });
         }
       }

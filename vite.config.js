@@ -1,7 +1,9 @@
 import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  plugins: [react()],
   build: {
     outDir: 'dist',
     sourcemap: false,
@@ -12,7 +14,7 @@ export default defineConfig({
           'react-vendor': ['react', 'react-dom'],
           'chart-vendor': ['recharts'],
           'icon-vendor': ['lucide-react'],
-          'pdf-vendor': ['pdf-parse', 'pdfjs-dist', 'react-pdf'],
+          'pdf-vendor': ['pdfjs-dist', 'react-pdf'],
         },
       },
     },

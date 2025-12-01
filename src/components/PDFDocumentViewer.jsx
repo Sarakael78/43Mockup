@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Document, Page } from 'react-pdf';
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-react';
 import '../utils/pdfConfig';
+import { PDF_ZOOM_MIN, PDF_ZOOM_MAX, PDF_ZOOM_STEP, PDF_A4_WIDTH } from '../utils/constants';
 
 const PDFDocumentViewer = ({ fileUrl, onLoadSuccess, currentPage: externalPage, onPageChange, zoom: externalZoom, onZoomChange }) => {
   const [numPages, setNumPages] = useState(null);
@@ -39,13 +40,13 @@ const PDFDocumentViewer = ({ fileUrl, onLoadSuccess, currentPage: externalPage, 
   };
 
   const handleZoomIn = () => {
-    const newZoom = Math.min(2.0, zoom + 0.25);
+    const newZoom = Math.min(PDF_ZOOM_MAX, zoom + PDF_ZOOM_STEP);
     setZoom(newZoom);
     if (onZoomChange) onZoomChange(newZoom);
   };
 
   const handleZoomOut = () => {
-    const newZoom = Math.max(0.5, zoom - 0.25);
+    const newZoom = Math.max(PDF_ZOOM_MIN, zoom - PDF_ZOOM_STEP);
     setZoom(newZoom);
     if (onZoomChange) onZoomChange(newZoom);
   };
@@ -123,7 +124,7 @@ const PDFDocumentViewer = ({ fileUrl, onLoadSuccess, currentPage: externalPage, 
         <div className="flex items-center gap-2">
           <button
             onClick={handleZoomOut}
-            disabled={zoom <= 0.5}
+            disabled={zoom <= PDF_ZOOM_MIN}
             className="p-1.5 rounded hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed text-slate-600"
           >
             <ZoomOut size={16} />
@@ -133,7 +134,7 @@ const PDFDocumentViewer = ({ fileUrl, onLoadSuccess, currentPage: externalPage, 
           </span>
           <button
             onClick={handleZoomIn}
-            disabled={zoom >= 2.0}
+            disabled={zoom >= PDF_ZOOM_MAX}
             className="p-1.5 rounded hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed text-slate-600"
           >
             <ZoomIn size={16} />
@@ -160,7 +161,7 @@ const PDFDocumentViewer = ({ fileUrl, onLoadSuccess, currentPage: externalPage, 
               pageNumber={pageNumber}
               renderTextLayer={true}
               renderAnnotationLayer={true}
-              width={595} // A4 width in points
+              width={PDF_A4_WIDTH} // A4 width in points
             />
           </Document>
         </div>

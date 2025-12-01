@@ -1,9 +1,16 @@
 import { pdfjs } from 'react-pdf';
+import * as pdfjsLib from 'pdfjs-dist';
 
-// Configure PDF.js worker for Vite
-if (import.meta.env.PROD) {
-  pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
-} else {
-  pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
+// Shared PDF.js worker configuration for both react-pdf and pdfjs-dist
+// Use worker from public folder to avoid CORS and Vite module resolution issues
+// The worker file is copied to public/ during setup
+const WORKER_URL = '/pdf.worker.min.mjs';
+
+// Configure for react-pdf
+pdfjs.GlobalWorkerOptions.workerSrc = WORKER_URL;
+
+// Configure for pdfjs-dist (used in documentParsers and fileProcessors)
+if (typeof window !== 'undefined') {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = WORKER_URL;
 }
 

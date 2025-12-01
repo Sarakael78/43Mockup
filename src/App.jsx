@@ -18,7 +18,11 @@ import {
   FolderOpen,
   X,
   Plus,
-  Check
+  Check,
+  Trash2,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown
 } from 'lucide-react';
 import { useToast } from './contexts/ToastContext';
 import { processBankStatement, processFinancialAffidavit } from './utils/fileProcessors';
@@ -208,6 +212,10 @@ const loadProject = (file, setAppData, setTransactions, setClaims, setCaseName, 
 const createClaimsImportHandler = (setClaims, onError) => {
   return async (file) => {
     try {
+      if (!file || !file.name) {
+        throw new Error('File name is missing');
+      }
+
       if (onError) {
         onError({ message: `Parsing ${file.name}...`, type: 'info' });
       }
@@ -284,6 +292,13 @@ const FileUploadModal = ({ isOpen, onClose, onUpload, showToast }) => {
       const allFiles = Array.from(e.dataTransfer.files);
       const rejectedFiles = [];
       const newFiles = allFiles.filter(file => {
+        // Validate file has required properties
+        if (!file || !file.name) {
+          if (showToast) {
+            showToast('Some files were rejected: missing file name', 'warning');
+          }
+          return false;
+        }
         if (file.size > MAX_FILE_SIZE) {
           rejectedFiles.push(file.name);
           return false;
@@ -305,6 +320,13 @@ const FileUploadModal = ({ isOpen, onClose, onUpload, showToast }) => {
       const allFiles = Array.from(e.target.files);
       const rejectedFiles = [];
       const newFiles = allFiles.filter(file => {
+        // Validate file has required properties
+        if (!file || !file.name) {
+          if (showToast) {
+            showToast('Some files were rejected: missing file name', 'warning');
+          }
+          return false;
+        }
         if (file.size > MAX_FILE_SIZE) {
           rejectedFiles.push(file.name);
           return false;
@@ -325,9 +347,22 @@ const FileUploadModal = ({ isOpen, onClose, onUpload, showToast }) => {
   };
 
   const handleTriageSubmit = (fileIndex, triageData) => {
-    setFiles(prev => prev.map((f, i) => 
-      i === fileIndex ? { ...f, triage: triageData } : { ...f }
-    ));
+    setFiles(prev => prev.map((f, i) => {
+      if (i === fileIndex) {
+        // Preserve the original File object and just add the triage property
+        // File objects are mutable, so we can add properties directly
+        // Check if it's a File/Blob by checking for Blob methods
+        if (f && typeof f.slice === 'function' && typeof f.stream === 'function') {
+          // It's a File/Blob object - add triage property directly
+          f.triage = triageData;
+          return f;
+        } else {
+          // If it's already a plain object (shouldn't happen, but handle it)
+          return { ...f, triage: triageData };
+        }
+      }
+      return f;
+    }));
   };
 
   const handleUpload = async () => {
@@ -437,6 +472,15 @@ const FileTriageRow = ({ file, onRemove, onSubmit }) => {
     parser: 'Standard Bank'
   });
   const [submitted, setSubmitted] = useState(false);
+
+  // Validate file has name
+  if (!file || !file.name) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="text-sm text-red-700">Invalid file: missing file name</div>
+      </div>
+    );
+  }
 
   const handleSubmit = () => {
     onSubmit(triage);
@@ -863,7 +907,7 @@ const DashboardView = ({ data, transactions, claims, onLoadProject }) => {
   );
 };
 
-const DocumentInventory = ({ transactions, periodFilter, monthsInScope, files, claims, onImport, setClaims }) => {
+const DocumentInventory = ({ transactions, periodFilter, monthsInScope, files, claims, onImport, setClaims, onDeleteFile }) => {
   const [entryMode, setEntryMode] = useState('manual');
   const fileInputRef = useRef(null);
   const entryModes = [
@@ -878,8 +922,8 @@ const DocumentInventory = ({ transactions, periodFilter, monthsInScope, files, c
   };
 
   const handleImportClick = useCallback(() => {
-    if (entryMode === 'import') {
-      fileInputRef.current?.click();
+    if (entryMode === 'import' && fileInputRef.current) {
+      fileInputRef.current.click();
     }
   }, [entryMode]);
 
@@ -887,14 +931,10 @@ const DocumentInventory = ({ transactions, periodFilter, monthsInScope, files, c
     if (e.target.files && e.target.files.length > 0 && onImport) {
       onImport(e.target.files[0]);
       e.target.value = '';
+      // Reset to manual mode after import
+      setEntryMode('manual');
     }
   };
-
-  useEffect(() => {
-    if (entryMode === 'import') {
-      handleImportClick();
-    }
-  }, [entryMode, handleImportClick]);
 
   const getProvenAvg = (category) => {
     const total = transactions
@@ -957,15 +997,31 @@ const DocumentInventory = ({ transactions, periodFilter, monthsInScope, files, c
               const safeName = file.name ? String(file.name).replace(/[<>\"'&]/g, '') : 'Unknown';
               const safeDesc = file.desc ? String(file.desc).replace(/[<>\"'&]/g, '') : '';
               return (
-                <div key={file.id} className="bg-white border border-slate-200 rounded p-3 flex flex-col gap-1 shadow-sm hover:border-blue-300 cursor-pointer transition-colors group">
+                <div key={file.id} className="bg-white border border-slate-200 rounded p-3 flex flex-col gap-1 shadow-sm hover:border-blue-300 transition-colors group">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
-                      <div className="text-rose-600">
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-700 flex-1 min-w-0">
+                      <div className="text-rose-600 shrink-0">
                         {safeName.toLowerCase().includes('pdf') ? <FileText size={14} /> : <File size={14} />}
                       </div>
-                      <div className="truncate max-w-[180px]">{safeName}</div>
+                      <div className="truncate">{safeName}</div>
                     </div>
-                    <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${file.entity === 'LEGAL' ? 'bg-purple-50 text-purple-700' : 'bg-slate-100 text-slate-500'}`}>{file.entity || 'UNKNOWN'}</span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${file.entity === 'LEGAL' ? 'bg-purple-50 text-purple-700' : 'bg-slate-100 text-slate-500'}`}>{file.entity || 'UNKNOWN'}</span>
+                      {onDeleteFile && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (window.confirm(`Delete "${safeName}" and all associated transactions/claims?`)) {
+                              onDeleteFile(file.id);
+                            }
+                          }}
+                          className="opacity-0 group-hover:opacity-100 text-rose-500 hover:text-rose-700 transition-opacity p-1"
+                          title="Delete file and all associated data"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div className="text-[10px] text-slate-400 pl-6">{safeDesc}</div>
                 </div>
@@ -987,7 +1043,15 @@ const DocumentInventory = ({ transactions, periodFilter, monthsInScope, files, c
               {entryModes.map((mode) => (
                 <button
                   key={mode.key}
-                  onClick={() => !mode.disabled && setEntryMode(mode.key)}
+                  onClick={() => {
+                    if (!mode.disabled) {
+                      setEntryMode(mode.key);
+                      // Trigger file picker directly on user click (not in useEffect)
+                      if (mode.key === 'import' && fileInputRef.current) {
+                        fileInputRef.current.click();
+                      }
+                    }
+                  }}
                   disabled={mode.disabled}
                   className={`px-2 py-0.5 flex items-center gap-1 ${entryMode === mode.key ? 'bg-white text-slate-900' : mode.disabled ? 'text-slate-300 cursor-not-allowed' : 'text-slate-500'}`}
                   aria-pressed={entryMode === mode.key}
@@ -1194,7 +1258,7 @@ const PDFViewer = ({ entity, activeTxId, transactions, files, accounts, setClaim
   );
 };
 
-const EvidenceLockerView = ({ transactions, claims, files, accounts, onError, setClaims }) => {
+const EvidenceLockerView = ({ transactions, claims, files, accounts, onError, setClaims, onDeleteFile }) => {
   const [filterEntity, setFilterEntity] = useState('ALL');
   const [periodFilter, setPeriodFilter] = useState('3M');
   const monthsInScope = periodMonthsMap[periodFilter] || 1;
@@ -1227,7 +1291,7 @@ const EvidenceLockerView = ({ transactions, claims, files, accounts, onError, se
       </div>
       <div className="flex-1 min-h-0">
         {filterEntity === 'ALL'
-          ? <DocumentInventory transactions={scopedTransactions} periodFilter={periodFilter} monthsInScope={monthsInScope} files={files} claims={claims} onImport={createClaimsImportHandler(setClaims, onError)} setClaims={setClaims} />
+          ? <DocumentInventory transactions={scopedTransactions} periodFilter={periodFilter} monthsInScope={monthsInScope} files={files} claims={claims} onImport={createClaimsImportHandler(setClaims, onError)} setClaims={setClaims} onDeleteFile={onDeleteFile} />
           : <PDFViewer entity={filterEntity} transactions={transactions} activeTxId={null} files={files} accounts={accounts} setClaims={setClaims} />
         }
       </div>
@@ -1235,17 +1299,66 @@ const EvidenceLockerView = ({ transactions, claims, files, accounts, onError, se
   );
 };
 
-const WorkbenchView = ({ data, transactions, setTransactions, claims, setClaims, notes, setNotes, onError }) => {
+const WorkbenchView = ({ data, transactions, setTransactions, claims, setClaims, notes, setNotes, onError, onDeleteFile }) => {
   const [filterEntity, setFilterEntity] = useState('ALL');
   const [periodFilter, setPeriodFilter] = useState('1M');
   const [noteModal, setNoteModal] = useState({ isOpen: false, transaction: null });
+  const [sortColumn, setSortColumn] = useState('date');
+  const [sortDirection, setSortDirection] = useState('desc'); // 'asc' or 'desc'
   const monthsInScope = periodMonthsMap[periodFilter] || 1;
   const latestTransactionDate = useMemo(() => getLatestTransactionDate(transactions), [transactions]);
 
+    const handleSort = (column) => {
+    if (sortColumn === column) {
+      // Toggle direction if clicking same column
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // New column, default to descending for date/amount, ascending for text
+      setSortColumn(column);
+      setSortDirection(column === 'date' || column === 'amount' ? 'desc' : 'asc');
+    }
+  };
+
   const filteredTx = useMemo(() => {
-    const byEntity = filterTransactionsByEntity(transactions, filterEntity, data.accounts);
-    return filterTransactionsByPeriod(byEntity, periodFilter, latestTransactionDate);
-  }, [transactions, filterEntity, periodFilter, data.accounts, latestTransactionDate]);
+    let result = filterTransactionsByEntity(transactions, filterEntity, data.accounts);
+    result = filterTransactionsByPeriod(result, periodFilter, latestTransactionDate);
+    
+    // Apply sorting
+    const sorted = [...result].sort((a, b) => {
+      let aVal, bVal;
+      
+      switch (sortColumn) {
+        case 'date':
+          aVal = a.date ? new Date(a.date).getTime() : 0;
+          bVal = b.date ? new Date(b.date).getTime() : 0;
+          break;
+        case 'description':
+          aVal = (a.clean || a.desc || '').toLowerCase();
+          bVal = (b.clean || b.desc || '').toLowerCase();
+          break;
+        case 'category':
+          aVal = (a.cat || 'Uncategorized').toLowerCase();
+          bVal = (b.cat || 'Uncategorized').toLowerCase();
+          break;
+        case 'amount':
+          aVal = a.amount || 0;
+          bVal = b.amount || 0;
+          break;
+        case 'evidence':
+          aVal = (a.status || 'pending').toLowerCase();
+          bVal = (b.status || 'pending').toLowerCase();
+          break;
+        default:
+          return 0;
+      }
+      
+      if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+    
+    return sorted;
+  }, [transactions, filterEntity, periodFilter, data.accounts, latestTransactionDate, sortColumn, sortDirection]);
 
   const handleCategoryChange = (id, newCat) => {
     setTransactions(prev => prev.map(t => t.id === id ? { ...t, cat: newCat } : t));
@@ -1277,7 +1390,7 @@ const WorkbenchView = ({ data, transactions, setTransactions, claims, setClaims,
     <div className="flex flex-1 h-full overflow-hidden">
       <div className="w-1/2 flex flex-col">
         {filterEntity === 'ALL'
-          ? <DocumentInventory transactions={filteredTx} periodFilter={periodFilter} monthsInScope={monthsInScope} files={data.files} claims={claims} onImport={createClaimsImportHandler(setClaims, onError)} setClaims={setClaims} />
+          ? <DocumentInventory transactions={filteredTx} periodFilter={periodFilter} monthsInScope={monthsInScope} files={data.files} claims={claims} onImport={createClaimsImportHandler(setClaims, onError)} setClaims={setClaims} onDeleteFile={onDeleteFile} />
           : <PDFViewer entity={filterEntity} transactions={transactions} activeTxId={null} files={data.files} accounts={data.accounts} setClaims={setClaims} />
         }
       </div>
@@ -1296,11 +1409,61 @@ const WorkbenchView = ({ data, transactions, setTransactions, claims, setClaims,
         </div>
         <div className="flex-1 overflow-auto custom-scroll">
           <div className="grid grid-cols-[80px_1fr_120px_110px_110px_30px] bg-slate-50 border-y border-slate-200 text-[9px] font-bold text-slate-500 uppercase py-2 px-3 sticky top-0 z-10">
-            <div>Date</div>
-            <div>Description</div>
-            <div>Category</div>
-            <div className="text-right">Amount</div>
-            <div className="text-center">Evidence</div>
+            <button
+              onClick={() => handleSort('date')}
+              className="flex items-center gap-1 hover:text-slate-700 transition-colors text-left"
+            >
+              Date
+              {sortColumn === 'date' ? (
+                sortDirection === 'asc' ? <ArrowUp size={10} /> : <ArrowDown size={10} />
+              ) : (
+                <ArrowUpDown size={10} className="opacity-30" />
+              )}
+            </button>
+            <button
+              onClick={() => handleSort('description')}
+              className="flex items-center gap-1 hover:text-slate-700 transition-colors text-left"
+            >
+              Description
+              {sortColumn === 'description' ? (
+                sortDirection === 'asc' ? <ArrowUp size={10} /> : <ArrowDown size={10} />
+              ) : (
+                <ArrowUpDown size={10} className="opacity-30" />
+              )}
+            </button>
+            <button
+              onClick={() => handleSort('category')}
+              className="flex items-center gap-1 hover:text-slate-700 transition-colors text-left"
+            >
+              Category
+              {sortColumn === 'category' ? (
+                sortDirection === 'asc' ? <ArrowUp size={10} /> : <ArrowDown size={10} />
+              ) : (
+                <ArrowUpDown size={10} className="opacity-30" />
+              )}
+            </button>
+            <button
+              onClick={() => handleSort('amount')}
+              className="flex items-center gap-1 hover:text-slate-700 transition-colors text-right justify-end"
+            >
+              Amount
+              {sortColumn === 'amount' ? (
+                sortDirection === 'asc' ? <ArrowUp size={10} /> : <ArrowDown size={10} />
+              ) : (
+                <ArrowUpDown size={10} className="opacity-30" />
+              )}
+            </button>
+            <button
+              onClick={() => handleSort('evidence')}
+              className="flex items-center gap-1 hover:text-slate-700 transition-colors text-center justify-center"
+            >
+              Evidence
+              {sortColumn === 'evidence' ? (
+                sortDirection === 'asc' ? <ArrowUp size={10} /> : <ArrowDown size={10} />
+              ) : (
+                <ArrowUpDown size={10} className="opacity-30" />
+              )}
+            </button>
             <div></div>
           </div>
           {filteredTx.map(tx => {
@@ -1494,6 +1657,24 @@ const App = () => {
     };
   }, []);
 
+  const handleDeleteFile = (fileId) => {
+    if (!fileId) return;
+
+    // Remove the file from appData
+    setAppData(prev => ({
+      ...prev,
+      files: (prev.files || []).filter(f => f.id !== fileId)
+    }));
+
+    // Remove all transactions associated with this file
+    setTransactions(prev => prev.filter(tx => tx.fileId !== fileId));
+
+    // Remove all claims associated with this file
+    setClaims(prev => prev.filter(claim => claim.fileId !== fileId));
+
+    showToast('File and all associated data deleted', 'success');
+  };
+
   const handleFileUpload = async (files) => {
     if (!files || files.length === 0) return;
 
@@ -1507,16 +1688,31 @@ const App = () => {
 
     for (const file of files) {
       try {
+        // Validate file object has required properties
+        if (!file) {
+          errors.push({ file: 'Unknown', message: 'File object is missing' });
+          continue;
+        }
+
+        if (!file.name) {
+          errors.push({ file: 'Unknown', message: 'File name is missing. Please ensure the file was selected correctly.' });
+          continue;
+        }
+
         if (!file.triage || !file.triage.type) {
           errors.push({ file: file.name, message: 'File triage not completed' });
           continue;
         }
 
+        // Generate fileId before processing so we can track which transactions/claims came from this file
+        const fileId = `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+
         if (file.triage.type === 'Bank Statement') {
           const result = await processBankStatement(
             file,
             file.triage.parser || 'Generic CSV',
-            file.triage.entity || 'PERSONAL'
+            file.triage.entity || 'PERSONAL',
+            fileId // Pass fileId to track source
           );
 
           if (result.errors && result.errors.length > 0) {
@@ -1531,7 +1727,7 @@ const App = () => {
 
           // Add file metadata (include file object for viewing)
           newFiles.push({
-            id: `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+            id: fileId,
             name: file.name,
             desc: `Bank Statement - ${file.triage.parser}`,
             entity: file.triage.entity || 'PERSONAL',
@@ -1541,7 +1737,7 @@ const App = () => {
           });
 
         } else if (file.triage.type === 'Financial Affidavit') {
-          const result = await processFinancialAffidavit(file);
+          const result = await processFinancialAffidavit(file, fileId); // Pass fileId to track source
 
           if (result.errors && result.errors.length > 0) {
             errors.push(...result.errors);
@@ -1561,7 +1757,7 @@ const App = () => {
 
           // Add file metadata
           newFiles.push({
-            id: `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+            id: fileId,
             name: file.name,
             desc: 'Financial Affidavit',
             entity: file.triage.entity || 'LEGAL',
@@ -1630,6 +1826,7 @@ const App = () => {
               notes={notes}
               setNotes={setNotes}
               onError={(err) => showToast(err.message, err.type || 'error')}
+              onDeleteFile={handleDeleteFile}
             />
           )}
           {view === 'evidence' && (
@@ -1640,6 +1837,7 @@ const App = () => {
               accounts={appData.accounts || {}}
               onError={(err) => showToast(err.message, err.type || 'error')}
               setClaims={setClaims}
+              onDeleteFile={handleDeleteFile}
             />
           )}
         </div>

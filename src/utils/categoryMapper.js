@@ -1,3 +1,5 @@
+import { CATEGORY_MATCH_RATIO } from './constants';
+
 // Map extracted category names to standard categories
 const categoryMap = {
   'groceries': 'Groceries/Household',
@@ -69,7 +71,7 @@ const fuzzyMatch = (input, target) => {
   const commonWords = inputWords.filter(w => targetWords.includes(w));
   const matchRatio = commonWords.length / Math.max(inputWords.length, targetWords.length);
   
-  return matchRatio >= 0.5;
+  return matchRatio >= CATEGORY_MATCH_RATIO;
 };
 
 export const mapCategory = (extractedCategory) => {
