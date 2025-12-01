@@ -31,7 +31,6 @@ Open the URL shown by Vite (typically `http://localhost:5173`) in your browser.
 - `src/` — React source (entry at `src/main.jsx`, main UI in `src/App.jsx`).
 - `index.html` — Vite entry that mounts `#root`.
 - `financial_data.json` — Mock data loaded at runtime by the app.
-- `frontend.html` — Original single-file preview (kept for reference).
 - `scripts/run.sh` — Dev helper: installs deps if needed, picks a free port, starts dev server and opens browser.
 - `scripts/build.sh` — Production build helper; `./scripts/build.sh --serve` serves `dist/` on a free port.
 - `tailwind.config.cjs`, `postcss.config.cjs`, `src/index.css` — Tailwind setup.
@@ -92,8 +91,8 @@ Deploy the contents of `dist/` to any static host (Netlify, S3, GitHub Pages, ng
 ## Development notes
 
 - The UI uses Tailwind utility classes. If you want the exact visual styles, enable Tailwind (already configured).
-- `frontend.html` is a reference preview; the Vite app is the recommended development target.
 - Error handling: All user-facing errors use non-blocking toast notifications instead of `alert()` dialogs.
+- Error boundaries: React Error Boundaries are implemented to gracefully handle component errors.
 - Security: Input sanitization is implemented for case names, file names, and transaction notes to prevent XSS attacks.
 - Data validation: Enhanced JSON schema validation for project files with detailed error messages.
 

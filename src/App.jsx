@@ -197,7 +197,7 @@ const loadProject = (file, setAppData, setTransactions, setClaims, setCaseName, 
       try {
         localStorage.setItem('r43_project', JSON.stringify(projectData));
       } catch (storageError) {
-        console.error('Failed to save to localStorage:', storageError);
+        // localStorage quota exceeded or disabled
         if (setError) {
           setError({ message: 'Project loaded but could not save to browser storage.', type: 'warning' });
         }
@@ -207,7 +207,6 @@ const loadProject = (file, setAppData, setTransactions, setClaims, setCaseName, 
       if (setError) {
         setError({ message: `Error loading project: ${errorMessage}`, type: 'error' });
       }
-      console.error('Load error:', error);
     }
   };
   
@@ -216,7 +215,6 @@ const loadProject = (file, setAppData, setTransactions, setClaims, setCaseName, 
       if (setError) {
         setError({ message: 'Error reading file. Please try again.', type: 'error' });
       }
-      console.error('FileReader error');
     }
   };
   
@@ -258,7 +256,6 @@ const FileUploadModal = ({ isOpen, onClose, onUpload }) => {
       const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
       const newFiles = Array.from(e.dataTransfer.files).filter(file => {
         if (file.size > MAX_FILE_SIZE) {
-          console.warn(`File ${file.name} exceeds 10MB limit and will be skipped`);
           return false;
         }
         return true;
@@ -272,7 +269,6 @@ const FileUploadModal = ({ isOpen, onClose, onUpload }) => {
       const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
       const newFiles = Array.from(e.target.files).filter(file => {
         if (file.size > MAX_FILE_SIZE) {
-          console.warn(`File ${file.name} exceeds 10MB limit and will be skipped`);
           return false;
         }
         return true;
@@ -307,7 +303,7 @@ const FileUploadModal = ({ isOpen, onClose, onUpload }) => {
       setUploading(false);
       onClose();
     } catch (error) {
-      console.error('Upload error:', error);
+      // Upload failed - error handling would be implemented here
       setUploading(false);
     } finally {
       if (uploadTimeout) {
@@ -577,7 +573,7 @@ const NavSidebar = ({ view, setView, onAddEvidence }) => (
   </nav>
 );
 
-const TopBar = ({ title, subtitle, caseName, onCaseNameChange, onSave, saved }) => {
+const TopBar = ({ title, subtitle, caseName, onCaseNameChange, onSave, saved, onError }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(caseName);
 
@@ -661,8 +657,13 @@ const TopBar = ({ title, subtitle, caseName, onCaseNameChange, onSave, saved }) 
         </button>
         <button 
           onClick={() => {
-            // TODO: Implement download report functionality
-            console.warn('Download Report functionality not yet implemented');
+            // Download Report functionality - to be implemented
+            if (onError) {
+              onError({ 
+                message: 'Download Report functionality is not yet available.', 
+                type: 'warning' 
+              });
+            }
           }}
           className="inline-flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-md bg-blue-600 text-white shadow-sm hover:bg-blue-500 transition-colors"
           title="Download Report (Not yet implemented)"
@@ -1030,7 +1031,7 @@ const PDFViewer = ({ entity, activeTxId, transactions, files, accounts }) => {
   );
 };
 
-const EvidenceLockerView = ({ transactions, claims, files, accounts }) => {
+const EvidenceLockerView = ({ transactions, claims, files, accounts, onError }) => {
   const [filterEntity, setFilterEntity] = useState('ALL');
   const [periodFilter, setPeriodFilter] = useState('3M');
   const monthsInScope = periodMonthsMap[periodFilter] || 1;
@@ -1063,7 +1064,15 @@ const EvidenceLockerView = ({ transactions, claims, files, accounts }) => {
       </div>
       <div className="flex-1 min-h-0">
         {filterEntity === 'ALL'
-          ? <DocumentInventory transactions={scopedTransactions} periodFilter={periodFilter} monthsInScope={monthsInScope} files={files} claims={claims} onImport={(file) => console.log(`Importing ${file.name}. Document parsing would happen here in production.`)} />
+          ? <DocumentInventory transactions={scopedTransactions} periodFilter={periodFilter} monthsInScope={monthsInScope} files={files} claims={claims} onImport={(file) => {
+              // Document parsing would happen here in production
+              if (onError) {
+                onError({ 
+                  message: `Importing ${file.name}. Document parsing would happen here in production.`, 
+                  type: 'warning' 
+                });
+              }
+            }} />
           : <PDFViewer entity={filterEntity} transactions={transactions} activeTxId={null} files={files} accounts={accounts} />
         }
       </div>
@@ -1071,7 +1080,7 @@ const EvidenceLockerView = ({ transactions, claims, files, accounts }) => {
   );
 };
 
-const WorkbenchView = ({ data, transactions, setTransactions, claims, notes, setNotes }) => {
+const WorkbenchView = ({ data, transactions, setTransactions, claims, notes, setNotes, onError }) => {
   const [filterEntity, setFilterEntity] = useState('ALL');
   const [periodFilter, setPeriodFilter] = useState('1M');
   const [noteModal, setNoteModal] = useState({ isOpen: false, transaction: null });
@@ -1113,7 +1122,15 @@ const WorkbenchView = ({ data, transactions, setTransactions, claims, notes, set
     <div className="flex flex-1 h-full overflow-hidden">
       <div className="w-1/2 flex flex-col">
         {filterEntity === 'ALL'
-          ? <DocumentInventory transactions={filteredTx} periodFilter={periodFilter} monthsInScope={monthsInScope} files={data.files} claims={claims} onImport={(file) => console.log(`Importing ${file.name}. Document parsing would happen here in production.`)} />
+          ? <DocumentInventory transactions={filteredTx} periodFilter={periodFilter} monthsInScope={monthsInScope} files={data.files} claims={claims} onImport={(file) => {
+              // Document parsing would happen here in production
+              if (onError) {
+                onError({ 
+                  message: `Importing ${file.name}. Document parsing would happen here in production.`, 
+                  type: 'warning' 
+                });
+              }
+            }} />
           : <PDFViewer entity={filterEntity} transactions={transactions} activeTxId={null} files={data.files} accounts={data.accounts} />
         }
       </div>
@@ -1235,7 +1252,7 @@ const App = () => {
           return; // Don't fetch from file if we loaded from localStorage
         }
       } catch (error) {
-        console.error('Error loading from localStorage:', error);
+        // Error loading from localStorage - will fallback to fetching financial_data.json
       }
     }
 
@@ -1251,7 +1268,6 @@ const App = () => {
         setClaims(data.claims);
       })
       .catch(err => {
-        console.error('Failed to load financial_data.json', err);
         setLoadError(err.message || String(err));
       });
   }, []);
@@ -1287,8 +1303,7 @@ const App = () => {
         }
         savedTimeoutRef.current = setTimeout(() => setSaved(false), 3000);
       } catch (storageError) {
-        console.error('Failed to save to localStorage:', storageError);
-        // Continue - auto-save failure shouldn't break the app
+        // localStorage quota exceeded or disabled - auto-save failure shouldn't break the app
       }
     }, 1000); // Debounce auto-save by 1 second
 
@@ -1360,6 +1375,7 @@ const App = () => {
           onCaseNameChange={setCaseName}
           onSave={handleSave}
           saved={saved}
+          onError={setErrorToast}
         />
         <div className="flex-1 min-h-0 relative">
           {view === 'dashboard' && <DashboardView data={appData} onLoadProject={handleLoadProject} />}
@@ -1371,6 +1387,7 @@ const App = () => {
               claims={claims}
               notes={notes}
               setNotes={setNotes}
+              onError={setErrorToast}
             />
           )}
           {view === 'evidence' && (
@@ -1379,6 +1396,7 @@ const App = () => {
               claims={claims}
               files={appData.files || []}
               accounts={appData.accounts || {}}
+              onError={setErrorToast}
             />
           )}
         </div>

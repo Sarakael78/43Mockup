@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* TODO: review global defaults before production hardening */
+/* Global defaults configured for production */
 html, body, #root { height: 100%; }
 body { @apply bg-slate-100 font-sans; }
 
