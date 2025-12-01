@@ -1,4 +1,3 @@
-import Papa from 'papaparse';
 import mammoth from 'mammoth';
 import { parseCSV as standardBankParseCSV } from './parsers/standardBankParser.js';
 import { parseCSV as fnbParseCSV } from './parsers/fnbParser.js';
@@ -258,16 +257,4 @@ export const processFinancialAffidavit = async (file) => {
   }
 };
 
-export const validateTransactionData = (transactions) => {
-  const errors = [];
-  
-  transactions.forEach((tx, index) => {
-    if (!tx.id) errors.push(`Transaction ${index}: missing id`);
-    if (!tx.date) errors.push(`Transaction ${index}: missing date`);
-    if (typeof tx.amount !== 'number') errors.push(`Transaction ${index}: invalid amount`);
-    if (!tx.desc && !tx.clean) errors.push(`Transaction ${index}: missing description`);
-  });
-
-  return errors;
-};
 

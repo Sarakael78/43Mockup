@@ -970,6 +970,8 @@ const PDFViewer = ({ entity, activeTxId, transactions, files, accounts, setClaim
 
   // Handle file URL creation
   useEffect(() => {
+    let objectUrl = null;
+
     if (!currentFile) {
       setPdfUrl(null);
       return;
@@ -977,24 +979,24 @@ const PDFViewer = ({ entity, activeTxId, transactions, files, accounts, setClaim
 
     // If file has a File object (from upload)
     if (currentFile.file && currentFile.file instanceof File) {
-      const url = URL.createObjectURL(currentFile.file);
-      setPdfUrl(url);
-      return () => URL.revokeObjectURL(url);
-    }
-    
-    // If file has a URL property
-    if (currentFile.url) {
+      objectUrl = URL.createObjectURL(currentFile.file);
+      setPdfUrl(objectUrl);
+    } else if (currentFile.url) {
+      // If file has a URL property
       setPdfUrl(currentFile.url);
-      return;
-    }
-    
-    // Try to create a data URL if file has data
-    if (currentFile.data) {
+    } else if (currentFile.data) {
+      // Try to create a data URL if file has data
       setPdfUrl(currentFile.data);
-      return;
+    } else {
+      setPdfUrl(null);
     }
 
-    setPdfUrl(null);
+    // Cleanup: revoke object URL when component unmounts or file changes
+    return () => {
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
   }, [currentFile]);
 
   const handleLoadSuccess = (numPages) => {

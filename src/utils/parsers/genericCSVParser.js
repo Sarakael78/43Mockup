@@ -15,9 +15,8 @@ export const parseCSV = (csvText) => {
       encoding: 'UTF-8'
     });
 
-    if (results.errors.length > 0) {
-      console.warn('CSV parsing errors:', results.errors);
-    }
+    // CSV parsing errors are handled silently - invalid rows are filtered out
+    // If needed, errors can be collected and returned to caller
 
     // Auto-detect column names (case-insensitive)
     const firstRow = results.data[0];

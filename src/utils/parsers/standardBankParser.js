@@ -15,9 +15,8 @@ export const parseCSV = (csvText) => {
       encoding: 'UTF-8'
     });
 
-    if (results.errors.length > 0) {
-      console.warn('CSV parsing errors:', results.errors);
-    }
+    // CSV parsing errors are handled silently - invalid rows are filtered out
+    // If needed, errors can be collected and returned to caller
 
     const transactions = results.data
       .filter(row => row && (row.Date || row.DATE || row.date))
@@ -63,9 +62,4 @@ export const parseCSV = (csvText) => {
   }
 };
 
-export const parsePDF = async (pdfBuffer) => {
-  // Basic PDF text extraction - for Standard Bank PDFs
-  // This is a simplified version. Full implementation would require more sophisticated parsing
-  throw new Error('PDF parsing for Standard Bank not yet implemented. Please use CSV format.');
-};
 

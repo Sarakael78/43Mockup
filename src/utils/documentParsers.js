@@ -204,17 +204,4 @@ export const parsePDFClaims = async (file) => {
   }
 };
 
-export const validateClaimsData = (claims) => {
-  const errors = [];
-  
-  claims.forEach((claim, index) => {
-    if (!claim.id) errors.push(`Claim ${index}: missing id`);
-    if (!claim.category) errors.push(`Claim ${index}: missing category`);
-    if (typeof claim.claimed !== 'number' || claim.claimed <= 0) {
-      errors.push(`Claim ${index}: invalid claimed amount`);
-    }
-  });
-
-  return errors;
-};
 

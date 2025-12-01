@@ -15,9 +15,8 @@ export const parseCSV = (csvText) => {
       encoding: 'UTF-8'
     });
 
-    if (results.errors.length > 0) {
-      console.warn('CSV parsing errors:', results.errors);
-    }
+    // CSV parsing errors are handled silently - invalid rows are filtered out
+    // If needed, errors can be collected and returned to caller
 
     const transactions = results.data
       .filter(row => row && (row.Date || row.DATE || row['Transaction Date']))
@@ -69,7 +68,4 @@ export const parseCSV = (csvText) => {
   }
 };
 
-export const parsePDF = async (pdfBuffer) => {
-  throw new Error('PDF parsing for FNB not yet implemented. Please use CSV format.');
-};
 
