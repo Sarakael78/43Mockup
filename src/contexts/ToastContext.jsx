@@ -1,3 +1,4 @@
+import React from 'react';
 import { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { AlertCircle, CheckCircle, AlertTriangle, Info, X } from 'lucide-react';
 
