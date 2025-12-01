@@ -28,6 +28,7 @@ import { useToast } from './contexts/ToastContext';
 import { processBankStatement, processFinancialAffidavit } from './utils/fileProcessors';
 import { parseDOCXClaims, parsePDFClaims } from './utils/documentParsers';
 import { mapCategory } from './utils/categoryMapper';
+import { TOAST_DELAY_MS } from './utils/constants';
 import PDFDocumentViewer from './components/PDFDocumentViewer';
 import CSVViewer from './components/CSVViewer';
 
@@ -660,7 +661,7 @@ const NavSidebar = ({ view, setView, onAddEvidence }) => (
   </nav>
 );
 
-const TopBar = ({ title, subtitle, caseName, onCaseNameChange, onSave, saved, onError }) => {
+const TopBar = ({ title, subtitle, caseName, onCaseNameChange, onSave, onNewCase, saved, onError }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(caseName);
 
@@ -734,6 +735,16 @@ const TopBar = ({ title, subtitle, caseName, onCaseNameChange, onSave, saved, on
           <button className="px-3 py-1.5 text-xs font-bold rounded-md bg-white text-slate-800 shadow-sm border border-slate-200">Rule 43</button>
           <button className="px-3 py-1.5 text-xs font-bold rounded-md text-slate-500 hover:text-slate-700">Divorce</button>
         </div>
+        {onNewCase && (
+          <button
+            onClick={onNewCase}
+            className="inline-flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-md bg-blue-600 text-white shadow-sm hover:bg-blue-500 transition-colors"
+            title="Start a new case (clears all current data)"
+          >
+            <Plus size={14} />
+            New Case
+          </button>
+        )}
         <button
           onClick={onSave}
           className="inline-flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-md bg-emerald-600 text-white shadow-sm hover:bg-emerald-500 transition-colors"
@@ -1548,6 +1559,7 @@ const App = () => {
   const saveTimeoutRef = useRef(null);
   const savedTimeoutRef = useRef(null);
   const loadProjectCleanupRef = useRef(null);
+  const newCaseToastTimeoutRef = useRef(null);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -1631,8 +1643,62 @@ const App = () => {
 
   const handleSave = () => {
     if (appData) {
-      exportProject(appData, transactions, claims, caseName);
+      try {
+        exportProject(appData, transactions, claims, caseName);
+        showToast('Project saved successfully', 'success');
+      } catch (error) {
+        showToast('Failed to save project', 'error');
+      }
     }
+  };
+
+  const handleNewCase = () => {
+    // Check if there's any data to lose
+    const hasData = transactions.length > 0 || claims.length > 0 || 
+                    (appData.files && appData.files.length > 0) ||
+                    Object.keys(appData.accounts).length > 0 ||
+                    Object.keys(notes).length > 0;
+
+    if (hasData) {
+      const confirmed = window.confirm(
+        'Starting a new case will clear all current data (transactions, claims, files, notes).\n\n' +
+        'Make sure you have saved your current case if needed.\n\n' +
+        'Do you want to continue?'
+      );
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    // Reset all state to empty defaults
+    setAppData({
+      accounts: {},
+      categories: defaultCategories,
+      files: [],
+      charts: [],
+      alerts: []
+    });
+    setTransactions([]);
+    setClaims([]);
+    setNotes({});
+    setCaseName('New Case');
+
+    // Clear localStorage immediately so auto-save doesn't restore old data
+    try {
+      localStorage.removeItem('r43_project');
+    } catch (error) {
+      // localStorage may be disabled, continue anyway
+    }
+
+    // Small delay to ensure state updates complete before showing toast
+    // Clear any existing timeout first
+    if (newCaseToastTimeoutRef.current) {
+      clearTimeout(newCaseToastTimeoutRef.current);
+    }
+    newCaseToastTimeoutRef.current = setTimeout(() => {
+      showToast('New case started', 'success');
+      newCaseToastTimeoutRef.current = null;
+    }, TOAST_DELAY_MS);
   };
 
   const handleLoadProject = (file) => {
@@ -1648,11 +1714,15 @@ const App = () => {
     }
   };
 
-  // Cleanup loadProject on unmount
+  // Cleanup loadProject and timeouts on unmount
   useEffect(() => {
     return () => {
       if (loadProjectCleanupRef.current) {
         loadProjectCleanupRef.current();
+      }
+      if (newCaseToastTimeoutRef.current) {
+        clearTimeout(newCaseToastTimeoutRef.current);
+        newCaseToastTimeoutRef.current = null;
       }
     };
   }, []);
@@ -1811,6 +1881,7 @@ const App = () => {
           caseName={caseName}
           onCaseNameChange={setCaseName}
           onSave={handleSave}
+          onNewCase={handleNewCase}
           saved={saved}
           onError={(err) => showToast(err.message, err.type || 'error')}
         />

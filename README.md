@@ -42,7 +42,7 @@ Open the URL shown by Vite (typically `http://localhost:5173`) in your browser.
 - **Traffic-light schedule** — Claimed vs. Proven table implements the Rule 43 "Golden Thread": shortfalls glow rose, inflations blue, verified rows render black with a double-check icon, and progress bars visualize ratios.
 - **Evidence status badges** — Every transaction row exposes its evidence state (`proven`, `flagged`, etc.) so updates immediately ripple back into the Golden Thread schedule.
 - **File Upload** — Modal dialog with drag-and-drop support for uploading bank statements and financial affidavits. Includes triage step for file classification (Type, Entity, Parser).
-- **Project Persistence** — Save projects as `.r43` files and load them back. Auto-save to localStorage with visual feedback. Editable case name in the top bar.
+- **Project Persistence** — Save projects as `.r43` files and load them back. Auto-save to localStorage with visual feedback. Editable case name in the top bar. Start a new case from scratch with the "New Case" button.
 - **Sticky Notes** — Add annotations to individual transactions with a modal editor. Notes are persisted with the project.
 - **Import Mode** — Parse annexures (DOCX/PDF) directly into the schedule. Automatically extracts claimed expenses from financial affidavits.
 

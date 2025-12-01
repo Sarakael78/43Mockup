@@ -17,6 +17,7 @@ export const MIN_AMOUNT_THRESHOLD = 100; // Minimum amount to consider for claim
 export const MAX_AMOUNT_THRESHOLD = 1000000; // Maximum amount threshold
 export const MIN_LINE_LENGTH = 10; // Minimum line length for parsing
 export const CATEGORY_MATCH_RATIO = 0.5; // Minimum match ratio for fuzzy category matching
+export const TOAST_DELAY_MS = 100; // Delay before showing toast to ensure state updates complete
 
 // Shared utility: Generate unique ID
 export const generateId = () => `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
