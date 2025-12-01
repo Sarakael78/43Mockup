@@ -1,0 +1,8 @@
+# Enforce consistent line endings
+* text=auto eol=lf
+
+# Mark the dist folder as generated (optional)
+dist/* linguist-vendored
+
+# Treat lockfiles as text
+package-lock.json text

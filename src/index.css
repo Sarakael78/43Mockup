@@ -1,0 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Minimal sensible defaults used by the mockup */
+html, body, #root { height: 100%; }
+body { @apply bg-slate-100 font-sans; }
