@@ -12,6 +12,7 @@ export default defineConfig({
           'react-vendor': ['react', 'react-dom'],
           'chart-vendor': ['recharts'],
           'icon-vendor': ['lucide-react'],
+          'pdf-vendor': ['pdf-parse', 'pdfjs-dist', 'react-pdf'],
         },
       },
     },
