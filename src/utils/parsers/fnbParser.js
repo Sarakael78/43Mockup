@@ -33,6 +33,7 @@ export const parseCSV = (csvText) => {
         const dateStr = row.Date || row.DATE || row['Transaction Date'] || row.date || '';
         const desc = row.Description || row.DESCRIPTION || row.description || row.Original_Description || row.ORIGINAL_DESCRIPTION || row['Original Description'] || row.Details || '';
         const amountStr = row.Amount || row.AMOUNT || row.amount || row['Transaction Amount'] || row.Balance || '0';
+        const accountStr = row.Account || row.ACCOUNT || row.account || row.Account_Number || row['Account Number'] || row.Account_Name || row['Account Name'] || '';
         const categoryStr = row.Category || row.CATEGORY || row.category || row.Cat || row.CAT || '';
         const subCategoryStr = row.SubCategory || row.SUBCATEGORY || row.Sub_Category || row.SUB_CATEGORY || row['Sub-Category'] || row.subcategory || row.subcat || row.sub_category || row['Sub Category'] || '';
         
@@ -58,6 +59,16 @@ export const parseCSV = (csvText) => {
 
         // Parse amount
         const amount = parseFloat(String(amountStr).replace(/[R,\s]/g, '')) || 0;
+        
+        // Clean and sanitize account field - normalize spaces and trim
+        let account = 'BUSINESS';
+        if (accountStr && accountStr.trim()) {
+          // Normalize spaces (replace multiple spaces/tabs with single space) and trim
+          const cleaned = String(accountStr).trim().replace(/\s+/g, ' ').substring(0, 200);
+          if (cleaned) {
+            account = cleaned;
+          }
+        }
         
         // Sanitize category to prevent CSV injection
         let category = 'Uncategorized';
@@ -85,7 +96,7 @@ export const parseCSV = (csvText) => {
           desc: cleanDescription(desc),
           clean: cleanDescription(desc),
           amount,
-          acc: 'BUSINESS',
+          acc: account,
           cat: category,
           subcat: subCategory || undefined, // Only include if present
           status: 'pending',

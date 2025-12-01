@@ -62,16 +62,23 @@ export const processBankStatement = async (file, parser, entity) => {
           break;
       }
 
-      // Update entity for parsed transactions
+      // Preserve account name from CSV if it was parsed (not a default value)
+      // The parsers now extract the Account column and clean it (normalize spaces)
+      // Only use entity-based default if account wasn't found in CSV
       const entityMap = {
         'PERSONAL': 'PERSONAL',
         'BUSINESS': 'BUSINESS',
         'CREDIT': 'CREDIT',
         'TRUST': 'TRUST'
       };
-
+      
       parsed.forEach(tx => {
-        tx.acc = entityMap[entity] || 'PERSONAL';
+        // If account is still a generic default (PERSONAL/BUSINESS), it means CSV didn't have Account column
+        // In that case, use entity-based mapping. Otherwise, preserve the parsed account name.
+        if (tx.acc === 'PERSONAL' || tx.acc === 'BUSINESS') {
+          tx.acc = entityMap[entity] || tx.acc;
+        }
+        // If account was parsed from CSV (contains account identifier), keep it as-is
       });
 
       transactions.push(...parsed);

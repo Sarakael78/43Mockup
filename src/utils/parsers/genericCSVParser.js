@@ -37,6 +37,7 @@ export const parseCSV = (csvText) => {
     const dateCol = findColumn(['date', 'transaction date', 'posting date', 'value date']);
     const descCol = findColumn(['description', 'original_description', 'original description', 'details', 'narrative', 'transaction description', 'memo']);
     const amountCol = findColumn(['amount', 'transaction amount', 'debit', 'credit', 'balance']);
+    const accountCol = findColumn(['account', 'account number', 'account_name', 'account name', 'acc']);
     const categoryCol = findColumn(['category', 'cat', 'categories', 'expense category', 'transaction category']);
     const subCategoryCol = findColumn(['subcategory', 'sub_category', 'sub-category', 'subcat', 'sub cat', 'sub_category']);
 
@@ -57,6 +58,7 @@ export const parseCSV = (csvText) => {
         const dateStr = row[dateCol] || '';
         const desc = (descCol && row[descCol]) || '';
         const amountStr = (amountCol && row[amountCol]) || '0';
+        const accountStr = (accountCol && row[accountCol]) || '';
         const categoryStr = (categoryCol && row[categoryCol]) || '';
         const subCategoryStr = (subCategoryCol && row[subCategoryCol]) || '';
         
@@ -80,6 +82,16 @@ export const parseCSV = (csvText) => {
 
         // Parse amount
         const amount = parseFloat(String(amountStr).replace(/[R,\s]/g, '')) || 0;
+        
+        // Clean and sanitize account field - normalize spaces and trim
+        let account = 'PERSONAL';
+        if (accountStr && accountStr.trim()) {
+          // Normalize spaces (replace multiple spaces/tabs with single space) and trim
+          const cleaned = String(accountStr).trim().replace(/\s+/g, ' ').substring(0, 200);
+          if (cleaned) {
+            account = cleaned;
+          }
+        }
         
         // Sanitize category to prevent CSV injection
         let category = 'Uncategorized';
@@ -107,7 +119,7 @@ export const parseCSV = (csvText) => {
           desc: cleanDescription(desc),
           clean: cleanDescription(desc),
           amount,
-          acc: 'PERSONAL',
+          acc: account,
           cat: category,
           subcat: subCategory || undefined, // Only include if present
           status: 'pending',
