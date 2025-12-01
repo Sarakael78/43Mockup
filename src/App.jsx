@@ -9,8 +9,42 @@ import {
   FileText,
   File,
   Scale,
-  StickyNote
+  StickyNote,
+  FileStack,
+  Download,
+  Sparkles,
+  CheckCheck
 } from 'lucide-react';
+
+const periodMonthsMap = { '1M': 1, '3M': 3, '6M': 6 };
+
+const getLatestTransactionDate = (transactions) => {
+  if (!transactions?.length) return null;
+  return transactions.reduce((latest, tx) => (tx.date > latest ? tx.date : latest), transactions[0].date);
+};
+
+const filterTransactionsByPeriod = (transactions, periodFilter, latestDateIso) => {
+  if (!latestDateIso) return transactions;
+  const months = periodMonthsMap[periodFilter] || 1;
+  const startDate = new Date(latestDateIso);
+  startDate.setDate(1);
+  startDate.setHours(0, 0, 0, 0);
+  startDate.setMonth(startDate.getMonth() - (months - 1));
+
+  return transactions.filter((tx) => {
+    const txDate = new Date(tx.date);
+    txDate.setHours(0, 0, 0, 0);
+    return txDate >= startDate;
+  });
+};
+
+const filterTransactionsByEntity = (transactions, entity, accounts) => {
+  if (entity === 'PERSONAL') return transactions.filter((t) => t.acc === accounts.PERSONAL || t.acc === accounts.TRUST);
+  if (entity === 'BUSINESS') return transactions.filter((t) => t.acc === accounts.BUSINESS || t.acc === accounts.MYMOBIZ);
+  if (entity === 'CREDIT') return transactions.filter((t) => t.acc === accounts.CREDIT);
+  if (entity === 'TRUST') return transactions.filter((t) => t.acc === accounts.TRUST);
+  return transactions;
+};
 
 // --- COMPONENTS ---
 
@@ -25,6 +59,9 @@ const NavSidebar = ({ view, setView }) => (
       </button>
       <button onClick={() => setView('workbench')} className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${view === 'workbench' ? 'bg-slate-700 text-amber-400' : 'text-slate-500 hover:text-slate-300'}`} title="Reconciliation Workbench">
         <TableProperties size={20} />
+      </button>
+      <button onClick={() => setView('evidence')} className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${view === 'evidence' ? 'bg-slate-700 text-amber-400' : 'text-slate-500 hover:text-slate-300'}`} title="Evidence Locker">
+        <FileStack size={20} />
       </button>
     </div>
     <div className="mt-auto flex flex-col space-y-6">
@@ -49,6 +86,10 @@ const TopBar = ({ title, subtitle }) => (
         <button className="px-3 py-1.5 text-xs font-bold rounded-md bg-white text-slate-800 shadow-sm border border-slate-200">Rule 43</button>
         <button className="px-3 py-1.5 text-xs font-bold rounded-md text-slate-500 hover:text-slate-700">Divorce</button>
       </div>
+      <button className="inline-flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-md bg-blue-600 text-white shadow-sm hover:bg-blue-500 transition-colors">
+        <Download size={14} />
+        Download Report
+      </button>
     </div>
   </div>
 );
@@ -120,15 +161,26 @@ const DashboardView = ({ data }) => (
   </div>
 );
 
-const DocumentInventory = ({ transactions, periodFilter, files, claims }) => {
-  const monthsInScope = periodFilter === '1M' ? 1 : periodFilter === '3M' ? 3 : 6;
+const DocumentInventory = ({ transactions, periodFilter, monthsInScope, files, claims }) => {
+  const [entryMode, setEntryMode] = useState('manual');
+  const entryModes = [
+    { key: 'manual', label: 'Manual' },
+    { key: 'import', label: 'Import' },
+    { key: 'auto', label: 'Auto-Calc', icon: <Sparkles size={12} className="text-blue-600" /> }
+  ];
+  const entryModeCopy = {
+    manual: 'Type figures exactly as they appear in the affidavit.',
+    import: 'Parse annexures (DOCX/PDF) directly into the schedule.',
+    auto: 'Infer claimed amounts from bank-statement averages (Magic Wand).'
+  };
 
   const getProvenAvg = (category) => {
     const total = transactions
       .filter(t => t.cat === category && t.amount < 0)
       .reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
-    return monthsInScope > 0 ? total / monthsInScope : 0;
+    const divisor = monthsInScope > 0 ? monthsInScope : 1;
+    return total / divisor;
   };
 
   const getTrafficLight = (proven, claimed) => {
@@ -164,7 +216,7 @@ const DocumentInventory = ({ transactions, periodFilter, files, claims }) => {
     return {
       ratio,
       colorClass: 'text-slate-900',
-      barClass: 'bg-emerald-500',
+      barClass: 'bg-slate-900',
       label: 'Verified'
     };
   };
@@ -205,11 +257,22 @@ const DocumentInventory = ({ transactions, periodFilter, files, claims }) => {
           <div className="flex items-center gap-2 text-[9px] font-semibold text-slate-500">
             <span className="uppercase tracking-wide">Entry Mode:</span>
             <div className="flex bg-slate-200 rounded-md overflow-hidden">
-              <button className="px-2 py-0.5 bg-white text-slate-900">Manual</button>
-              <button className="px-2 py-0.5 text-slate-500">Import</button>
-              <button className="px-2 py-0.5 text-slate-500">Auto-Calc</button>
+              {entryModes.map((mode) => (
+                <button
+                  key={mode.key}
+                  onClick={() => setEntryMode(mode.key)}
+                  className={`px-2 py-0.5 flex items-center gap-1 ${entryMode === mode.key ? 'bg-white text-slate-900' : 'text-slate-500'}`}
+                  aria-pressed={entryMode === mode.key}
+                >
+                  {mode.icon}
+                  {mode.label}
+                </button>
+              ))}
             </div>
           </div>
+        </div>
+        <div className="px-4 py-1 text-[9px] text-slate-400 bg-white border-b border-slate-100 italic">
+          {entryModeCopy[entryMode]}
         </div>
         <div className="flex-1 overflow-auto custom-scroll p-0">
           <table className="w-full text-left border-collapse">
@@ -246,7 +309,8 @@ const DocumentInventory = ({ transactions, periodFilter, files, claims }) => {
                             style={{ width: `${Math.max(0, Math.min(traffic.ratio * 100, 160))}%` }}
                           />
                         </div>
-                        <div className={`text-[9px] font-semibold ${traffic.colorClass}`}>
+                        <div className={`text-[9px] font-semibold flex items-center gap-1 ${traffic.colorClass}`}>
+                          {traffic.label === 'Verified' && <CheckCheck size={10} />}
                           {traffic.label}
                         </div>
                       </div>
@@ -262,8 +326,20 @@ const DocumentInventory = ({ transactions, periodFilter, files, claims }) => {
   );
 };
 
-const PDFViewer = ({ entity, activeTxId, transactions, files }) => {
+const PDFViewer = ({ entity, activeTxId, transactions, files, accounts }) => {
   const currentFile = files.find(f => f.entity === entity) || files[0];
+  const entityAccounts = useMemo(() => {
+    if (!accounts) return [];
+    if (entity === 'PERSONAL') return [accounts.PERSONAL, accounts.TRUST].filter(Boolean);
+    if (entity === 'BUSINESS') return [accounts.BUSINESS, accounts.MYMOBIZ].filter(Boolean);
+    if (entity === 'CREDIT') return [accounts.CREDIT].filter(Boolean);
+    if (entity === 'TRUST') return [accounts.TRUST].filter(Boolean);
+    return [];
+  }, [entity, accounts]);
+
+  const viewerTransactions = entityAccounts.length
+    ? transactions.filter((tx) => entityAccounts.includes(tx.acc))
+    : transactions;
 
   return (
     <div className="h-full bg-slate-200 border-r border-slate-300 flex flex-col relative">
@@ -291,7 +367,7 @@ const PDFViewer = ({ entity, activeTxId, transactions, files }) => {
               <span>DESCRIPTION</span>
               <span className="text-right">AMOUNT</span>
             </div>
-            {transactions.filter(t => t.acc.includes(entity === 'PERSONAL' ? '7420' : entity === 'BUSINESS' ? '6200' : '2483')).map((tx) => (
+          {viewerTransactions.map((tx) => (
               <div key={tx.id} className={`relative flex py-1 border-b border-dotted border-slate-100 hover:bg-yellow-50 ${activeTxId === tx.id ? 'bg-yellow-100' : ''}`}>
                 <span className="w-16">{tx.date}</span>
                 <span className="flex-1 truncate pr-2 uppercase">{tx.desc}</span>
@@ -305,33 +381,74 @@ const PDFViewer = ({ entity, activeTxId, transactions, files }) => {
   );
 };
 
-const WorkbenchView = ({ data }) => {
-  const [transactions, setTransactions] = useState(data.transactions);
+const EvidenceLockerView = ({ transactions, claims, files, accounts }) => {
+  const [filterEntity, setFilterEntity] = useState('ALL');
+  const [periodFilter, setPeriodFilter] = useState('3M');
+  const monthsInScope = periodMonthsMap[periodFilter] || 1;
+  const latestTransactionDate = useMemo(() => getLatestTransactionDate(transactions), [transactions]);
+
+  const scopedTransactions = useMemo(() => {
+    const byEntity = filterTransactionsByEntity(transactions, filterEntity, accounts);
+    return filterTransactionsByPeriod(byEntity, periodFilter, latestTransactionDate);
+  }, [transactions, filterEntity, periodFilter, accounts, latestTransactionDate]);
+
+  return (
+    <div className="flex flex-col h-full bg-slate-50">
+      <div className="h-12 border-b border-slate-200 flex items-center justify-between px-6 bg-white">
+        <div>
+          <div className="text-sm font-bold text-slate-700">Evidence Locker</div>
+          <div className="text-[11px] text-slate-500">Trace the Golden Thread between source, data, and claims.</div>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex bg-slate-200 p-0.5 rounded-lg">
+            {['ALL', 'PERSONAL', 'BUSINESS', 'CREDIT'].map((f) => (
+              <button key={f} onClick={() => setFilterEntity(f)} className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${filterEntity === f ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{f}</button>
+            ))}
+          </div>
+          <div className="flex bg-slate-200 p-0.5 rounded-lg">
+            {['1M', '3M', '6M'].map((p) => (
+              <button key={p} onClick={() => setPeriodFilter(p)} className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${periodFilter === p ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{p}</button>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="flex-1 min-h-0">
+        {filterEntity === 'ALL'
+          ? <DocumentInventory transactions={scopedTransactions} periodFilter={periodFilter} monthsInScope={monthsInScope} files={files} claims={claims} />
+          : <PDFViewer entity={filterEntity} transactions={transactions} activeTxId={null} files={files} accounts={accounts} />
+        }
+      </div>
+    </div>
+  );
+};
+
+const WorkbenchView = ({ data, transactions, setTransactions, claims }) => {
   const [filterEntity, setFilterEntity] = useState('ALL');
   const [periodFilter, setPeriodFilter] = useState('1M');
+  const monthsInScope = periodMonthsMap[periodFilter] || 1;
+  const latestTransactionDate = useMemo(() => getLatestTransactionDate(transactions), [transactions]);
 
   const filteredTx = useMemo(() => {
-    let txData = transactions;
-
-    if (filterEntity === 'PERSONAL') txData = txData.filter(t => t.acc === data.accounts.PERSONAL);
-    else if (filterEntity === 'BUSINESS') txData = txData.filter(t => t.acc === data.accounts.BUSINESS || t.acc === data.accounts.MYMOBIZ);
-    else if (filterEntity === 'CREDIT') txData = txData.filter(t => t.acc === data.accounts.CREDIT);
-
-    if (periodFilter === '1M') txData = txData.filter(t => t.date.startsWith('2025-09'));
-
-    return txData;
-  }, [transactions, filterEntity, periodFilter, data.accounts]);
+    const byEntity = filterTransactionsByEntity(transactions, filterEntity, data.accounts);
+    return filterTransactionsByPeriod(byEntity, periodFilter, latestTransactionDate);
+  }, [transactions, filterEntity, periodFilter, data.accounts, latestTransactionDate]);
 
   const handleCategoryChange = (id, newCat) => {
     setTransactions(prev => prev.map(t => t.id === id ? { ...t, cat: newCat } : t));
+  };
+
+  const evidenceBadge = (status) => {
+    if (status === 'proven') return 'bg-emerald-50 text-emerald-700 border border-emerald-100';
+    if (status === 'flagged') return 'bg-amber-50 text-amber-700 border border-amber-100';
+    return 'bg-slate-100 text-slate-600 border border-slate-200';
   };
 
   return (
     <div className="flex flex-1 h-full overflow-hidden">
       <div className="w-1/2 flex flex-col">
         {filterEntity === 'ALL'
-          ? <DocumentInventory transactions={filteredTx} periodFilter={periodFilter} files={data.files} claims={data.claims} />
-          : <PDFViewer entity={filterEntity} transactions={transactions} activeTxId={null} files={data.files} />
+          ? <DocumentInventory transactions={filteredTx} periodFilter={periodFilter} monthsInScope={monthsInScope} files={data.files} claims={claims} />
+          : <PDFViewer entity={filterEntity} transactions={transactions} activeTxId={null} files={data.files} accounts={data.accounts} />
         }
       </div>
       <div className="w-1/2 bg-white flex flex-col h-full border-l border-slate-200 shadow-xl z-20">
@@ -348,15 +465,16 @@ const WorkbenchView = ({ data }) => {
           </div>
         </div>
         <div className="flex-1 overflow-auto custom-scroll">
-          <div className="grid grid-cols-[80px_1fr_120px_100px_30px] bg-slate-50 border-y border-slate-200 text-[9px] font-bold text-slate-500 uppercase py-2 px-3 sticky top-0 z-10">
+          <div className="grid grid-cols-[80px_1fr_120px_110px_110px_30px] bg-slate-50 border-y border-slate-200 text-[9px] font-bold text-slate-500 uppercase py-2 px-3 sticky top-0 z-10">
             <div>Date</div>
             <div>Description</div>
             <div>Category</div>
             <div className="text-right">Amount</div>
+            <div className="text-center">Evidence</div>
             <div></div>
           </div>
           {filteredTx.map(tx => (
-            <div key={tx.id} className="grid grid-cols-[80px_1fr_120px_100px_30px] border-b border-slate-100 py-2.5 px-3 text-xs items-center hover:bg-amber-50 group transition-colors">
+            <div key={tx.id} className="grid grid-cols-[80px_1fr_120px_110px_110px_30px] border-b border-slate-100 py-2.5 px-3 text-xs items-center hover:bg-amber-50 group transition-colors">
               <div className="font-mono text-slate-500 text-[10px]">{tx.date}</div>
               <div className="pr-2">
                 <div className="font-bold text-slate-700 truncate">{tx.clean}</div>
@@ -369,6 +487,11 @@ const WorkbenchView = ({ data }) => {
               </div>
               <div className={`font-mono font-bold text-right ${tx.type === 'income' ? 'text-emerald-600' : 'text-slate-700'}`}>
                 {tx.type === 'income' ? '+' : ''}{Math.abs(tx.amount).toFixed(2)}
+              </div>
+              <div className="flex justify-center">
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold capitalize ${evidenceBadge(tx.status)}`}>
+                  {tx.status || 'pending'}
+                </span>
               </div>
               <div className="text-center opacity-0 group-hover:opacity-100 transition-opacity">
                 <button className="text-slate-400 hover:text-amber-500"><StickyNote size={14} /></button>
@@ -389,6 +512,8 @@ const App = () => {
   const [view, setView] = useState('dashboard');
   const [appData, setAppData] = useState(null);
   const [loadError, setLoadError] = useState(null);
+  const [transactions, setTransactions] = useState([]);
+  const [claims, setClaims] = useState([]);
 
   useEffect(() => {
     fetch('./financial_data.json')
@@ -396,7 +521,11 @@ const App = () => {
         if (!res.ok) throw new Error('Network response was not ok');
         return res.json();
       })
-      .then(data => setAppData(data))
+      .then(data => {
+        setAppData(data);
+        setTransactions(data.transactions);
+        setClaims(data.claims);
+      })
       .catch(err => {
         console.error('Failed to load financial_data.json', err);
         setLoadError(err.message || String(err));
@@ -417,7 +546,23 @@ const App = () => {
       <div className="flex-1 flex flex-col min-w-0">
         <TopBar title="Rule 43 Workspace" subtitle="Financial Analysis & Reconciliation" />
         <div className="flex-1 min-h-0 relative">
-          {view === 'dashboard' ? <DashboardView data={appData} /> : <WorkbenchView data={appData} />}
+          {view === 'dashboard' && <DashboardView data={appData} />}
+          {view === 'workbench' && (
+            <WorkbenchView
+              data={appData}
+              transactions={transactions}
+              setTransactions={setTransactions}
+              claims={claims}
+            />
+          )}
+          {view === 'evidence' && (
+            <EvidenceLockerView
+              transactions={transactions}
+              claims={claims}
+              files={appData.files}
+              accounts={appData.accounts}
+            />
+          )}
         </div>
       </div>
     </div>
