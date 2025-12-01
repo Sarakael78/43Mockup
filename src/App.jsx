@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import {
   PieChart,
@@ -557,7 +557,14 @@ const TopBar = ({ title, subtitle, caseName, onCaseNameChange, onSave, saved }) 
           <Save size={14} />
           Export Analysis
         </button>
-        <button className="inline-flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-md bg-blue-600 text-white shadow-sm hover:bg-blue-500 transition-colors">
+        <button 
+          onClick={() => {
+            // TODO: Implement download report functionality
+            console.warn('Download Report functionality not yet implemented');
+          }}
+          className="inline-flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-md bg-blue-600 text-white shadow-sm hover:bg-blue-500 transition-colors"
+          title="Download Report (Not yet implemented)"
+        >
           <Download size={14} />
           Download Report
         </button>
@@ -1084,6 +1091,7 @@ const App = () => {
   const [saved, setSaved] = useState(false);
   const saveTimeoutRef = useRef(null);
   const savedTimeoutRef = useRef(null);
+  const loadProjectCleanupRef = useRef(null);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -1186,8 +1194,26 @@ const App = () => {
   };
 
   const handleLoadProject = (file) => {
-    loadProject(file, setAppData, setTransactions, setClaims, setCaseName, setNotes);
+    // Cleanup previous load if still in progress
+    if (loadProjectCleanupRef.current) {
+      loadProjectCleanupRef.current();
+      loadProjectCleanupRef.current = null;
+    }
+    
+    const cleanup = loadProject(file, setAppData, setTransactions, setClaims, setCaseName, setNotes);
+    if (cleanup) {
+      loadProjectCleanupRef.current = cleanup;
+    }
   };
+
+  // Cleanup loadProject on unmount
+  useEffect(() => {
+    return () => {
+      if (loadProjectCleanupRef.current) {
+        loadProjectCleanupRef.current();
+      }
+    };
+  }, []);
 
   const handleFileUpload = (files) => {
     // In a real implementation, this would process and add files
