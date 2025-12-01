@@ -35,10 +35,10 @@ export const parseCSV = (csvText) => {
     };
 
     const dateCol = findColumn(['date', 'transaction date', 'posting date', 'value date']);
-    const descCol = findColumn(['description', 'details', 'narrative', 'transaction description', 'memo']);
+    const descCol = findColumn(['description', 'original_description', 'original description', 'details', 'narrative', 'transaction description', 'memo']);
     const amountCol = findColumn(['amount', 'transaction amount', 'debit', 'credit', 'balance']);
     const categoryCol = findColumn(['category', 'cat', 'categories', 'expense category', 'transaction category']);
-    const subCategoryCol = findColumn(['subcategory', 'sub-category', 'subcat', 'sub cat', 'sub_category', 'sub_category']);
+    const subCategoryCol = findColumn(['subcategory', 'sub_category', 'sub-category', 'subcat', 'sub cat', 'sub_category']);
 
     if (!dateCol) {
       throw new Error('Could not find date column in CSV');

@@ -32,10 +32,10 @@ export const parseCSV = (csvText) => {
       .map(row => {
         // Try various column name variations
         const dateStr = row.Date || row.DATE || row.date || '';
-        const desc = row.Description || row.DESCRIPTION || row.description || row.Details || row.DETAILS || '';
+        const desc = row.Description || row.DESCRIPTION || row.description || row.Original_Description || row.ORIGINAL_DESCRIPTION || row['Original Description'] || row.Details || row.DETAILS || '';
         const amountStr = row.Amount || row.AMOUNT || row.amount || row['Transaction Amount'] || '0';
         const categoryStr = row.Category || row.CATEGORY || row.category || row.Cat || row.CAT || '';
-        const subCategoryStr = row.SubCategory || row.SUBCATEGORY || row['Sub-Category'] || row.subcategory || row.subcat || row['Sub Category'] || '';
+        const subCategoryStr = row.SubCategory || row.SUBCATEGORY || row.Sub_Category || row.SUB_CATEGORY || row['Sub-Category'] || row.subcategory || row.subcat || row.sub_category || row['Sub Category'] || '';
         
         // Parse date - Standard Bank format is usually YYYY-MM-DD or DD/MM/YYYY
         let date = '';
