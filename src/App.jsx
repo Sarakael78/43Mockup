@@ -121,20 +121,52 @@ const DashboardView = ({ data }) => (
 );
 
 const DocumentInventory = ({ transactions, periodFilter, files, claims }) => {
-  const getProvenTotal = (category) => {
+  const monthsInScope = periodFilter === '1M' ? 1 : periodFilter === '3M' ? 3 : 6;
+
+  const getProvenAvg = (category) => {
     const total = transactions
       .filter(t => t.cat === category && t.amount < 0)
       .reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
-    const divisor = periodFilter === '1M' ? 1 : periodFilter === '3M' ? 3 : 1;
-    return total / divisor;
+    return monthsInScope > 0 ? total / monthsInScope : 0;
   };
 
-  const getStatusColor = (proven, claimed) => {
-    if (claimed === 0) return 'text-slate-400';
-    if (proven > claimed * 1.1) return 'text-rose-600';
-    if (proven < claimed * 0.9) return 'text-amber-600';
-    return 'text-emerald-600';
+  const getTrafficLight = (proven, claimed) => {
+    if (!claimed) {
+      return {
+        ratio: 0,
+        colorClass: 'text-slate-400',
+        barClass: 'bg-slate-200',
+        label: 'No Claim'
+      };
+    }
+
+    const ratio = proven / claimed;
+
+    if (ratio < 0.95) {
+      return {
+        ratio,
+        colorClass: 'text-rose-500',
+        barClass: 'bg-gradient-to-r from-amber-400 to-rose-500',
+        label: 'Shortfall'
+      };
+    }
+
+    if (ratio > 1.05) {
+      return {
+        ratio,
+        colorClass: 'text-blue-600',
+        barClass: 'bg-blue-600',
+        label: 'Inflation'
+      };
+    }
+
+    return {
+      ratio,
+      colorClass: 'text-slate-900',
+      barClass: 'bg-emerald-500',
+      label: 'Verified'
+    };
   };
 
   return (
@@ -170,6 +202,14 @@ const DocumentInventory = ({ transactions, periodFilter, files, claims }) => {
             <Scale className="text-amber-600" size={14} />
             Claimed vs. Proven (KPR8)
           </span>
+          <div className="flex items-center gap-2 text-[9px] font-semibold text-slate-500">
+            <span className="uppercase tracking-wide">Entry Mode:</span>
+            <div className="flex bg-slate-200 rounded-md overflow-hidden">
+              <button className="px-2 py-0.5 bg-white text-slate-900">Manual</button>
+              <button className="px-2 py-0.5 text-slate-500">Import</button>
+              <button className="px-2 py-0.5 text-slate-500">Auto-Calc</button>
+            </div>
+          </div>
         </div>
         <div className="flex-1 overflow-auto custom-scroll p-0">
           <table className="w-full text-left border-collapse">
@@ -177,13 +217,14 @@ const DocumentInventory = ({ transactions, periodFilter, files, claims }) => {
               <tr>
                 <th className="px-3 py-2 border-b">Category / Description</th>
                 <th className="px-3 py-2 border-b text-right">Claimed</th>
-                <th className="px-3 py-2 border-b text-right">Proven ({periodFilter})</th>
+                <th className="px-3 py-2 border-b text-right">Proven (Avg, {periodFilter})</th>
+                <th className="px-3 py-2 border-b text-right w-32">Status</th>
               </tr>
             </thead>
             <tbody>
               {claims.map(claim => {
-                const proven = getProvenTotal(claim.category);
-                const color = getStatusColor(proven, claim.claimed);
+                const proven = getProvenAvg(claim.category);
+                const traffic = getTrafficLight(proven, claim.claimed);
 
                 return (
                   <tr key={claim.id} className="border-b border-slate-100 hover:bg-amber-50 text-xs group transition-colors">
@@ -194,8 +235,21 @@ const DocumentInventory = ({ transactions, periodFilter, files, claims }) => {
                     <td className="px-3 py-2 text-right font-mono text-slate-500">
                       {claim.claimed.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 })}
                     </td>
-                    <td className={`px-3 py-2 text-right font-mono font-bold ${color}`}>
+                    <td className={`px-3 py-2 text-right font-mono font-bold ${traffic.colorClass}`}>
                       {proven > 0 ? proven.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 }) : '-'}
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex flex-col gap-1">
+                        <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full ${traffic.barClass}`}
+                            style={{ width: `${Math.max(0, Math.min(traffic.ratio * 100, 160))}%` }}
+                          />
+                        </div>
+                        <div className={`text-[9px] font-semibold ${traffic.colorClass}`}>
+                          {traffic.label}
+                        </div>
+                      </div>
                     </td>
                   </tr>
                 );
