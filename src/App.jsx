@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import {
   PieChart,
@@ -45,6 +45,7 @@ const filterTransactionsByPeriod = (transactions, periodFilter, latestDateIso) =
 };
 
 const filterTransactionsByEntity = (transactions, entity, accounts) => {
+  if (!accounts) return transactions;
   if (entity === 'PERSONAL') return transactions.filter((t) => t.acc === accounts.PERSONAL || t.acc === accounts.TRUST);
   if (entity === 'BUSINESS') return transactions.filter((t) => t.acc === accounts.BUSINESS || t.acc === accounts.MYMOBIZ);
   if (entity === 'CREDIT') return transactions.filter((t) => t.acc === accounts.CREDIT);
@@ -81,8 +82,16 @@ const exportProject = (appData, transactions, claims, caseName) => {
   URL.revokeObjectURL(url);
 };
 
-const loadProject = (file, setAppData, setTransactions, setClaims, setCaseName) => {
+const loadProject = (file, setAppData, setTransactions, setClaims, setCaseName, setNotes) => {
+  // Validate file size (max 10MB)
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+  if (file.size > MAX_FILE_SIZE) {
+    alert(`File too large. Maximum size is ${MAX_FILE_SIZE / 1024 / 1024}MB.`);
+    return;
+  }
+
   const reader = new FileReader();
+  
   reader.onload = (e) => {
     try {
       const projectData = JSON.parse(e.target.result);
@@ -104,14 +113,28 @@ const loadProject = (file, setAppData, setTransactions, setClaims, setCaseName) 
       if (projectData.caseName) {
         setCaseName(projectData.caseName);
       }
+      if (projectData.notes && setNotes) {
+        setNotes(projectData.notes || {});
+      }
       
-      // Save to localStorage
-      localStorage.setItem('r43_project', JSON.stringify(projectData));
+      // Save to localStorage with error handling
+      try {
+        localStorage.setItem('r43_project', JSON.stringify(projectData));
+      } catch (storageError) {
+        console.error('Failed to save to localStorage:', storageError);
+        // Continue anyway - file was loaded successfully
+      }
     } catch (error) {
       alert(`Error loading project: ${error.message}`);
       console.error('Load error:', error);
     }
   };
+  
+  reader.onerror = () => {
+    alert('Error reading file. Please try again.');
+    console.error('FileReader error');
+  };
+  
   reader.readAsText(file);
 };
 
@@ -121,7 +144,7 @@ const FileUploadModal = ({ isOpen, onClose, onUpload }) => {
   const [dragActive, setDragActive] = useState(false);
   const [files, setFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
-  const fileInputRef = React.useRef(null);
+  const fileInputRef = useRef(null);
 
   const handleDrag = (e) => {
     e.preventDefault();
@@ -157,7 +180,7 @@ const FileUploadModal = ({ isOpen, onClose, onUpload }) => {
 
   const handleTriageSubmit = (fileIndex, triageData) => {
     setFiles(prev => prev.map((f, i) => 
-      i === fileIndex ? { ...f, triage: triageData } : f
+      i === fileIndex ? { ...f, triage: triageData } : { ...f }
     ));
   };
 
@@ -219,7 +242,7 @@ const FileUploadModal = ({ isOpen, onClose, onUpload }) => {
               <h3 className="text-sm font-bold text-slate-700">Files to Process ({files.length})</h3>
               {files.map((file, index) => (
                 <FileTriageRow
-                  key={index}
+                  key={`${file.name}-${file.size}-${index}`}
                   file={file}
                   index={index}
                   onRemove={() => handleRemoveFile(index)}
@@ -269,7 +292,7 @@ const FileTriageRow = ({ file, index, onRemove, onSubmit }) => {
           <div className="flex items-center gap-2 mb-1">
             <FileText size={16} className="text-rose-600" />
             <span className="text-sm font-semibold text-slate-700">{file.name}</span>
-            <span className="text-xs text-slate-400">({(file.size / 1024 / 1024).toFixed(2)} MB)</span>
+            <span className="text-xs text-slate-400">({file.size ? (file.size / 1024 / 1024).toFixed(2) : '0.00'} MB)</span>
           </div>
         </div>
         <button onClick={onRemove} className="text-slate-400 hover:text-rose-500">
@@ -499,7 +522,7 @@ const TopBar = ({ title, subtitle, caseName, onCaseNameChange, onSave, saved }) 
 };
 
 const DashboardView = ({ data, onLoadProject }) => {
-  const fileInputRef = React.useRef(null);
+  const fileInputRef = useRef(null);
 
   const handleLoadClick = () => {
     fileInputRef.current?.click();
@@ -598,7 +621,7 @@ const DashboardView = ({ data, onLoadProject }) => {
 
 const DocumentInventory = ({ transactions, periodFilter, monthsInScope, files, claims, onImport }) => {
   const [entryMode, setEntryMode] = useState('manual');
-  const fileInputRef = React.useRef(null);
+  const fileInputRef = useRef(null);
   const entryModes = [
     { key: 'manual', label: 'Manual' },
     { key: 'import', label: 'Import' },
@@ -610,11 +633,11 @@ const DocumentInventory = ({ transactions, periodFilter, monthsInScope, files, c
     auto: 'Infer claimed amounts from bank-statement averages (Magic Wand).'
   };
 
-  const handleImportClick = () => {
+  const handleImportClick = useCallback(() => {
     if (entryMode === 'import') {
       fileInputRef.current?.click();
     }
-  };
+  }, [entryMode]);
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files.length > 0 && onImport) {
@@ -627,7 +650,7 @@ const DocumentInventory = ({ transactions, periodFilter, monthsInScope, files, c
     if (entryMode === 'import') {
       handleImportClick();
     }
-  }, [entryMode]);
+  }, [entryMode, handleImportClick]);
 
   const getProvenAvg = (category) => {
     const total = transactions
@@ -790,7 +813,7 @@ const DocumentInventory = ({ transactions, periodFilter, monthsInScope, files, c
 };
 
 const PDFViewer = ({ entity, activeTxId, transactions, files, accounts }) => {
-  const currentFile = files.find(f => f.entity === entity) || files[0];
+  const currentFile = files?.find(f => f.entity === entity) || files?.[0];
   const entityAccounts = useMemo(() => {
     if (!accounts) return [];
     if (entity === 'PERSONAL') return [accounts.PERSONAL, accounts.TRUST].filter(Boolean);
@@ -810,7 +833,7 @@ const PDFViewer = ({ entity, activeTxId, transactions, files, accounts }) => {
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold text-slate-700">Document Viewer</span>
           <span className="text-[10px] text-slate-400">|</span>
-          <span className="text-xs text-slate-600 font-mono">{currentFile.name}</span>
+          <span className="text-xs text-slate-600 font-mono">{currentFile?.name || 'No file'}</span>
         </div>
       </div>
       <div className="flex-1 overflow-auto custom-scroll p-8 flex justify-center bg-slate-200/50">
@@ -1014,7 +1037,7 @@ const App = () => {
   const [caseName, setCaseName] = useState('Rademan vs Rademan');
   const [fileUploadModal, setFileUploadModal] = useState(false);
   const [saved, setSaved] = useState(false);
-  const saveTimeoutRef = React.useRef(null);
+  const saveTimeoutRef = useRef(null);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -1084,9 +1107,14 @@ const App = () => {
         charts: appData.charts,
         alerts: appData.alerts
       };
-      localStorage.setItem('r43_project', JSON.stringify(projectData));
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
+      try {
+        localStorage.setItem('r43_project', JSON.stringify(projectData));
+        setSaved(true);
+        setTimeout(() => setSaved(false), 3000);
+      } catch (storageError) {
+        console.error('Failed to save to localStorage:', storageError);
+        // Continue - auto-save failure shouldn't break the app
+      }
     }, 1000); // Debounce auto-save by 1 second
 
     return () => {
@@ -1103,7 +1131,7 @@ const App = () => {
   };
 
   const handleLoadProject = (file) => {
-    loadProject(file, setAppData, setTransactions, setClaims, setCaseName);
+    loadProject(file, setAppData, setTransactions, setClaims, setCaseName, setNotes);
   };
 
   const handleFileUpload = (files) => {

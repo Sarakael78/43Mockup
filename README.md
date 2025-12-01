@@ -38,11 +38,15 @@ Open the URL shown by Vite (typically `http://localhost:5173`) in your browser.
 
 ## Workspace modes & UX highlights
 
-- **Dashboard** — KPI cards, six-month Recharts trend, and forensic alerts for lightning-fast case triage.
+- **Dashboard** — KPI cards, six-month Recharts trend, and forensic alerts for lightning-fast case triage. Includes "Open Case" button to load saved projects.
 - **Workbench** — Split-pane forensic workbench with the transaction grid (category dropdowns, evidence badges, sticky notes) on the right and the Evidence Locker/PDF viewer on the left. Global entity + time filters drive the dynamic averaging engine (1M/3M/6M scopes) that powers the traffic-light schedule.
 - **Evidence Locker** — Focus view for source documents; switch entities to open the simulated PDF viewer, or stay in `ALL` to work the Claimed vs. Proven schedule with Manual / Import / Auto-Calc entry modes.
-- **Traffic-light schedule** — Claimed vs. Proven table implements the Rule 43 “Golden Thread”: shortfalls glow rose, inflations blue, verified rows render black with a double-check icon, and progress bars visualize ratios.
+- **Traffic-light schedule** — Claimed vs. Proven table implements the Rule 43 "Golden Thread": shortfalls glow rose, inflations blue, verified rows render black with a double-check icon, and progress bars visualize ratios.
 - **Evidence status badges** — Every transaction row exposes its evidence state (`proven`, `flagged`, etc.) so updates immediately ripple back into the Golden Thread schedule.
+- **File Upload** — Modal dialog with drag-and-drop support for uploading bank statements and financial affidavits. Includes triage step for file classification (Type, Entity, Parser).
+- **Project Persistence** — Save projects as `.r43` files and load them back. Auto-save to localStorage with visual feedback. Editable case name in the top bar.
+- **Sticky Notes** — Add annotations to individual transactions with a modal editor. Notes are persisted with the project.
+- **Import Mode** — Parse annexures (DOCX/PDF) directly into the schedule (UI ready, backend parsing pending).
 
 ## Build for production
 
