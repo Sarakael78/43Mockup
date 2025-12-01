@@ -12,8 +12,15 @@ class ErrorBoundary extends Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    // Error logging would go here in production
-    // For now, we just set state to show error UI
+    // Log error for debugging and monitoring
+    // In production, this could be sent to an error tracking service (e.g., Sentry)
+    if (import.meta.env.DEV) {
+      console.error('ErrorBoundary caught an error:', error, errorInfo);
+    }
+    // In production, you could integrate with error tracking:
+    // if (window.Sentry) {
+    //   window.Sentry.captureException(error, { contexts: { react: errorInfo } });
+    // }
   }
 
   render() {

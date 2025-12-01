@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { UploadCloud, X } from 'lucide-react';
 import { FILE_SIZE_LIMIT_BYTES } from '../utils/constants';
 import FileTriageRow from './FileTriageRow';
@@ -100,14 +100,20 @@ const FileUploadModal = ({ isOpen, onClose, onUpload, showToast }) => {
     }));
   };
 
+  const uploadTimeoutRef = useRef(null);
+
   const handleUpload = async () => {
     setUploading(true);
-    let uploadTimeout;
+    
+    // Clear any existing timeout
+    if (uploadTimeoutRef.current) {
+      clearTimeout(uploadTimeoutRef.current);
+    }
     
     try {
       // Simulate upload progress
       await new Promise(resolve => {
-        uploadTimeout = setTimeout(resolve, 1000);
+        uploadTimeoutRef.current = setTimeout(resolve, 1000);
       });
       if (onUpload) {
         onUpload(files);
@@ -119,11 +125,22 @@ const FileUploadModal = ({ isOpen, onClose, onUpload, showToast }) => {
       // Upload failed - error handling would be implemented here
       setUploading(false);
     } finally {
-      if (uploadTimeout) {
-        clearTimeout(uploadTimeout);
+      if (uploadTimeoutRef.current) {
+        clearTimeout(uploadTimeoutRef.current);
+        uploadTimeoutRef.current = null;
       }
     }
   };
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (uploadTimeoutRef.current) {
+        clearTimeout(uploadTimeoutRef.current);
+        uploadTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   if (!isOpen) return null;
 
@@ -201,4 +218,5 @@ const FileUploadModal = ({ isOpen, onClose, onUpload, showToast }) => {
 };
 
 export default FileUploadModal;
+
 
