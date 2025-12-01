@@ -3,15 +3,7 @@ import { extractTextFromPDF } from './pdfExtractor';
 import { generateId } from './constants';
 import { logger } from './logger';
 import { MIN_AMOUNT_THRESHOLD, MAX_AMOUNT_THRESHOLD, MIN_LINE_LENGTH } from './constants';
-
-const readFileAsArrayBuffer = (file) => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => resolve(e.target.result);
-    reader.onerror = (e) => reject(new Error('Failed to read file'));
-    reader.readAsArrayBuffer(file);
-  });
-};
+import { readFileAsArrayBuffer } from './fileUtils';
 
 export const parseDOCXClaims = async (file) => {
   try {
