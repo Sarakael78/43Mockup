@@ -30,7 +30,6 @@ Open the URL shown by Vite (typically `http://localhost:5173`) in your browser.
 
 - `src/` — React source (entry at `src/main.jsx`, main UI in `src/App.jsx`).
 - `index.html` — Vite entry that mounts `#root`.
-- `financial_data.json` — Mock data loaded at runtime by the app.
 - `scripts/run.sh` — Dev helper: installs deps if needed, picks a free port, starts dev server and opens browser.
 - `scripts/build.sh` — Production build helper; `./scripts/build.sh --serve` serves `dist/` on a free port.
 - `tailwind.config.cjs`, `postcss.config.cjs`, `src/index.css` — Tailwind setup.
@@ -79,8 +78,6 @@ This repository includes a GitHub Actions workflow (`.github/workflows/build.yml
 npm install
 npm run dev
 ```
-
-- `financial_data.json` fetch fails: confirm the file exists at the project root and the dev server is running.
 
 - Port conflicts: `scripts/run.sh` and `scripts/build.sh --serve` pick ephemeral free ports. To use a fixed port run `npm run dev -- --port 5173`.
 
