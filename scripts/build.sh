@@ -3,7 +3,9 @@ set -euo pipefail
 
 # build.sh — build the Vite app for production and optionally serve the `dist/` folder
 
-cd "$(dirname "$0")"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$PROJECT_ROOT"
 
 usage() {
   cat <<EOF

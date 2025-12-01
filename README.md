@@ -1,7 +1,7 @@
 # 43Mockup
 # 43Mockup
 
-A Vite + React implementation of the Rule 43 financial intelligence workspace. Includes error handling, input sanitization, and data validation improvements. TODO: connect to real data sources.
+A Vite + React implementation of the Rule 43 financial intelligence workspace. Includes error handling, input sanitization, and data validation improvements. Currently uses mock data for demonstration purposes.
 
 ## Quick start
 

@@ -23,7 +23,7 @@
     { "id": 1, "name": "scan 1.pdf", "entity": "PERSONAL", "size": "3.2 MB", "status": "Analyzed", "date": "2025-09-30", "desc": "SBSA 7420 & Trust 0397 Statements" },
     { "id": 2, "name": "scan 2.pdf", "entity": "BUSINESS", "size": "4.1 MB", "status": "Analyzed", "date": "2025-09-30", "desc": "MyMobiz 3435, FNB 6200 & Credit 2483" },
     { "id": 3, "name": "Annexure KPR8.docx", "entity": "LEGAL", "size": "0.5 MB", "status": "Extracted", "date": "2025-10-15", "desc": "Rule 43 Financial Needs Affidavit" },
-    { "id": 4, "name": "PERSONAL tatement-SEPTEMBER.pdf", "entity": "PERSONAL", "size": "1.8 MB", "status": "Analyzed", "date": "2025-09-27", "desc": "Sept 2025 Detailed Statement" },
+    { "id": 4, "name": "PERSONAL Statement-SEPTEMBER.pdf", "entity": "PERSONAL", "size": "1.8 MB", "status": "Analyzed", "date": "2025-09-27", "desc": "Sept 2025 Detailed Statement" },
     { "id": 5, "name": "scan 3.pdf", "entity": "HISTORICAL", "size": "5.2 MB", "status": "Reference", "date": "2015-04-22", "desc": "Old Property/Budget Docs" }
   ],
   "claims": [

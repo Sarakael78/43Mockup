@@ -11,7 +11,6 @@ import {
   Scale,
   StickyNote,
   FileStack,
-  Download,
   Sparkles,
   CheckCheck,
   UploadCloud,
@@ -630,22 +629,25 @@ const TopBar = ({ title, subtitle, caseName, onCaseNameChange, onSave, saved, on
           <Save size={14} />
           Export Analysis
         </button>
-        <button 
-          onClick={() => {
-            // Download Report functionality - to be implemented
-            if (onError) {
-              onError({ 
-                message: 'Download Report functionality is not yet available.', 
-                type: 'warning' 
-              });
-            }
-          }}
-          className="inline-flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-md bg-blue-600 text-white shadow-sm hover:bg-blue-500 transition-colors"
-          title="Download Report (Not yet implemented)"
-        >
-          <Download size={14} />
-          Download Report
-        </button>
+        {/* Download Report button hidden for MVP demo - to be implemented in future release */}
+        {false && (
+          <button 
+            onClick={() => {
+              // Download Report functionality - to be implemented
+              if (onError) {
+                onError({ 
+                  message: 'Download Report functionality is not yet available.', 
+                  type: 'warning' 
+                });
+              }
+            }}
+            className="inline-flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-md bg-blue-600 text-white shadow-sm hover:bg-blue-500 transition-colors"
+            title="Download Report (Not yet implemented)"
+          >
+            <Download size={14} />
+            Download Report
+          </button>
+        )}
       </div>
     </div>
   );
