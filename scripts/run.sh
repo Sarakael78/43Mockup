@@ -6,6 +6,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$PROJECT_ROOT"
 
 # Kill existing Vite dev server processes for this project
 echo "Checking for existing dev server processes..."
@@ -81,7 +82,7 @@ else
   echo "node_modules found — skipping npm install"
 fi
 
-LOG_FILE="dev_server.log"
+LOG_FILE="$PROJECT_ROOT/scripts/dev_server.log"
 
 # Start Vite dev server in background
 echo "Starting Vite dev server on port $PORT (logs -> $LOG_FILE)..."

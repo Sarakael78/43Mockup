@@ -1,9 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { StickyNote, X } from 'lucide-react';
 import { NOTE_MAX_LENGTH } from '../utils/constants';
 
 const NoteModal = ({ isOpen, onClose, transaction, note, onSave }) => {
   const [noteText, setNoteText] = useState(note || '');
+
+  useEffect(() => {
+    if (isOpen) {
+      setNoteText(note || '');
+    } else {
+      setNoteText('');
+    }
+  }, [isOpen, note, transaction?.id]);
 
   if (!isOpen) return null;
 

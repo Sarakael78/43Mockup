@@ -1,10 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Save, Plus, Check } from 'lucide-react';
 import { CASE_NAME_MAX_LENGTH } from '../utils/constants';
 
 const TopBar = ({ title, subtitle, caseName, onCaseNameChange, onSave, onNewCase, saved, onError }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(caseName);
+
+  useEffect(() => {
+    setEditValue(caseName);
+  }, [caseName]);
 
   const handleSave = () => {
     if (onCaseNameChange) {

@@ -318,6 +318,11 @@ const App = () => {
             type: 'Financial Affidavit',
             uploadedAt: new Date().toISOString()
           });
+        } else {
+          errors.push({
+            file: file.name,
+            message: `Unsupported file classification: ${file.triage.type}`
+          });
         }
 
       } catch (error) {

@@ -116,14 +116,17 @@ const FileUploadModal = ({ isOpen, onClose, onUpload, showToast }) => {
       });
       if (onUpload) {
         // Files already have triage attached via defineProperty, so just pass them directly
-        onUpload(files);
+        await onUpload(files);
       }
       setFiles([]);
       setUploading(false);
       onClose();
     } catch (error) {
-      // Upload failed - error handling would be implemented here
       setUploading(false);
+      const message = error instanceof Error ? error.message : 'Unknown error uploading files';
+      if (showToast) {
+        showToast(`Upload failed: ${message}`, 'error');
+      }
     } finally {
       if (uploadTimeout) {
         clearTimeout(uploadTimeout);

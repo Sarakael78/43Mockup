@@ -80,6 +80,12 @@ const PDFViewer = ({ entity, activeTxId, transactions, files, accounts, setClaim
     return extension;
   }, [currentFile]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+    setNumPages(null);
+    setZoom(1.0);
+  }, [currentFile?.id, fileType]);
+
   // Handle file URL creation (for PDF files)
   useEffect(() => {
     let objectUrl = null;
