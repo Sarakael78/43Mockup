@@ -705,7 +705,7 @@ const TopBar = ({ title, subtitle, caseName, onCaseNameChange, onSave, saved, on
   );
 };
 
-const DashboardView = ({ data, onLoadProject }) => {
+const DashboardView = ({ data, transactions, claims, onLoadProject }) => {
   const fileInputRef = useRef(null);
 
   const handleLoadClick = () => {
@@ -718,6 +718,22 @@ const DashboardView = ({ data, onLoadProject }) => {
       e.target.value = ''; // Reset input
     }
   };
+
+  // Calculate KPIs from actual data
+  const totalIncome = transactions
+    .filter(tx => tx && tx.amount > 0)
+    .reduce((sum, tx) => sum + (tx.amount || 0), 0);
+  
+  const totalExpenses = Math.abs(transactions
+    .filter(tx => tx && tx.amount < 0)
+    .reduce((sum, tx) => sum + (tx.amount || 0), 0));
+  
+  const totalClaimed = claims
+    .reduce((sum, claim) => sum + (claim.claimed || 0), 0);
+  
+  const deficit = totalIncome - totalExpenses;
+
+  const hasData = transactions.length > 0 || claims.length > 0;
 
   return (
     <div className="p-8 overflow-auto h-full custom-scroll bg-slate-50/50">
@@ -737,69 +753,115 @@ const DashboardView = ({ data, onLoadProject }) => {
           onChange={handleFileChange}
         />
       </div>
-    <div className="grid grid-cols-4 gap-6 mb-8">
-      <div className="p-5 rounded-xl border border-slate-100 shadow-sm bg-white border-l-4 border-l-emerald-500">
-        <div className="text-xs font-bold text-slate-400 uppercase">Sept Income (Proven)</div>
-        <div className="text-2xl font-mono font-bold text-emerald-600">R 14,992</div>
-        <div className="text-[10px] text-slate-400 mt-1">Excludes inter-company transfers</div>
-      </div>
-      <div className="p-5 rounded-xl border border-slate-100 shadow-sm bg-white border-l-4 border-l-rose-500">
-        <div className="text-xs font-bold text-slate-400 uppercase">Sept Expenses (Proven)</div>
-        <div className="text-2xl font-mono font-bold text-rose-600">R 58,500</div>
-        <div className="text-[10px] text-rose-400 mt-1">Includes R30k Legal Fee</div>
-      </div>
-      <div className="p-5 rounded-xl border border-slate-100 shadow-sm bg-white border-l-4 border-l-slate-500">
-        <div className="text-xs font-bold text-slate-400 uppercase">Claimed Needs (KPR8)</div>
-        <div className="text-2xl font-mono font-bold text-slate-600">R 34,633</div>
-        <div className="text-[10px] text-slate-400 mt-1">Monthly Budget Annexure</div>
-      </div>
-      <div className="p-5 rounded-xl border border-slate-100 shadow-sm bg-white border-l-4 border-l-amber-500">
-        <div className="text-xs font-bold text-slate-400 uppercase">Deficit (Actual)</div>
-        <div className="text-2xl font-mono font-bold text-amber-600">-R 43,508</div>
-        <div className="text-[10px] text-amber-400 mt-1">Burn rate critical</div>
-      </div>
-    </div>
-
-    <div className="grid grid-cols-3 gap-6 h-[400px]">
-      <div className="col-span-2 bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="font-bold text-slate-700">Financial Trend (June - Sept 2025)</h3>
+      
+      {!hasData && (
+        <div className="flex flex-col items-center justify-center h-[60vh] text-center">
+          <FileStack size={64} className="text-slate-300 mb-4" />
+          <h2 className="text-xl font-bold text-slate-700 mb-2">No Data Yet</h2>
+          <p className="text-sm text-slate-500 mb-6 max-w-md">
+            Get started by clicking the <strong>+</strong> button in the sidebar to upload bank statements and financial affidavits,<br />
+            or use the <strong>Open Case</strong> button above to load a saved project file.
+          </p>
         </div>
-        <div className="flex-1 w-full min-h-0">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data.charts}>
-              <XAxis dataKey="name" fontSize={10} axisLine={false} tickLine={false} />
-              <YAxis fontSize={10} axisLine={false} tickLine={false} tickFormatter={(val) => `R${val/1000}k`} />
-              <Tooltip cursor={{ fill: '#f1f5f9' }} formatter={(value) => `R ${value.toLocaleString()}`} />
-              <Bar dataKey="income" name="Income" fill="#10b981" radius={[4, 4, 0, 0]} barSize={20} />
-              <Bar dataKey="expense" name="Expenses" fill="#f43f5e" radius={[4, 4, 0, 0]} barSize={20} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
+      )}
 
-      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm overflow-auto custom-scroll">
-        <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2">
-          <Bell className="text-slate-400" size={16} />
-          Forensic Alerts
-        </h3>
-        {data.alerts.map(alert => (
-          <div key={alert.id} className={`flex items-start p-3 rounded-lg border mb-3 ${alert.type === 'critical' ? 'bg-rose-50 border-rose-100' : 'bg-amber-50 border-amber-100'}`}>
-            <div className={`mt-0.5 mr-3 ${alert.type === 'critical' ? 'text-rose-500' : 'text-amber-500'}`}>
-              {alert.type === 'critical' ? <AlertCircle size={14} /> : <AlertTriangle size={14} />}
+      {hasData && (
+        <>
+          <div className="grid grid-cols-4 gap-6 mb-8">
+            <div className="p-5 rounded-xl border border-slate-100 shadow-sm bg-white border-l-4 border-l-emerald-500">
+              <div className="text-xs font-bold text-slate-400 uppercase">Income (Proven)</div>
+              <div className="text-2xl font-mono font-bold text-emerald-600">
+                {totalIncome.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 })}
+              </div>
+              <div className="text-[10px] text-slate-400 mt-1">
+                {transactions.filter(tx => tx && tx.amount > 0).length} transactions
+              </div>
             </div>
-            <div className="flex-1">
-              <h4 className={`text-xs font-bold ${alert.type === 'critical' ? 'text-rose-800' : 'text-amber-800'}`}>{alert.title}</h4>
-              <p className={`text-[10px] mt-1 ${alert.type === 'critical' ? 'text-rose-600' : 'text-amber-700'}`}>{alert.msg}</p>
+            <div className="p-5 rounded-xl border border-slate-100 shadow-sm bg-white border-l-4 border-l-rose-500">
+              <div className="text-xs font-bold text-slate-400 uppercase">Expenses (Proven)</div>
+              <div className="text-2xl font-mono font-bold text-rose-600">
+                {totalExpenses.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 })}
+              </div>
+              <div className="text-[10px] text-rose-400 mt-1">
+                {transactions.filter(tx => tx && tx.amount < 0).length} transactions
+              </div>
             </div>
-            <div className={`text-xs font-bold font-mono ${alert.type === 'critical' ? 'text-rose-700' : 'text-amber-700'}`}>
-              {alert.value}
+            <div className="p-5 rounded-xl border border-slate-100 shadow-sm bg-white border-l-4 border-l-slate-500">
+              <div className="text-xs font-bold text-slate-400 uppercase">Claimed Needs (KPR8)</div>
+              <div className="text-2xl font-mono font-bold text-slate-600">
+                {totalClaimed.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 })}
+              </div>
+              <div className="text-[10px] text-slate-400 mt-1">
+                {claims.length} claim{claims.length !== 1 ? 's' : ''}
+              </div>
+            </div>
+            <div className="p-5 rounded-xl border border-slate-100 shadow-sm bg-white border-l-4 border-l-amber-500">
+              <div className="text-xs font-bold text-slate-400 uppercase">Deficit (Actual)</div>
+              <div className={`text-2xl font-mono font-bold ${deficit < 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                {deficit.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 })}
+              </div>
+              <div className={`text-[10px] mt-1 ${deficit < 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                {deficit < 0 ? 'Negative balance' : 'Positive balance'}
+              </div>
             </div>
           </div>
-        ))}
-      </div>
+        </>
+      )}
+
+      {hasData && (
+        <div className="grid grid-cols-3 gap-6 h-[400px]">
+          <div className="col-span-2 bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="font-bold text-slate-700">Financial Trend</h3>
+            </div>
+            <div className="flex-1 w-full min-h-0">
+              {data.charts && data.charts.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={data.charts}>
+                    <XAxis dataKey="name" fontSize={10} axisLine={false} tickLine={false} />
+                    <YAxis fontSize={10} axisLine={false} tickLine={false} tickFormatter={(val) => `R${val/1000}k`} />
+                    <Tooltip cursor={{ fill: '#f1f5f9' }} formatter={(value) => `R ${value.toLocaleString()}`} />
+                    <Bar dataKey="income" name="Income" fill="#10b981" radius={[4, 4, 0, 0]} barSize={20} />
+                    <Bar dataKey="expense" name="Expenses" fill="#f43f5e" radius={[4, 4, 0, 0]} barSize={20} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full text-slate-400 text-sm">
+                  No chart data available. Chart data will appear when you have sufficient transaction history.
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm overflow-auto custom-scroll">
+            <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2">
+              <Bell className="text-slate-400" size={16} />
+              Forensic Alerts
+            </h3>
+            {data.alerts && data.alerts.length > 0 ? (
+              data.alerts.map(alert => (
+                <div key={alert.id} className={`flex items-start p-3 rounded-lg border mb-3 ${alert.type === 'critical' ? 'bg-rose-50 border-rose-100' : 'bg-amber-50 border-amber-100'}`}>
+                  <div className={`mt-0.5 mr-3 ${alert.type === 'critical' ? 'text-rose-500' : 'text-amber-500'}`}>
+                    {alert.type === 'critical' ? <AlertCircle size={14} /> : <AlertTriangle size={14} />}
+                  </div>
+                  <div className="flex-1">
+                    <h4 className={`text-xs font-bold ${alert.type === 'critical' ? 'text-rose-800' : 'text-amber-800'}`}>{alert.title}</h4>
+                    <p className={`text-[10px] mt-1 ${alert.type === 'critical' ? 'text-rose-600' : 'text-amber-700'}`}>{alert.msg}</p>
+                  </div>
+                  <div className={`text-xs font-bold font-mono ${alert.type === 'critical' ? 'text-rose-700' : 'text-amber-700'}`}>
+                    {alert.value}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center text-slate-400 text-sm py-8">
+                No alerts. Alerts will appear when anomalies are detected in your data.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
-  </div>
   );
 };
 
@@ -1283,13 +1345,25 @@ const WorkbenchView = ({ data, transactions, setTransactions, claims, setClaims,
 };
 
 const App = () => {
+  // Default categories for the application
+  const defaultCategories = [
+    'Groceries/Household', 'School Fees', 'Medical', 'Utilities', 'Transport',
+    'Insurance', 'Bond Repayment', 'Rent', 'Maintenance', 'Child Maintenance',
+    'Legal Fees', 'Clothing', 'Entertainment', 'Uncategorized'
+  ];
+
   const [view, setView] = useState('dashboard');
-  const [appData, setAppData] = useState(null);
-  const [loadError, setLoadError] = useState(null);
+  const [appData, setAppData] = useState({
+    accounts: {},
+    categories: defaultCategories,
+    files: [],
+    charts: [],
+    alerts: []
+  });
   const [transactions, setTransactions] = useState([]);
   const [claims, setClaims] = useState([]);
   const [notes, setNotes] = useState({});
-  const [caseName, setCaseName] = useState('Rademan vs Rademan');
+  const [caseName, setCaseName] = useState('New Case');
   const [fileUploadModal, setFileUploadModal] = useState(false);
   const [saved, setSaved] = useState(false);
   const { showToast } = useToast();
@@ -1306,7 +1380,9 @@ const App = () => {
         if (projectData.accounts && projectData.transactions && projectData.claims) {
           setAppData({
             accounts: projectData.accounts,
-            categories: projectData.categories || [],
+            categories: projectData.categories && projectData.categories.length > 0 
+              ? projectData.categories 
+              : defaultCategories,
             files: projectData.files || [],
             charts: projectData.charts || [],
             alerts: projectData.alerts || []
@@ -1319,27 +1395,13 @@ const App = () => {
           if (projectData.notes) {
             setNotes(projectData.notes || {});
           }
-          return; // Don't fetch from file if we loaded from localStorage
         }
       } catch (error) {
-        // Error loading from localStorage - will fallback to fetching financial_data.json
+        // Error loading from localStorage - continue with empty state
+        console.error('Error loading project from localStorage:', error);
       }
     }
-
-    // Fallback to fetching financial_data.json
-    fetch('./financial_data.json')
-      .then(res => {
-        if (!res.ok) throw new Error('Network response was not ok');
-        return res.json();
-      })
-      .then(data => {
-        setAppData(data);
-        setTransactions(data.transactions);
-        setClaims(data.claims);
-      })
-      .catch(err => {
-        setLoadError(err.message || String(err));
-      });
+    // No fallback to mock data - app starts empty
   }, []);
 
   // Auto-save to localStorage whenever data changes
@@ -1525,13 +1587,7 @@ const App = () => {
     }
   };
 
-  if (loadError) {
-    return <div className="flex items-center justify-center h-screen text-red-600">Error loading data: {loadError}</div>;
-  }
-
-  if (!appData) {
-    return <div className="flex items-center justify-center h-screen">Loading financial data...</div>;
-  }
+  // App always has appData initialized, no loading state needed
 
   return (
     <div className="flex h-screen w-screen bg-slate-100 font-sans text-slate-900">
@@ -1547,7 +1603,7 @@ const App = () => {
           onError={(err) => showToast(err.message, err.type || 'error')}
         />
         <div className="flex-1 min-h-0 relative">
-          {view === 'dashboard' && <DashboardView data={appData} onLoadProject={handleLoadProject} />}
+          {view === 'dashboard' && <DashboardView data={appData} transactions={transactions} claims={claims} onLoadProject={handleLoadProject} />}
           {view === 'workbench' && (
             <WorkbenchView
               data={appData}
