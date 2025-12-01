@@ -5,6 +5,46 @@ set -euo pipefail
 # starts Vite dev server on that port, waits for it, and opens the browser.
 
 cd "$(dirname "$0")"
+PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+
+# Kill existing Vite dev server processes for this project
+echo "Checking for existing dev server processes..."
+
+# Find processes running vite in this project directory
+VITE_PIDS=$(ps aux 2>/dev/null | grep -E "[v]ite|[n]pm.*dev" | grep -E "$PROJECT_ROOT|43Mockup" | awk '{print $2}' | tr '\n' ' ' || true)
+
+# Also find by process name pattern (more reliable)
+if command -v pgrep >/dev/null 2>&1; then
+  # Find vite processes
+  VITE_PIDS="$VITE_PIDS $(pgrep -f 'vite' 2>/dev/null | tr '\n' ' ' || true)"
+  # Find npm run dev processes
+  VITE_PIDS="$VITE_PIDS $(pgrep -f 'npm.*run.*dev' 2>/dev/null | tr '\n' ' ' || true)"
+fi
+
+# Remove duplicates and empty values
+EXISTING_PIDS=$(echo "$VITE_PIDS" | tr ' ' '\n' | grep -E '^[0-9]+$' | sort -u | tr '\n' ' ' | xargs || true)
+
+if [ -n "$EXISTING_PIDS" ]; then
+  echo "Found existing dev server processes: $EXISTING_PIDS"
+  echo "Killing existing processes..."
+  # Try graceful termination first
+  for pid in $EXISTING_PIDS; do
+    if kill -0 "$pid" 2>/dev/null; then
+      kill -TERM "$pid" 2>/dev/null || true
+    fi
+  done
+  sleep 2
+  # Force kill if still running
+  for pid in $EXISTING_PIDS; do
+    if kill -0 "$pid" 2>/dev/null; then
+      echo "Force killing process $pid..."
+      kill -KILL "$pid" 2>/dev/null || true
+    fi
+  done
+  echo "Existing processes terminated."
+else
+  echo "No existing dev server processes found."
+fi
 
 # Check prerequisites
 if ! command -v node >/dev/null 2>&1; then
