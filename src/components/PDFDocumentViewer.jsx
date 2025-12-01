@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-react';
 import '../utils/pdfConfig';
@@ -21,7 +21,9 @@ const PDFDocumentViewer = ({ fileUrl, onLoadSuccess, currentPage: externalPage, 
 
   const handleDocumentLoadError = (error) => {
     setLoading(false);
-    setError(`Failed to load PDF: ${error.message}`);
+    // Sanitize error message to prevent XSS
+    const errorMessage = error instanceof Error ? String(error.message).replace(/[<>\"'&]/g, '') : 'Unknown error';
+    setError(`Failed to load PDF: ${errorMessage}`);
   };
 
   const goToPreviousPage = () => {
@@ -57,16 +59,21 @@ const PDFDocumentViewer = ({ fileUrl, onLoadSuccess, currentPage: externalPage, 
   };
 
   // Sync with external page changes
-  if (externalPage !== undefined && externalPage !== pageNumber) {
-    setPageNumber(externalPage);
-  }
+  useEffect(() => {
+    if (externalPage !== undefined && externalPage !== pageNumber) {
+      setPageNumber(externalPage);
+    }
+  }, [externalPage, pageNumber]);
 
   // Sync with external zoom changes
-  if (externalZoom !== undefined && externalZoom !== zoom) {
-    setZoom(externalZoom);
-  }
+  useEffect(() => {
+    if (externalZoom !== undefined && externalZoom !== zoom) {
+      setZoom(externalZoom);
+    }
+  }, [externalZoom, zoom]);
 
   if (error) {
+    // Error message is already sanitized in handleDocumentLoadError
     return (
       <div className="flex items-center justify-center h-full bg-slate-200 text-red-600 text-sm">
         {error}

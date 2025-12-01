@@ -1490,7 +1490,7 @@ const App = () => {
 
           // Add file metadata
           newFiles.push({
-            id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            id: `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
             name: file.name,
             desc: `Bank Statement - ${file.triage.parser}`,
             entity: file.triage.entity || 'PERSONAL',
@@ -1519,7 +1519,7 @@ const App = () => {
 
           // Add file metadata
           newFiles.push({
-            id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            id: `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
             name: file.name,
             desc: 'Financial Affidavit',
             entity: file.triage.entity || 'LEGAL',

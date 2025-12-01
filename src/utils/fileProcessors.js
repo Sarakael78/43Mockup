@@ -1,6 +1,8 @@
 import Papa from 'papaparse';
 import mammoth from 'mammoth';
 import { parseCSV as standardBankParseCSV } from './parsers/standardBankParser.js';
+import { parseCSV as fnbParseCSV } from './parsers/fnbParser.js';
+import { parseCSV as genericParseCSV } from './parsers/genericCSVParser.js';
 
 // Dynamic import for pdf-parse to handle ESM/CJS differences
 const getPdfParse = async () => {
@@ -12,10 +14,8 @@ const getPdfParse = async () => {
     return null;
   }
 };
-import { parseCSV as fnbParseCSV } from './parsers/fnbParser.js';
-import { parseCSV as genericParseCSV } from './parsers/genericCSVParser.js';
 
-const generateId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+const generateId = () => `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 
 const readFileAsText = (file) => {
   return new Promise((resolve, reject) => {
@@ -84,7 +84,8 @@ export const processBankStatement = async (file, parser, entity) => {
         throw new Error('PDF parsing not available');
       }
       const arrayBuffer = await readFileAsArrayBuffer(file);
-      const pdfData = await pdfParse(Buffer.from(arrayBuffer));
+      // pdf-parse can accept ArrayBuffer directly in browser environments
+      const pdfData = await pdfParse(arrayBuffer);
       const text = pdfData.text;
       
       // Basic regex parsing for transactions in PDF
@@ -219,7 +220,8 @@ export const processFinancialAffidavit = async (file) => {
         throw new Error('PDF parsing not available');
       }
       const arrayBuffer = await readFileAsArrayBuffer(file);
-      const pdfData = await pdfParse(Buffer.from(arrayBuffer));
+      // pdf-parse can accept ArrayBuffer directly in browser environments
+      const pdfData = await pdfParse(arrayBuffer);
       const text = pdfData.text;
 
       // Similar parsing logic for PDF

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { AlertCircle, CheckCircle, AlertTriangle, Info, X } from 'lucide-react';
 
 const ToastContext = createContext(null);
@@ -13,13 +13,26 @@ export const useToast = () => {
 
 const Toast = ({ id, message, type = 'error', onClose }) => {
   const [isVisible, setIsVisible] = useState(true);
+  const timeoutRef = useRef(null);
 
   const handleClose = useCallback(() => {
     setIsVisible(false);
-    setTimeout(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    timeoutRef.current = setTimeout(() => {
       if (onClose) onClose(id);
     }, 300); // Wait for animation
   }, [id, onClose]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   if (!isVisible) return null;
 
@@ -92,6 +105,7 @@ const ToastContainer = ({ toasts, removeToast }) => {
 
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
+  const timeoutRefs = useRef(new Map());
 
   const showToast = useCallback((message, type = 'error', duration = 5000) => {
     const id = Date.now() + Math.random();
@@ -101,16 +115,32 @@ export const ToastProvider = ({ children }) => {
 
     // Auto-dismiss after duration
     if (duration > 0) {
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         setToasts(prev => prev.filter(t => t.id !== id));
+        timeoutRefs.current.delete(id);
       }, duration);
+      timeoutRefs.current.set(id, timeoutId);
     }
 
     return id;
   }, []);
 
   const removeToast = useCallback((id) => {
+    // Clear timeout if exists
+    const timeoutId = timeoutRefs.current.get(id);
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      timeoutRefs.current.delete(id);
+    }
     setToasts(prev => prev.filter(t => t.id !== id));
+  }, []);
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      timeoutRefs.current.forEach(timeoutId => clearTimeout(timeoutId));
+      timeoutRefs.current.clear();
+    };
   }, []);
 
   return (

@@ -1,6 +1,6 @@
 import Papa from 'papaparse';
 
-const generateId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+const generateId = () => `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 
 const cleanDescription = (desc) => {
   if (!desc) return '';

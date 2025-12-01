@@ -10,7 +10,7 @@ const getPdfParse = async () => {
   }
 };
 
-const generateId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+const generateId = () => `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 
 const readFileAsArrayBuffer = (file) => {
   return new Promise((resolve, reject) => {
@@ -129,7 +129,8 @@ export const parsePDFClaims = async (file) => {
       throw new Error('PDF parsing not available');
     }
     const arrayBuffer = await readFileAsArrayBuffer(file);
-    const pdfData = await pdfParse(Buffer.from(arrayBuffer));
+    // pdf-parse can accept ArrayBuffer directly in browser environments
+    const pdfData = await pdfParse(arrayBuffer);
     const text = pdfData.text;
 
     const claims = [];
