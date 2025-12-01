@@ -21,40 +21,15 @@ import {
   Plus,
   Check
 } from 'lucide-react';
+import { useToast } from './contexts/ToastContext';
+import { processBankStatement, processFinancialAffidavit } from './utils/fileProcessors';
+import { parseDOCXClaims, parsePDFClaims } from './utils/documentParsers';
+import { mapCategory } from './utils/categoryMapper';
+import PDFDocumentViewer from './components/PDFDocumentViewer';
 
 const periodMonthsMap = { '1M': 1, '3M': 3, '6M': 6 };
 
-// Error Toast Component
-const ErrorToast = ({ message, onClose, type = 'error' }) => {
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (onClose) onClose();
-    }, 5000);
-    return () => clearTimeout(timer);
-  }, [onClose]);
-
-  if (!message) return null;
-
-  const bgColor = type === 'error' ? 'bg-rose-50 border-rose-200' : 'bg-amber-50 border-amber-200';
-  const textColor = type === 'error' ? 'text-rose-800' : 'text-amber-800';
-  const iconColor = type === 'error' ? 'text-rose-500' : 'text-amber-500';
-
-  return (
-    <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg border shadow-lg ${bgColor} animate-fade-in max-w-md`}>
-      <div className="flex items-start gap-3">
-        <div className={iconColor}>
-          {type === 'error' ? <AlertCircle size={20} /> : <AlertTriangle size={20} />}
-        </div>
-        <div className="flex-1">
-          <p className={`text-sm font-semibold ${textColor}`}>{message}</p>
-        </div>
-        <button onClick={onClose} className={`${textColor} hover:opacity-70`}>
-          <X size={16} />
-        </button>
-      </div>
-    </div>
-  );
-};
+// ErrorToast component removed - now using ToastContext
 
 const getLatestTransactionDate = (transactions) => {
   if (!transactions?.length || !transactions[0]?.date) return null;
@@ -119,20 +94,20 @@ const exportProject = (appData, transactions, claims, caseName) => {
   }
 };
 
-const loadProject = (file, setAppData, setTransactions, setClaims, setCaseName, setNotes, setError) => {
+const loadProject = (file, setAppData, setTransactions, setClaims, setCaseName, setNotes, showToast) => {
   // Validate file size (max 10MB)
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
   if (file.size > MAX_FILE_SIZE) {
-    if (setError) {
-      setError({ message: `File too large. Maximum size is ${MAX_FILE_SIZE / 1024 / 1024}MB.`, type: 'error' });
+    if (showToast) {
+      showToast(`File too large. Maximum size is ${MAX_FILE_SIZE / 1024 / 1024}MB.`, 'error');
     }
     return () => {}; // Return cleanup function for consistency
   }
 
   // Validate file type
   if (!file.name.endsWith('.r43') && !file.name.endsWith('.json')) {
-    if (setError) {
-      setError({ message: 'Invalid file type. Please select a .r43 or .json file.', type: 'error' });
+    if (showToast) {
+      showToast('Invalid file type. Please select a .r43 or .json file.', 'error');
     }
     return () => {};
   }
@@ -198,22 +173,22 @@ const loadProject = (file, setAppData, setTransactions, setClaims, setCaseName, 
         localStorage.setItem('r43_project', JSON.stringify(projectData));
       } catch (storageError) {
         // localStorage quota exceeded or disabled
-        if (setError) {
-          setError({ message: 'Project loaded but could not save to browser storage.', type: 'warning' });
+        if (showToast) {
+          showToast('Project loaded but could not save to browser storage.', 'warning');
         }
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error loading project';
-      if (setError) {
-        setError({ message: `Error loading project: ${errorMessage}`, type: 'error' });
+      if (showToast) {
+        showToast(`Error loading project: ${errorMessage}`, 'error');
       }
     }
   };
   
   reader.onerror = () => {
     if (!isCancelled) {
-      if (setError) {
-        setError({ message: 'Error reading file. Please try again.', type: 'error' });
+      if (showToast) {
+        showToast('Error reading file. Please try again.', 'error');
       }
     }
   };
@@ -774,7 +749,7 @@ const DashboardView = ({ data, onLoadProject }) => {
   );
 };
 
-const DocumentInventory = ({ transactions, periodFilter, monthsInScope, files, claims, onImport }) => {
+const DocumentInventory = ({ transactions, periodFilter, monthsInScope, files, claims, onImport, setClaims }) => {
   const [entryMode, setEntryMode] = useState('manual');
   const fileInputRef = useRef(null);
   const entryModes = [
@@ -972,8 +947,14 @@ const DocumentInventory = ({ transactions, periodFilter, monthsInScope, files, c
   );
 };
 
-const PDFViewer = ({ entity, activeTxId, transactions, files, accounts }) => {
+const PDFViewer = ({ entity, activeTxId, transactions, files, accounts, setClaims }) => {
+  const [pdfUrl, setPdfUrl] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [numPages, setNumPages] = useState(null);
+  const [zoom, setZoom] = useState(1.0);
+
   const currentFile = (files && Array.isArray(files)) ? (files.find(f => f && f.entity === entity) || files[0]) : null;
+  
   const entityAccounts = useMemo(() => {
     if (!accounts || typeof accounts !== 'object') return [];
     if (entity === 'PERSONAL') return [accounts.PERSONAL, accounts.TRUST].filter(Boolean);
@@ -987,6 +968,39 @@ const PDFViewer = ({ entity, activeTxId, transactions, files, accounts }) => {
     ? transactions.filter((tx) => tx && tx.acc && entityAccounts.includes(tx.acc))
     : (Array.isArray(transactions) ? transactions : []);
 
+  // Handle file URL creation
+  useEffect(() => {
+    if (!currentFile) {
+      setPdfUrl(null);
+      return;
+    }
+
+    // If file has a File object (from upload)
+    if (currentFile.file && currentFile.file instanceof File) {
+      const url = URL.createObjectURL(currentFile.file);
+      setPdfUrl(url);
+      return () => URL.revokeObjectURL(url);
+    }
+    
+    // If file has a URL property
+    if (currentFile.url) {
+      setPdfUrl(currentFile.url);
+      return;
+    }
+    
+    // Try to create a data URL if file has data
+    if (currentFile.data) {
+      setPdfUrl(currentFile.data);
+      return;
+    }
+
+    setPdfUrl(null);
+  }, [currentFile]);
+
+  const handleLoadSuccess = (numPages) => {
+    setNumPages(numPages);
+  };
+
   return (
     <div className="h-full bg-slate-200 border-r border-slate-300 flex flex-col relative">
       <div className="h-10 bg-white border-b flex items-center justify-between px-4 shadow-sm z-10 shrink-0">
@@ -996,42 +1010,58 @@ const PDFViewer = ({ entity, activeTxId, transactions, files, accounts }) => {
           <span className="text-xs text-slate-600 font-mono">{currentFile && currentFile.name ? currentFile.name.replace(/[<>\"'&]/g, '') : 'No file'}</span>
         </div>
       </div>
-      <div className="flex-1 overflow-auto custom-scroll p-8 flex justify-center bg-slate-200/50">
-        <div className="bg-white w-[595px] h-[842px] shadow-lg shrink-0 p-10 relative text-slate-800">
-          <div className="flex justify-between items-start mb-8 border-b-2 pb-4 border-slate-800">
-            <div className="text-xl font-black text-slate-800 uppercase tracking-tighter">
-              {entity === 'PERSONAL' ? 'STANDARD BANK' : entity === 'BUSINESS' ? 'FNB / SBSA' : 'STATEMENT'}
-            </div>
-            <div className="text-right text-xs font-mono text-slate-500">
-              Page 1 of 3<br />2025-09-30
+      
+      {/* PDF Viewer */}
+      {pdfUrl ? (
+        <PDFDocumentViewer
+          fileUrl={pdfUrl}
+          onLoadSuccess={handleLoadSuccess}
+          currentPage={currentPage}
+          onPageChange={setCurrentPage}
+          zoom={zoom}
+          onZoomChange={setZoom}
+        />
+      ) : (
+        <div className="flex-1 overflow-auto custom-scroll p-8 flex justify-center bg-slate-200/50">
+          <div className="bg-white w-[595px] h-[842px] shadow-lg shrink-0 p-10 relative text-slate-800 flex items-center justify-center">
+            <div className="text-center text-slate-400">
+              <FileText size={48} className="mx-auto mb-4" />
+              <p className="text-sm">No PDF file available</p>
+              <p className="text-xs mt-2">Upload a PDF file to view it here</p>
             </div>
           </div>
-          {/* Simulated OCR Overlay */}
-          <div className="space-y-1 font-mono text-[9px] text-slate-600">
-            <div className="grid grid-cols-[60px_1fr_60px] font-bold border-b border-slate-200 pb-1 mb-2">
-              <span>DATE</span>
-              <span>DESCRIPTION</span>
-              <span className="text-right">AMOUNT</span>
-            </div>
+        </div>
+      )}
+
+      {/* Transaction Overlay - Side Panel */}
+      <div className="absolute right-0 top-10 bottom-0 w-64 bg-white/95 border-l border-slate-300 shadow-lg overflow-auto custom-scroll">
+        <div className="p-3 border-b border-slate-200 bg-slate-50">
+          <div className="text-xs font-bold text-slate-700">Transactions ({viewerTransactions.length})</div>
+        </div>
+        <div className="p-2 space-y-1">
           {viewerTransactions.map((tx) => {
             if (!tx || !tx.id) return null;
             const safeDesc = tx.desc ? String(tx.desc).replace(/[<>\"'&]/g, '') : '';
             return (
-              <div key={tx.id} className={`relative flex py-1 border-b border-dotted border-slate-100 hover:bg-yellow-50 ${activeTxId === tx.id ? 'bg-yellow-100' : ''}`}>
-                <span className="w-16">{tx.date || ''}</span>
-                <span className="flex-1 truncate pr-2 uppercase">{safeDesc}</span>
-                <span className="w-20 text-right">{tx.amount ? Math.abs(tx.amount).toFixed(2) : '0.00'}</span>
+              <div 
+                key={tx.id} 
+                className={`p-2 text-xs border-b border-slate-100 hover:bg-yellow-50 cursor-pointer ${activeTxId === tx.id ? 'bg-yellow-100' : ''}`}
+              >
+                <div className="font-mono text-[10px] text-slate-500">{tx.date || ''}</div>
+                <div className="truncate font-semibold text-slate-700">{safeDesc}</div>
+                <div className="text-right font-mono font-bold text-slate-800">
+                  {tx.amount ? (tx.amount < 0 ? '-' : '+') + Math.abs(tx.amount).toFixed(2) : '0.00'}
+                </div>
               </div>
             );
           })}
-          </div>
         </div>
       </div>
     </div>
   );
 };
 
-const EvidenceLockerView = ({ transactions, claims, files, accounts, onError }) => {
+const EvidenceLockerView = ({ transactions, claims, files, accounts, onError, setClaims }) => {
   const [filterEntity, setFilterEntity] = useState('ALL');
   const [periodFilter, setPeriodFilter] = useState('3M');
   const monthsInScope = periodMonthsMap[periodFilter] || 1;
@@ -1064,23 +1094,62 @@ const EvidenceLockerView = ({ transactions, claims, files, accounts, onError }) 
       </div>
       <div className="flex-1 min-h-0">
         {filterEntity === 'ALL'
-          ? <DocumentInventory transactions={scopedTransactions} periodFilter={periodFilter} monthsInScope={monthsInScope} files={files} claims={claims} onImport={(file) => {
-              // Document parsing would happen here in production
-              if (onError) {
-                onError({ 
-                  message: `Importing ${file.name}. Document parsing would happen here in production.`, 
-                  type: 'warning' 
-                });
+          ? <DocumentInventory transactions={scopedTransactions} periodFilter={periodFilter} monthsInScope={monthsInScope} files={files} claims={claims} onImport={async (file) => {
+              try {
+                if (onError) {
+                  onError({ message: `Parsing ${file.name}...`, type: 'info' });
+                }
+
+                let parsedClaims = [];
+                const fileExtension = file.name.split('.').pop()?.toLowerCase();
+
+                if (fileExtension === 'docx' || fileExtension === 'doc') {
+                  parsedClaims = await parseDOCXClaims(file);
+                } else if (fileExtension === 'pdf') {
+                  parsedClaims = await parsePDFClaims(file);
+                } else {
+                  throw new Error('Unsupported file type. Please use DOCX or PDF.');
+                }
+
+                // Map categories
+                parsedClaims = parsedClaims.map(claim => ({
+                  ...claim,
+                  category: mapCategory(claim.category) || 'Uncategorized'
+                }));
+
+                // Add to claims state
+                if (setClaims) {
+                  setClaims(prev => {
+                    // Check for duplicates and merge or add
+                    const existingCategories = new Set(prev.map(c => c.category.toLowerCase()));
+                    const newClaims = parsedClaims.filter(c => !existingCategories.has(c.category.toLowerCase()));
+                    return [...prev, ...newClaims];
+                  });
+                }
+
+                if (onError) {
+                  onError({ 
+                    message: `Imported ${parsedClaims.length} claim(s) from ${file.name}`, 
+                    type: 'success' 
+                  });
+                }
+              } catch (error) {
+                if (onError) {
+                  onError({ 
+                    message: `Error importing ${file.name}: ${error.message}`, 
+                    type: 'error' 
+                  });
+                }
               }
-            }} />
-          : <PDFViewer entity={filterEntity} transactions={transactions} activeTxId={null} files={files} accounts={accounts} />
+            }} setClaims={setClaims} />
+          : <PDFViewer entity={filterEntity} transactions={transactions} activeTxId={null} files={files} accounts={accounts} setClaims={setClaims} />
         }
       </div>
     </div>
   );
 };
 
-const WorkbenchView = ({ data, transactions, setTransactions, claims, notes, setNotes, onError }) => {
+const WorkbenchView = ({ data, transactions, setTransactions, claims, setClaims, notes, setNotes, onError }) => {
   const [filterEntity, setFilterEntity] = useState('ALL');
   const [periodFilter, setPeriodFilter] = useState('1M');
   const [noteModal, setNoteModal] = useState({ isOpen: false, transaction: null });
@@ -1122,16 +1191,53 @@ const WorkbenchView = ({ data, transactions, setTransactions, claims, notes, set
     <div className="flex flex-1 h-full overflow-hidden">
       <div className="w-1/2 flex flex-col">
         {filterEntity === 'ALL'
-          ? <DocumentInventory transactions={filteredTx} periodFilter={periodFilter} monthsInScope={monthsInScope} files={data.files} claims={claims} onImport={(file) => {
-              // Document parsing would happen here in production
-              if (onError) {
-                onError({ 
-                  message: `Importing ${file.name}. Document parsing would happen here in production.`, 
-                  type: 'warning' 
+          ? <DocumentInventory transactions={filteredTx} periodFilter={periodFilter} monthsInScope={monthsInScope} files={data.files} claims={claims} onImport={async (file) => {
+              try {
+                if (onError) {
+                  onError({ message: `Parsing ${file.name}...`, type: 'info' });
+                }
+
+                let claims = [];
+                const fileExtension = file.name.split('.').pop()?.toLowerCase();
+
+                if (fileExtension === 'docx' || fileExtension === 'doc') {
+                  claims = await parseDOCXClaims(file);
+                } else if (fileExtension === 'pdf') {
+                  claims = await parsePDFClaims(file);
+                } else {
+                  throw new Error('Unsupported file type. Please use DOCX or PDF.');
+                }
+
+                // Map categories
+                claims = claims.map(claim => ({
+                  ...claim,
+                  category: mapCategory(claim.category) || 'Uncategorized'
+                }));
+
+                // Add to claims state
+                setClaims(prev => {
+                  // Check for duplicates and merge or add
+                  const existingCategories = new Set(prev.map(c => c.category.toLowerCase()));
+                  const newClaims = claims.filter(c => !existingCategories.has(c.category.toLowerCase()));
+                  return [...prev, ...newClaims];
                 });
+
+                if (onError) {
+                  onError({ 
+                    message: `Imported ${claims.length} claim(s) from ${file.name}`, 
+                    type: 'success' 
+                  });
+                }
+              } catch (error) {
+                if (onError) {
+                  onError({ 
+                    message: `Error importing ${file.name}: ${error.message}`, 
+                    type: 'error' 
+                  });
+                }
               }
-            }} />
-          : <PDFViewer entity={filterEntity} transactions={transactions} activeTxId={null} files={data.files} accounts={data.accounts} />
+            }} setClaims={setClaims} />
+          : <PDFViewer entity={filterEntity} transactions={transactions} activeTxId={null} files={data.files} accounts={data.accounts} setClaims={setClaims} />
         }
       </div>
       <div className="w-1/2 bg-white flex flex-col h-full border-l border-slate-200 shadow-xl z-20">
@@ -1222,7 +1328,7 @@ const App = () => {
   const [caseName, setCaseName] = useState('Rademan vs Rademan');
   const [fileUploadModal, setFileUploadModal] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [errorToast, setErrorToast] = useState(null);
+  const { showToast } = useToast();
   const saveTimeoutRef = useRef(null);
   const savedTimeoutRef = useRef(null);
   const loadProjectCleanupRef = useRef(null);
@@ -1332,7 +1438,7 @@ const App = () => {
       loadProjectCleanupRef.current = null;
     }
     
-    const cleanup = loadProject(file, setAppData, setTransactions, setClaims, setCaseName, setNotes, setErrorToast);
+    const cleanup = loadProject(file, setAppData, setTransactions, setClaims, setCaseName, setNotes, showToast);
     if (cleanup) {
       loadProjectCleanupRef.current = cleanup;
     }
@@ -1347,13 +1453,112 @@ const App = () => {
     };
   }, []);
 
-  const handleFileUpload = (files) => {
-    // In a real implementation, this would process and add files
-    // For now, show a non-blocking notification
-    setErrorToast({ 
-      message: `${files.length} file(s) uploaded. Processing would happen here in production.`, 
-      type: 'warning' 
-    });
+  const handleFileUpload = async (files) => {
+    if (!files || files.length === 0) return;
+
+    let processedCount = 0;
+    let transactionCount = 0;
+    let claimCount = 0;
+    const errors = [];
+    const newFiles = [];
+
+    showToast(`Processing ${files.length} file(s)...`, 'info');
+
+    for (const file of files) {
+      try {
+        if (!file.triage || !file.triage.type) {
+          errors.push({ file: file.name, message: 'File triage not completed' });
+          continue;
+        }
+
+        if (file.triage.type === 'Bank Statement') {
+          const result = await processBankStatement(
+            file,
+            file.triage.parser || 'Generic CSV',
+            file.triage.entity || 'PERSONAL'
+          );
+
+          if (result.errors && result.errors.length > 0) {
+            errors.push(...result.errors);
+          }
+
+          if (result.transactions && result.transactions.length > 0) {
+            setTransactions(prev => [...prev, ...result.transactions]);
+            transactionCount += result.transactions.length;
+            processedCount++;
+          }
+
+          // Add file metadata
+          newFiles.push({
+            id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            name: file.name,
+            desc: `Bank Statement - ${file.triage.parser}`,
+            entity: file.triage.entity || 'PERSONAL',
+            type: 'Bank Statement',
+            uploadedAt: new Date().toISOString()
+          });
+
+        } else if (file.triage.type === 'Financial Affidavit') {
+          const result = await processFinancialAffidavit(file);
+
+          if (result.errors && result.errors.length > 0) {
+            errors.push(...result.errors);
+          }
+
+          if (result.claims && result.claims.length > 0) {
+            // Map categories
+            const mappedClaims = result.claims.map(claim => ({
+              ...claim,
+              category: mapCategory(claim.category)
+            }));
+
+            setClaims(prev => [...prev, ...mappedClaims]);
+            claimCount += mappedClaims.length;
+            processedCount++;
+          }
+
+          // Add file metadata
+          newFiles.push({
+            id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            name: file.name,
+            desc: 'Financial Affidavit',
+            entity: file.triage.entity || 'LEGAL',
+            type: 'Financial Affidavit',
+            uploadedAt: new Date().toISOString()
+          });
+        }
+
+      } catch (error) {
+        errors.push({ 
+          file: file.name, 
+          message: error instanceof Error ? error.message : 'Unknown error processing file' 
+        });
+      }
+    }
+
+    // Add files to appData
+    if (newFiles.length > 0) {
+      setAppData(prev => ({
+        ...prev,
+        files: [...(prev.files || []), ...newFiles]
+      }));
+    }
+
+    // Show results
+    if (processedCount > 0) {
+      const successMsg = `Processed ${processedCount} file(s): ${transactionCount} transactions, ${claimCount} claims extracted.`;
+      showToast(successMsg, 'success');
+    }
+
+    if (errors.length > 0) {
+      errors.forEach(err => {
+        showToast(`${err.file}: ${err.message}`, 'error');
+      });
+    }
+
+    if (processedCount === 0 && errors.length === 0) {
+      showToast('No files were processed. Please ensure files are properly triaged.', 'warning');
+    }
   };
 
   if (loadError) {
@@ -1375,7 +1580,7 @@ const App = () => {
           onCaseNameChange={setCaseName}
           onSave={handleSave}
           saved={saved}
-          onError={setErrorToast}
+          onError={(err) => showToast(err.message, err.type || 'error')}
         />
         <div className="flex-1 min-h-0 relative">
           {view === 'dashboard' && <DashboardView data={appData} onLoadProject={handleLoadProject} />}
@@ -1385,9 +1590,10 @@ const App = () => {
               transactions={transactions}
               setTransactions={setTransactions}
               claims={claims}
+              setClaims={setClaims}
               notes={notes}
               setNotes={setNotes}
-              onError={setErrorToast}
+              onError={(err) => showToast(err.message, err.type || 'error')}
             />
           )}
           {view === 'evidence' && (
@@ -1396,7 +1602,8 @@ const App = () => {
               claims={claims}
               files={appData.files || []}
               accounts={appData.accounts || {}}
-              onError={setErrorToast}
+              onError={(err) => showToast(err.message, err.type || 'error')}
+              setClaims={setClaims}
             />
           )}
         </div>
@@ -1406,13 +1613,6 @@ const App = () => {
         onClose={() => setFileUploadModal(false)}
         onUpload={handleFileUpload}
       />
-      {errorToast && (
-        <ErrorToast
-          message={errorToast.message}
-          type={errorToast.type}
-          onClose={() => setErrorToast(null)}
-        />
-      )}
     </div>
   );
 };
