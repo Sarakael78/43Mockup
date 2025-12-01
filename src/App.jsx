@@ -203,6 +203,58 @@ const loadProject = (file, setAppData, setTransactions, setClaims, setCaseName, 
   };
 };
 
+// Shared function for importing claims from DOCX/PDF files
+const createClaimsImportHandler = (setClaims, onError) => {
+  return async (file) => {
+    try {
+      if (onError) {
+        onError({ message: `Parsing ${file.name}...`, type: 'info' });
+      }
+
+      let parsedClaims = [];
+      const fileExtension = file.name.split('.').pop()?.toLowerCase();
+
+      if (fileExtension === 'docx' || fileExtension === 'doc') {
+        parsedClaims = await parseDOCXClaims(file);
+      } else if (fileExtension === 'pdf') {
+        parsedClaims = await parsePDFClaims(file);
+      } else {
+        throw new Error('Unsupported file type. Please use DOCX or PDF.');
+      }
+
+      // Map categories
+      parsedClaims = parsedClaims.map(claim => ({
+        ...claim,
+        category: mapCategory(claim.category) || 'Uncategorized'
+      }));
+
+      // Add to claims state
+      if (setClaims) {
+        setClaims(prev => {
+          // Check for duplicates and merge or add
+          const existingCategories = new Set(prev.map(c => c.category.toLowerCase()));
+          const newClaims = parsedClaims.filter(c => !existingCategories.has(c.category.toLowerCase()));
+          return [...prev, ...newClaims];
+        });
+      }
+
+      if (onError) {
+        onError({ 
+          message: `Imported ${parsedClaims.length} claim(s) from ${file.name}`, 
+          type: 'success' 
+        });
+      }
+    } catch (error) {
+      if (onError) {
+        onError({ 
+          message: `Error importing ${file.name}: ${error.message}`, 
+          type: 'error' 
+        });
+      }
+    }
+  };
+};
+
 // --- COMPONENTS ---
 
 const FileUploadModal = ({ isOpen, onClose, onUpload }) => {
@@ -1098,54 +1150,7 @@ const EvidenceLockerView = ({ transactions, claims, files, accounts, onError, se
       </div>
       <div className="flex-1 min-h-0">
         {filterEntity === 'ALL'
-          ? <DocumentInventory transactions={scopedTransactions} periodFilter={periodFilter} monthsInScope={monthsInScope} files={files} claims={claims} onImport={async (file) => {
-              try {
-                if (onError) {
-                  onError({ message: `Parsing ${file.name}...`, type: 'info' });
-                }
-
-                let parsedClaims = [];
-                const fileExtension = file.name.split('.').pop()?.toLowerCase();
-
-                if (fileExtension === 'docx' || fileExtension === 'doc') {
-                  parsedClaims = await parseDOCXClaims(file);
-                } else if (fileExtension === 'pdf') {
-                  parsedClaims = await parsePDFClaims(file);
-                } else {
-                  throw new Error('Unsupported file type. Please use DOCX or PDF.');
-                }
-
-                // Map categories
-                parsedClaims = parsedClaims.map(claim => ({
-                  ...claim,
-                  category: mapCategory(claim.category) || 'Uncategorized'
-                }));
-
-                // Add to claims state
-                if (setClaims) {
-                  setClaims(prev => {
-                    // Check for duplicates and merge or add
-                    const existingCategories = new Set(prev.map(c => c.category.toLowerCase()));
-                    const newClaims = parsedClaims.filter(c => !existingCategories.has(c.category.toLowerCase()));
-                    return [...prev, ...newClaims];
-                  });
-                }
-
-                if (onError) {
-                  onError({ 
-                    message: `Imported ${parsedClaims.length} claim(s) from ${file.name}`, 
-                    type: 'success' 
-                  });
-                }
-              } catch (error) {
-                if (onError) {
-                  onError({ 
-                    message: `Error importing ${file.name}: ${error.message}`, 
-                    type: 'error' 
-                  });
-                }
-              }
-            }} setClaims={setClaims} />
+          ? <DocumentInventory transactions={scopedTransactions} periodFilter={periodFilter} monthsInScope={monthsInScope} files={files} claims={claims} onImport={createClaimsImportHandler(setClaims, onError)} setClaims={setClaims} />
           : <PDFViewer entity={filterEntity} transactions={transactions} activeTxId={null} files={files} accounts={accounts} setClaims={setClaims} />
         }
       </div>
@@ -1195,52 +1200,7 @@ const WorkbenchView = ({ data, transactions, setTransactions, claims, setClaims,
     <div className="flex flex-1 h-full overflow-hidden">
       <div className="w-1/2 flex flex-col">
         {filterEntity === 'ALL'
-          ? <DocumentInventory transactions={filteredTx} periodFilter={periodFilter} monthsInScope={monthsInScope} files={data.files} claims={claims} onImport={async (file) => {
-              try {
-                if (onError) {
-                  onError({ message: `Parsing ${file.name}...`, type: 'info' });
-                }
-
-                let claims = [];
-                const fileExtension = file.name.split('.').pop()?.toLowerCase();
-
-                if (fileExtension === 'docx' || fileExtension === 'doc') {
-                  claims = await parseDOCXClaims(file);
-                } else if (fileExtension === 'pdf') {
-                  claims = await parsePDFClaims(file);
-                } else {
-                  throw new Error('Unsupported file type. Please use DOCX or PDF.');
-                }
-
-                // Map categories
-                claims = claims.map(claim => ({
-                  ...claim,
-                  category: mapCategory(claim.category) || 'Uncategorized'
-                }));
-
-                // Add to claims state
-                setClaims(prev => {
-                  // Check for duplicates and merge or add
-                  const existingCategories = new Set(prev.map(c => c.category.toLowerCase()));
-                  const newClaims = claims.filter(c => !existingCategories.has(c.category.toLowerCase()));
-                  return [...prev, ...newClaims];
-                });
-
-                if (onError) {
-                  onError({ 
-                    message: `Imported ${claims.length} claim(s) from ${file.name}`, 
-                    type: 'success' 
-                  });
-                }
-              } catch (error) {
-                if (onError) {
-                  onError({ 
-                    message: `Error importing ${file.name}: ${error.message}`, 
-                    type: 'error' 
-                  });
-                }
-              }
-            }} setClaims={setClaims} />
+          ? <DocumentInventory transactions={filteredTx} periodFilter={periodFilter} monthsInScope={monthsInScope} files={data.files} claims={claims} onImport={createClaimsImportHandler(setClaims, onError)} setClaims={setClaims} />
           : <PDFViewer entity={filterEntity} transactions={transactions} activeTxId={null} files={data.files} accounts={data.accounts} setClaims={setClaims} />
         }
       </div>
