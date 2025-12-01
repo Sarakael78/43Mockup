@@ -1,0 +1,80 @@
+{
+  "accounts": {
+    "PERSONAL": "SBSA Pvt (7420)",
+    "BUSINESS": "FNB Biz (6200)",
+    "MYMOBIZ": "SBSA MyMobiz (3435)",
+    "CREDIT": "SBSA Credit (2483)",
+    "TRUST": "SBSA Trust (0397)"
+  },
+  "categories": [
+    "Accommodation/Rent",
+    "Groceries/Household",
+    "Fuel/Transport",
+    "Medical",
+    "Utilities/Comms",
+    "Legal Expenses",
+    "Inter-Account",
+    "Loans/Debt",
+    "Business Ops",
+    "Bank Charges",
+    "Uncategorized"
+  ],
+  "files": [
+    { "id": 1, "name": "scan 1.pdf", "entity": "PERSONAL", "size": "3.2 MB", "status": "Analyzed", "date": "2025-09-30", "desc": "SBSA 7420 & Trust 0397 Statements" },
+    { "id": 2, "name": "scan 2.pdf", "entity": "BUSINESS", "size": "4.1 MB", "status": "Analyzed", "date": "2025-09-30", "desc": "MyMobiz 3435, FNB 6200 & Credit 2483" },
+    { "id": 3, "name": "Annexure KPR8.docx", "entity": "LEGAL", "size": "0.5 MB", "status": "Extracted", "date": "2025-10-15", "desc": "Rule 43 Financial Needs Affidavit" },
+    { "id": 4, "name": "PERSONAL Statement-SEPTEMBER.pdf", "entity": "PERSONAL", "size": "1.8 MB", "status": "Analyzed", "date": "2025-09-27", "desc": "Sept 2025 Detailed Statement" },
+    { "id": 5, "name": "scan 3.pdf", "entity": "HISTORICAL", "size": "5.2 MB", "status": "Reference", "date": "2015-04-22", "desc": "Old Property/Budget Docs" }
+  ],
+  "claims": [
+    { "id": "c1", "category": "Accommodation/Rent", "claimed": 9000.00, "desc": "Rent (inclusive of utilities) - KPR5" },
+    { "id": "c2", "category": "Groceries/Household", "claimed": 4800.00, "desc": "Groceries: Basic food & supplies - KPR8A" },
+    { "id": "c3", "category": "Groceries/Household", "claimed": 1200.00, "desc": "Household Consumables - KPR8A" },
+    { "id": "c4", "category": "Fuel/Transport", "claimed": 2000.00, "desc": "Vehicle Fuel - KPR8A" },
+    { "id": "c5", "category": "Fuel/Transport", "claimed": 1200.00, "desc": "Vehicle Maint/Ins - KPR8A" },
+    { "id": "c6", "category": "Medical", "claimed": 2800.00, "desc": "Medical Co-payments - KPR8A" },
+    { "id": "c7", "category": "Medical", "claimed": 5083.00, "desc": "Medical Travel (Hermanus) - KPR2" },
+    { "id": "c8", "category": "Utilities/Comms", "claimed": 750.00, "desc": "Cellphone/Data - KPR8A" },
+    { "id": "c9", "category": "Groceries/Household", "claimed": 1000.00, "desc": "Personal Care/Toiletries - KPR8A" },
+    { "id": "c10", "category": "Groceries/Household", "claimed": 500.00, "desc": "Clothing Replacement - KPR8A" },
+    { "id": "c11", "category": "Uncategorized", "claimed": 2500.00, "desc": "Contingency/Misc - KPR8A" },
+    { "id": "c12", "category": "Medical", "claimed": 3800.00, "desc": "Medical Aid Premium (Discovery) - KPR3" }
+  ],
+  "transactions": [
+    { "id": 101, "date": "2025-09-23", "acc": "SBSA Pvt (7420)", "desc": "IB PAYMENT TO A BOWES RULE 43", "clean": "A Bowes Attorneys", "cat": "Legal Expenses", "amount": -30000.00, "status": "proven", "type": "expense" },
+    { "id": 102, "date": "2025-09-29", "acc": "SBSA Pvt (7420)", "desc": "IB PAYMENT TO DEBRA STUNDEN PAPER", "clean": "D Stunden", "cat": "Accommodation/Rent", "amount": -350.00, "status": "proven", "type": "expense" },
+    { "id": 103, "date": "2025-09-08", "acc": "SBSA Pvt (7420)", "desc": "CREDIT TRANSFER D Stunden Best Drive", "clean": "D Stunden", "cat": "Accommodation/Rent", "amount": 1140.01, "status": "flagged", "type": "income" },
+    { "id": 104, "date": "2025-09-01", "acc": "SBSA Pvt (7420)", "desc": "CREDIT TRANSFER D Stunden", "clean": "D Stunden", "cat": "Accommodation/Rent", "amount": 492.00, "status": "flagged", "type": "income" },
+    { "id": 105, "date": "2025-09-28", "acc": "SBSA Credit (2483)", "desc": "Woolworths", "clean": "Woolworths", "cat": "Groceries/Household", "amount": -287.96, "status": "proven", "type": "expense" },
+    { "id": 106, "date": "2025-09-27", "acc": "SBSA Credit (2483)", "desc": "Woolworths", "clean": "Woolworths", "cat": "Groceries/Household", "amount": -96.98, "status": "proven", "type": "expense" },
+    { "id": 107, "date": "2025-09-26", "acc": "SBSA Credit (2483)", "desc": "Woolworths", "clean": "Woolworths", "cat": "Groceries/Household", "amount": -515.91, "status": "proven", "type": "expense" },
+    { "id": 108, "date": "2025-09-20", "acc": "SBSA Credit (2483)", "desc": "FOOD LOVERS MKT", "clean": "Food Lovers", "cat": "Groceries/Household", "amount": -494.47, "status": "proven", "type": "expense" },
+    { "id": 109, "date": "2025-09-12", "acc": "SBSA Credit (2483)", "desc": "CHECKERS", "clean": "Checkers", "cat": "Groceries/Household", "amount": -466.49, "status": "proven", "type": "expense" },
+    { "id": 110, "date": "2025-09-29", "acc": "SBSA Credit (2483)", "desc": "ENGEN", "clean": "Engen", "cat": "Fuel/Transport", "amount": -667.65, "status": "proven", "type": "expense" },
+    { "id": 111, "date": "2025-09-24", "acc": "SBSA Credit (2483)", "desc": "CO OP", "clean": "The Co-Op", "cat": "Fuel/Transport", "amount": -622.04, "status": "proven", "type": "expense" },
+    { "id": 112, "date": "2025-09-17", "acc": "SBSA Credit (2483)", "desc": "DISCHEM", "clean": "Dischem", "cat": "Medical", "amount": -1231.69, "status": "proven", "type": "expense" },
+    { "id": 113, "date": "2025-09-05", "acc": "SBSA Credit (2483)", "desc": "DISCHEM", "clean": "Dischem", "cat": "Medical", "amount": -84.94, "status": "proven", "type": "expense" },
+    { "id": 114, "date": "2025-09-11", "acc": "SBSA Pvt (7420)", "desc": "IB PAYMENT FROM INNOVITA MARKETING", "clean": "Innovita Marketing", "cat": "Inter-Account", "amount": 2500.00, "status": "proven", "type": "income" },
+    { "id": 115, "date": "2025-09-12", "acc": "SBSA Pvt (7420)", "desc": "EXPENSES LOAN", "clean": "Loan", "cat": "Loans/Debt", "amount": 5000.00, "status": "proven", "type": "income" },
+    { "id": 116, "date": "2025-09-25", "acc": "SBSA Pvt (7420)", "desc": "REAL TIME TRANSFER FROM BOB Coen de Beer", "clean": "Coen de Beer", "cat": "Uncategorized", "amount": 2000.00, "status": "proven", "type": "income" },
+    { "id": 117, "date": "2025-09-08", "acc": "FNB Biz (6200)", "desc": "Internet Pmt To Accountant", "clean": "Accountant", "cat": "Business Ops", "amount": -2500.00, "status": "proven", "type": "expense" },
+    { "id": 118, "date": "2025-09-23", "acc": "FNB Biz (6200)", "desc": "Internet Pmt To Phil Rademan", "clean": "Phil Rademan", "cat": "Inter-Account", "amount": -10000.00, "status": "proven", "type": "expense" },
+    { "id": 119, "date": "2025-09-30", "acc": "FNB Biz (6200)", "desc": "Internet Pmt To Sarsefing", "clean": "SARS", "cat": "Business Ops", "amount": -215.02, "status": "proven", "type": "expense" },
+    { "id": 201, "date": "2025-08-12", "acc": "SBSA Pvt (7420)", "desc": "EXPENSES LOAN", "clean": "Loan", "cat": "Loans/Debt", "amount": 5000.00, "status": "proven", "type": "income" },
+    { "id": 202, "date": "2025-08-20", "acc": "SBSA MyMobiz (3435)", "desc": "IB PAYMENT TO K RADEMAN PHIL", "clean": "Phil Rademan", "cat": "Inter-Account", "amount": -5000.00, "status": "proven", "type": "expense" },
+    { "id": 203, "date": "2025-08-30", "acc": "SBSA Credit (2483)", "desc": "LA ROCHE MOTORS", "clean": "La Roche Motors", "cat": "Fuel/Transport", "amount": -885.62, "status": "proven", "type": "expense" },
+    { "id": 301, "date": "2025-07-25", "acc": "SBSA Credit (2483)", "desc": "CHECKERS", "clean": "Checkers", "cat": "Groceries/Household", "amount": -1581.75, "status": "proven", "type": "expense" },
+    { "id": 302, "date": "2025-07-16", "acc": "SBSA Credit (2483)", "desc": "DISCHEM", "clean": "Dischem", "cat": "Medical", "amount": -1687.31, "status": "proven", "type": "expense" }
+  ],
+  "charts": [
+    { "name": "2025-06", "income": 22100, "expense": 41200 },
+    { "name": "2025-07", "income": 19500, "expense": 38400 },
+    { "name": "2025-08", "income": 21000, "expense": 36000 },
+    { "name": "2025-09", "income": 14992, "expense": 58500 }
+  ],
+  "alerts": [
+    { "id": 1, "type": "critical", "title": "Abnormal Legal Expense", "msg": "Large payment to A Bowes Attorneys in Sept 2025.", "value": "R 30,000" },
+    { "id": 2, "type": "warning", "title": "Rent Discrepancy", "msg": "Claimed R9,000 rent not fully visible in Personal Account.", "value": "Gap" },
+    { "id": 3, "type": "warning", "title": "Inter-Account Velocity", "msg": "High volume of transfers between Business/Personal.", "value": "High" }
+  ]
+}

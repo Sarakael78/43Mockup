@@ -74,6 +74,7 @@ const App = () => {
 
   // Auto-save to localStorage whenever data changes
   useEffect(() => {
+    // appData is always initialized, but check for safety
     if (!appData) return;
 
     if (saveTimeoutRef.current) {
@@ -122,7 +123,7 @@ const App = () => {
   const handleSave = () => {
     if (appData) {
       try {
-        exportProject(appData, transactions, claims, caseName);
+        exportProject(appData, transactions, claims, caseName, notes);
         showToast('Project saved successfully', 'success');
       } catch (error) {
         showToast('Failed to save project', 'error');
@@ -138,9 +139,6 @@ const App = () => {
                     Object.keys(notes).length > 0;
 
     if (hasData) {
-      // Note: Using window.confirm for destructive action confirmation.
-      // This is acceptable for critical operations that require explicit user confirmation.
-      // In the future, this could be replaced with a React-based modal for better UX/styling.
       const confirmed = window.confirm(
         'Starting a new case will clear all current data (transactions, claims, files, notes).\n\n' +
         'Make sure you have saved your current case if needed.\n\n' +

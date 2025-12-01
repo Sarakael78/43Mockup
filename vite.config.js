@@ -20,6 +20,8 @@ export default defineConfig({
     },
   },
   server: {
+    // Port can be overridden via CLI: npm run dev -- --port <port>
+    // The run.sh script uses dynamic port selection
     port: 5173,
     open: false,
   },

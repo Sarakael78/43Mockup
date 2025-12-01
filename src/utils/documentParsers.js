@@ -129,18 +129,113 @@ export const parsePDFClaims = async (file) => {
     logger.log('[PDF Claims Parser] Starting pattern matching...');
     const claims = [];
     
+    // NEW: Pattern 0: Multi-line concatenated format that works on full text
+    // Handles cases where entries are concatenated: "Category: Description Amount Reference Category2: ..."
+    // Example: "Accommodation: Rent (inclusive of utilities) 9000 KPR5 Groceries: Basic food..."
+    logger.log('[PDF Claims Parser] Trying Pattern 0: Multi-line concatenated format');
+    
+    // Strategy: Find all category patterns, then extract the text between categories
+    // Look for: Category: (any text) Amount (3-5 digits) Reference (optional KPR code)
+    // Stop when we see the next category pattern or a total/income line
+    
+    // First, find all positions where we have "Category:" patterns
+    const categoryPattern = /([A-Z][a-zA-Z\s/&]+?):/g;
+    const categoryPositions = [];
+    let categoryMatch;
+    
+    // Reset regex
+    categoryPattern.lastIndex = 0;
+    while ((categoryMatch = categoryPattern.exec(text)) !== null) {
+      const category = categoryMatch[1].trim();
+      const lowerCategory = category.toLowerCase();
+      
+      // Skip header/total patterns
+      if (lowerCategory.includes('schedule') || 
+          lowerCategory.includes('description') ||
+          lowerCategory.includes('amount') ||
+          lowerCategory.includes('reference')) {
+        continue;
+      }
+      
+      categoryPositions.push({
+        index: categoryMatch.index,
+        category: category,
+        fullMatch: categoryMatch[0]
+      });
+    }
+    
+    logger.log(`[PDF Claims Parser] Pattern 0: Found ${categoryPositions.length} category positions`);
+    
+    let pattern0Matches = 0;
+    
+    // Now extract entries between categories
+    for (let i = 0; i < categoryPositions.length; i++) {
+      const currentCategoryPos = categoryPositions[i];
+      const nextCategoryPos = i < categoryPositions.length - 1 ? categoryPositions[i + 1] : null;
+      
+      // Extract text from current category to next category (or end of text)
+      const startPos = currentCategoryPos.index + currentCategoryPos.fullMatch.length;
+      const endPos = nextCategoryPos ? nextCategoryPos.index : text.length;
+      const segment = text.substring(startPos, endPos).trim();
+      
+      // Look for amount pattern: 3-6 digit number, optionally followed by KPR reference
+      // Pattern: amount (3-6 digits) optional reference (KPR codes like "KPR5", "KPR8 A", etc.)
+      const amountPattern = /\s+(\d{3,6})\s+([A-Z0-9]+(?:\s+[A-Z0-9]+)?)?/;
+      const amountMatch = segment.match(amountPattern);
+      
+      if (amountMatch) {
+        const amountStr = amountMatch[1];
+        const ref = amountMatch[2] ? amountMatch[2].trim() : '';
+        const amount = parseFloat(amountStr.replace(/,/g, '')) || 0;
+        
+        // Extract description: everything before the amount
+        const descEndPos = amountMatch.index;
+        let desc = segment.substring(0, descEndPos).trim();
+        
+        // Clean up description - remove trailing reference codes and category-like text
+        desc = desc.replace(/\s+[A-Z0-9]+(?:\s+[A-Z0-9]+)?\s*$/, '').trim();
+        desc = desc.replace(/\s+[A-Z][a-zA-Z\s/&]+$/, '').trim();
+        
+        const category = currentCategoryPos.category;
+        const lowerCategory = category.toLowerCase();
+        
+        // Filter out totals and income
+        if (lowerCategory.includes('total') || 
+            lowerCategory.includes('income') ||
+            lowerCategory.includes('shortfall')) {
+          logger.log(`[PDF Claims Parser] Pattern 0: Skipping total/income line: "${category}"`);
+          continue;
+        }
+        
+        if (category && amount > 0 && amount >= MIN_AMOUNT_THRESHOLD && amount < MAX_AMOUNT_THRESHOLD) {
+          const existing = claims.find(c => c.category.toLowerCase() === lowerCategory);
+          if (!existing) {
+            logger.log(`[PDF Claims Parser] Pattern 0 match: "${category}" = R${amount} (desc: "${desc.substring(0, 50)}...")`);
+            claims.push({
+              id: generateId(),
+              category: category,
+              claimed: amount,
+              desc: desc
+            });
+            pattern0Matches++;
+          } else {
+            logger.log(`[PDF Claims Parser] Pattern 0: Skipping duplicate "${category}"`);
+          }
+        } else {
+          logger.log(`[PDF Claims Parser] Pattern 0: Rejected (category: "${category}", amount: ${amount})`);
+        }
+      } else {
+        logger.log(`[PDF Claims Parser] Pattern 0: No amount found for category "${currentCategoryPos.category}" in segment: "${segment.substring(0, 100)}..."`);
+      }
+    }
+    logger.log(`[PDF Claims Parser] Pattern 0 found ${pattern0Matches} matches`);
+    
     // Pattern 1: Direct "Category: description | amount" format (table-like)
     // Matches: "Accommodation: Rent (inclusive of utilities) | 9000"
     logger.log('[PDF Claims Parser] Trying Pattern 1: Table format with pipe separator');
     const tablePattern = /([A-Z][a-zA-Z\s/&]+?):\s*([^|]*?)\s*\|\s*([\d,]+\.?\d*)/g;
-    
-    // Pattern 1b: "Category: Description Amount Reference" format (no pipe, amount at end of line)
-    // Matches: "Accommodation: Rent (inclusive of utilities) 9000 KPR5"
-    logger.log('[PDF Claims Parser] Trying Pattern 1b: Category: Description Amount Reference');
-    // Match: Category (capitalized words) : Description (any text) Amount (digits) Reference (optional, alphanumeric)
-    const tablePattern1b = /([A-Z][a-zA-Z\s/&]+?):\s*([^0-9]+?)\s+(\d{1,3}(?:\s*\d{3})*)\s*([A-Z0-9\s]+)?/g;
-    let match;
     let pattern1Matches = 0;
+    tablePattern.lastIndex = 0;
     while ((match = tablePattern.exec(text)) !== null) {
       const [, category, desc, amountStr] = match;
       const amount = parseFloat(amountStr.replace(/,/g, '')) || 0;
@@ -148,13 +243,16 @@ export const parsePDFClaims = async (file) => {
       logger.log(`[PDF Claims Parser] Pattern 1 match: "${category.trim()}" = R${amount} (desc: "${desc.trim()}")`);
       
       if (category.trim() && amount > 0) {
-        claims.push({
-          id: generateId(),
-          category: category.trim(),
-          claimed: amount,
-          desc: desc.trim()
-        });
-        pattern1Matches++;
+        const existing = claims.find(c => c.category.toLowerCase() === category.trim().toLowerCase());
+        if (!existing) {
+          claims.push({
+            id: generateId(),
+            category: category.trim(),
+            claimed: amount,
+            desc: desc.trim()
+          });
+          pattern1Matches++;
+        }
       }
     }
     logger.log(`[PDF Claims Parser] Pattern 1 found ${pattern1Matches} matches`);
@@ -169,7 +267,7 @@ export const parsePDFClaims = async (file) => {
       if (!trimmed || trimmed.length < MIN_LINE_LENGTH) return; // Skip very short lines
       
       // Skip header lines and totals
-      if (trimmed.match(/^(Description|Amount|Reference|Total|Shortfall|Monthly Income)/i)) {
+      if (trimmed.match(/^(Description|Amount|Reference|Total|Shortfall|Monthly Income|Schedule)/i)) {
         logger.log(`[PDF Claims Parser] Skipping header/total line ${lineIndex}: "${trimmed}"`);
         return;
       }
@@ -225,10 +323,10 @@ export const parsePDFClaims = async (file) => {
     
     // Pattern 2: Simple "Category: R amount" or "Category: amount" format
     logger.log('[PDF Claims Parser] Trying Pattern 2: Simple category:amount format');
-    const categoryPattern = /([A-Z][a-zA-Z\s/&]+?):\s*R?\s*([\d,]+\.?\d*)/g;
+    const categoryPattern2 = /([A-Z][a-zA-Z\s/&]+?):\s*R?\s*([\d,]+\.?\d*)/g;
     let pattern2Matches = 0;
     
-    while ((match = categoryPattern.exec(text)) !== null) {
+    while ((match = categoryPattern2.exec(text)) !== null) {
       const [, category, amountStr] = match;
       const amount = parseFloat(amountStr.replace(/,/g, '')) || 0;
       

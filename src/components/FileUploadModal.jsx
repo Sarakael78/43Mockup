@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { UploadCloud, X } from 'lucide-react';
 import { FILE_SIZE_LIMIT_BYTES } from '../utils/constants';
 import FileTriageRow from './FileTriageRow';
@@ -84,15 +84,13 @@ const FileUploadModal = ({ isOpen, onClose, onUpload, showToast }) => {
   const handleTriageSubmit = (fileIndex, triageData) => {
     setFiles(prev => prev.map((f, i) => {
       if (i === fileIndex) {
-        // Preserve the original File object and just add the triage property
-        // File objects are mutable, so we can add properties directly
-        // Check if it's a File/Blob by checking for Blob methods
+        // Create a wrapper object instead of mutating the File object
+        // This preserves immutability and is better practice
         if (f && typeof f.slice === 'function' && typeof f.stream === 'function') {
-          // It's a File/Blob object - add triage property directly
-          f.triage = triageData;
-          return f;
+          // It's a File/Blob object - create wrapper with triage
+          return Object.assign(Object.create(Object.getPrototypeOf(f)), f, { triage: triageData });
         } else {
-          // If it's already a plain object (shouldn't happen, but handle it)
+          // If it's already a plain object, spread it
           return { ...f, triage: triageData };
         }
       }
@@ -100,20 +98,14 @@ const FileUploadModal = ({ isOpen, onClose, onUpload, showToast }) => {
     }));
   };
 
-  const uploadTimeoutRef = useRef(null);
-
   const handleUpload = async () => {
     setUploading(true);
-    
-    // Clear any existing timeout
-    if (uploadTimeoutRef.current) {
-      clearTimeout(uploadTimeoutRef.current);
-    }
+    let uploadTimeout;
     
     try {
       // Simulate upload progress
       await new Promise(resolve => {
-        uploadTimeoutRef.current = setTimeout(resolve, 1000);
+        uploadTimeout = setTimeout(resolve, 1000);
       });
       if (onUpload) {
         onUpload(files);
@@ -125,22 +117,11 @@ const FileUploadModal = ({ isOpen, onClose, onUpload, showToast }) => {
       // Upload failed - error handling would be implemented here
       setUploading(false);
     } finally {
-      if (uploadTimeoutRef.current) {
-        clearTimeout(uploadTimeoutRef.current);
-        uploadTimeoutRef.current = null;
+      if (uploadTimeout) {
+        clearTimeout(uploadTimeout);
       }
     }
   };
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (uploadTimeoutRef.current) {
-        clearTimeout(uploadTimeoutRef.current);
-        uploadTimeoutRef.current = null;
-      }
-    };
-  }, []);
 
   if (!isOpen) return null;
 
@@ -218,5 +199,4 @@ const FileUploadModal = ({ isOpen, onClose, onUpload, showToast }) => {
 };
 
 export default FileUploadModal;
-
 

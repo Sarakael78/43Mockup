@@ -59,6 +59,7 @@ const PDFViewer = ({ entity, activeTxId, transactions, files, accounts, setClaim
     return () => {
       if (objectUrl) {
         URL.revokeObjectURL(objectUrl);
+        objectUrl = null;
       }
     };
   }, [currentFile, fileType]);

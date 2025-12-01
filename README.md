@@ -97,6 +97,7 @@ Deploy the contents of `dist/` to any static host (Netlify, S3, GitHub Pages, ng
 - Security: CSV files are limited to 100,000 rows to prevent DoS attacks. File size limits (10MB) are enforced with user feedback.
 - PDF viewer: Real PDF rendering using react-pdf with page navigation and zoom controls.
 - Document import: DOCX and PDF documents can be parsed to extract claimed expenses automatically.
+- Project persistence: Projects can be saved as `.r43` files and loaded back. Notes are included in project exports. Auto-save to localStorage with visual feedback.
 
 ## Running the helpers
 

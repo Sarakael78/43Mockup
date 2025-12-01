@@ -10,17 +10,19 @@ import { FILE_SIZE_LIMIT_BYTES } from './constants';
  * @param {Array} transactions - Array of transactions
  * @param {Array} claims - Array of claims
  * @param {string} caseName - Case name
+ * @param {Object} notes - Notes object mapping transaction IDs to notes
  */
-export const exportProject = (appData, transactions, claims, caseName) => {
+export const exportProject = (appData, transactions, claims, caseName, notes = {}) => {
   const projectData = {
     version: '1.0',
-    caseName: caseName || 'Rademan vs Rademan',
+    caseName: caseName || 'New Case',
     exportedAt: new Date().toISOString(),
     accounts: appData.accounts,
     categories: appData.categories,
     files: appData.files,
     transactions: transactions,
     claims: claims,
+    notes: notes,
     charts: appData.charts,
     alerts: appData.alerts
   };

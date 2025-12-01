@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Document, Page } from 'react-pdf';
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-react';
+// Side-effect import: configures PDF.js worker for react-pdf
 import '../utils/pdfConfig';
 import { PDF_ZOOM_MIN, PDF_ZOOM_MAX, PDF_ZOOM_STEP, PDF_A4_WIDTH } from '../utils/constants';
 
