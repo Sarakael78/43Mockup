@@ -24,6 +24,38 @@ import {
 
 const periodMonthsMap = { '1M': 1, '3M': 3, '6M': 6 };
 
+// Error Toast Component
+const ErrorToast = ({ message, onClose, type = 'error' }) => {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (onClose) onClose();
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  if (!message) return null;
+
+  const bgColor = type === 'error' ? 'bg-rose-50 border-rose-200' : 'bg-amber-50 border-amber-200';
+  const textColor = type === 'error' ? 'text-rose-800' : 'text-amber-800';
+  const iconColor = type === 'error' ? 'text-rose-500' : 'text-amber-500';
+
+  return (
+    <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg border shadow-lg ${bgColor} animate-fade-in max-w-md`}>
+      <div className="flex items-start gap-3">
+        <div className={iconColor}>
+          {type === 'error' ? <AlertCircle size={20} /> : <AlertTriangle size={20} />}
+        </div>
+        <div className="flex-1">
+          <p className={`text-sm font-semibold ${textColor}`}>{message}</p>
+        </div>
+        <button onClick={onClose} className={`${textColor} hover:opacity-70`}>
+          <X size={16} />
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const getLatestTransactionDate = (transactions) => {
   if (!transactions?.length || !transactions[0]?.date) return null;
   return transactions.reduce((latest, tx) => (tx?.date && tx.date > latest ? tx.date : latest), transactions[0].date);
@@ -87,17 +119,21 @@ const exportProject = (appData, transactions, claims, caseName) => {
   }
 };
 
-const loadProject = (file, setAppData, setTransactions, setClaims, setCaseName, setNotes) => {
+const loadProject = (file, setAppData, setTransactions, setClaims, setCaseName, setNotes, setError) => {
   // Validate file size (max 10MB)
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
   if (file.size > MAX_FILE_SIZE) {
-    alert(`File too large. Maximum size is ${MAX_FILE_SIZE / 1024 / 1024}MB.`);
+    if (setError) {
+      setError({ message: `File too large. Maximum size is ${MAX_FILE_SIZE / 1024 / 1024}MB.`, type: 'error' });
+    }
     return () => {}; // Return cleanup function for consistency
   }
 
   // Validate file type
   if (!file.name.endsWith('.r43') && !file.name.endsWith('.json')) {
-    alert('Invalid file type. Please select a .r43 or .json file.');
+    if (setError) {
+      setError({ message: 'Invalid file type. Please select a .r43 or .json file.', type: 'error' });
+    }
     return () => {};
   }
 
@@ -110,24 +146,50 @@ const loadProject = (file, setAppData, setTransactions, setClaims, setCaseName, 
     try {
       const projectData = JSON.parse(e.target.result);
       
-      // Validate schema
-      if (!projectData.accounts || !projectData.transactions || !projectData.claims) {
-        throw new Error('Invalid project file format');
+      // Enhanced schema validation
+      if (!projectData || typeof projectData !== 'object') {
+        throw new Error('Invalid project file: not a valid JSON object');
+      }
+      
+      if (!projectData.accounts || typeof projectData.accounts !== 'object') {
+        throw new Error('Invalid project file: missing or invalid accounts');
+      }
+      
+      if (!Array.isArray(projectData.transactions)) {
+        throw new Error('Invalid project file: transactions must be an array');
+      }
+      
+      if (!Array.isArray(projectData.claims)) {
+        throw new Error('Invalid project file: claims must be an array');
+      }
+      
+      // Validate transaction structure
+      for (const tx of projectData.transactions) {
+        if (!tx.id || typeof tx.amount !== 'number' || !tx.date) {
+          throw new Error('Invalid project file: transactions must have id, amount, and date');
+        }
+      }
+      
+      // Validate claims structure
+      for (const claim of projectData.claims) {
+        if (!claim.id || typeof claim.claimed !== 'number' || !claim.category) {
+          throw new Error('Invalid project file: claims must have id, claimed amount, and category');
+        }
       }
       
       setAppData({
         accounts: projectData.accounts,
-        categories: projectData.categories || [],
-        files: projectData.files || [],
-        charts: projectData.charts || [],
-        alerts: projectData.alerts || []
+        categories: Array.isArray(projectData.categories) ? projectData.categories : [],
+        files: Array.isArray(projectData.files) ? projectData.files : [],
+        charts: Array.isArray(projectData.charts) ? projectData.charts : [],
+        alerts: Array.isArray(projectData.alerts) ? projectData.alerts : []
       });
       setTransactions(projectData.transactions || []);
       setClaims(projectData.claims || []);
-      if (projectData.caseName) {
+      if (projectData.caseName && typeof projectData.caseName === 'string') {
         setCaseName(projectData.caseName);
       }
-      if (projectData.notes && setNotes) {
+      if (projectData.notes && typeof projectData.notes === 'object' && setNotes) {
         setNotes(projectData.notes || {});
       }
       
@@ -136,17 +198,24 @@ const loadProject = (file, setAppData, setTransactions, setClaims, setCaseName, 
         localStorage.setItem('r43_project', JSON.stringify(projectData));
       } catch (storageError) {
         console.error('Failed to save to localStorage:', storageError);
-        // Continue anyway - file was loaded successfully
+        if (setError) {
+          setError({ message: 'Project loaded but could not save to browser storage.', type: 'warning' });
+        }
       }
     } catch (error) {
-      alert(`Error loading project: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error loading project';
+      if (setError) {
+        setError({ message: `Error loading project: ${errorMessage}`, type: 'error' });
+      }
       console.error('Load error:', error);
     }
   };
   
   reader.onerror = () => {
     if (!isCancelled) {
-      alert('Error reading file. Please try again.');
+      if (setError) {
+        setError({ message: 'Error reading file. Please try again.', type: 'error' });
+      }
       console.error('FileReader error');
     }
   };
@@ -186,14 +255,28 @@ const FileUploadModal = ({ isOpen, onClose, onUpload }) => {
     setDragActive(false);
     
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const newFiles = Array.from(e.dataTransfer.files);
+      const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+      const newFiles = Array.from(e.dataTransfer.files).filter(file => {
+        if (file.size > MAX_FILE_SIZE) {
+          console.warn(`File ${file.name} exceeds 10MB limit and will be skipped`);
+          return false;
+        }
+        return true;
+      });
       setFiles(prev => [...prev, ...newFiles]);
     }
   };
 
   const handleFileInput = (e) => {
     if (e.target.files && e.target.files.length > 0) {
-      const newFiles = Array.from(e.target.files);
+      const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+      const newFiles = Array.from(e.target.files).filter(file => {
+        if (file.size > MAX_FILE_SIZE) {
+          console.warn(`File ${file.name} exceeds 10MB limit and will be skipped`);
+          return false;
+        }
+        return true;
+      });
       setFiles(prev => [...prev, ...newFiles]);
     }
   };
@@ -257,7 +340,7 @@ const FileUploadModal = ({ isOpen, onClose, onUpload }) => {
           >
             <UploadCloud className="mx-auto mb-4 text-slate-400" size={48} />
             <p className="text-sm font-semibold text-slate-700 mb-2">Drop files here or click to browse</p>
-            <p className="text-xs text-slate-500 mb-4">Bank Statements, Financial Affidavits, PDFs, DOCX</p>
+            <p className="text-xs text-slate-500 mb-4">Bank Statements, Financial Affidavits, PDFs, DOCX (Max 10MB per file)</p>
             <button
               onClick={() => fileInputRef.current?.click()}
               className="px-4 py-2 bg-blue-600 text-white text-sm font-bold rounded-md hover:bg-blue-500 transition-colors"
@@ -422,14 +505,26 @@ const NoteModal = ({ isOpen, onClose, transaction, note, onSave }) => {
         </div>
         <div className="p-4">
           <div className="mb-3 text-xs text-slate-600">
-            <div className="font-semibold">{transaction?.clean || transaction?.desc}</div>
-            <div className="text-slate-400">{transaction?.date} • {transaction?.acc}</div>
+            <div className="font-semibold">{(transaction?.clean || transaction?.desc || '').replace(/[<>\"'&]/g, '')}</div>
+            <div className="text-slate-400">{(transaction?.date || '')} • {(transaction?.acc || '').replace(/[<>\"'&]/g, '')}</div>
           </div>
           <textarea
             value={noteText}
-            onChange={(e) => setNoteText(e.target.value)}
+            onChange={(e) => {
+              // Sanitize note input
+              let sanitized = e.target.value
+                .replace(/<[^>]*>/g, '') // Remove HTML tags
+                .replace(/javascript:/gi, '') // Remove javascript: protocol
+                .replace(/on\w+=/gi, ''); // Remove event handlers
+              // Limit length to prevent DoS
+              if (sanitized.length > 1000) {
+                sanitized = sanitized.substring(0, 1000);
+              }
+              setNoteText(sanitized);
+            }}
             placeholder="Add annotation or note about this transaction..."
             className="w-full h-32 p-3 border border-slate-200 rounded-md text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-400"
+            maxLength={1000}
           />
         </div>
         <div className="p-4 border-t border-slate-200 flex justify-end gap-2">
@@ -512,12 +607,19 @@ const TopBar = ({ title, subtitle, caseName, onCaseNameChange, onSave, saved }) 
               type="text"
               value={editValue}
               onChange={(e) => {
-                // Sanitize input: remove HTML tags, script tags, and dangerous characters
-                const sanitized = e.target.value
+                // Enhanced input sanitization: remove HTML tags, script tags, and dangerous characters
+                let sanitized = e.target.value
                   .replace(/<[^>]*>/g, '') // Remove HTML tags
                   .replace(/[<>\"'&]/g, '') // Remove dangerous characters
                   .replace(/javascript:/gi, '') // Remove javascript: protocol
-                  .replace(/on\w+=/gi, ''); // Remove event handlers
+                  .replace(/on\w+=/gi, '') // Remove event handlers
+                  .replace(/data:/gi, '') // Remove data: protocol
+                  .replace(/vbscript:/gi, '') // Remove vbscript: protocol
+                  .trim(); // Remove leading/trailing whitespace
+                // Limit length to prevent DoS
+                if (sanitized.length > 100) {
+                  sanitized = sanitized.substring(0, 100);
+                }
                 setEditValue(sanitized);
               }}
               onBlur={handleSave}
@@ -760,20 +862,25 @@ const DocumentInventory = ({ transactions, periodFilter, monthsInScope, files, c
         </div>
         <div className="p-4 overflow-auto custom-scroll bg-slate-50">
           <div className="space-y-2">
-            {files.map(file => (
-              <div key={file.id} className="bg-white border border-slate-200 rounded p-3 flex flex-col gap-1 shadow-sm hover:border-blue-300 cursor-pointer transition-colors group">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
-                    <div className="text-rose-600">
-                      {file.name.includes('pdf') ? <FileText size={14} /> : <File size={14} />}
+            {files.map(file => {
+              if (!file || !file.id) return null;
+              const safeName = file.name ? String(file.name).replace(/[<>\"'&]/g, '') : 'Unknown';
+              const safeDesc = file.desc ? String(file.desc).replace(/[<>\"'&]/g, '') : '';
+              return (
+                <div key={file.id} className="bg-white border border-slate-200 rounded p-3 flex flex-col gap-1 shadow-sm hover:border-blue-300 cursor-pointer transition-colors group">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
+                      <div className="text-rose-600">
+                        {safeName.toLowerCase().includes('pdf') ? <FileText size={14} /> : <File size={14} />}
+                      </div>
+                      <div className="truncate max-w-[180px]">{safeName}</div>
                     </div>
-                    <div className="truncate max-w-[180px]">{file.name}</div>
+                    <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${file.entity === 'LEGAL' ? 'bg-purple-50 text-purple-700' : 'bg-slate-100 text-slate-500'}`}>{file.entity || 'UNKNOWN'}</span>
                   </div>
-                  <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${file.entity === 'LEGAL' ? 'bg-purple-50 text-purple-700' : 'bg-slate-100 text-slate-500'}`}>{file.entity}</span>
+                  <div className="text-[10px] text-slate-400 pl-6">{safeDesc}</div>
                 </div>
-                <div className="text-[10px] text-slate-400 pl-6">{file.desc}</div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
@@ -865,9 +972,9 @@ const DocumentInventory = ({ transactions, periodFilter, monthsInScope, files, c
 };
 
 const PDFViewer = ({ entity, activeTxId, transactions, files, accounts }) => {
-  const currentFile = files?.find(f => f.entity === entity) || files?.[0];
+  const currentFile = (files && Array.isArray(files)) ? (files.find(f => f && f.entity === entity) || files[0]) : null;
   const entityAccounts = useMemo(() => {
-    if (!accounts) return [];
+    if (!accounts || typeof accounts !== 'object') return [];
     if (entity === 'PERSONAL') return [accounts.PERSONAL, accounts.TRUST].filter(Boolean);
     if (entity === 'BUSINESS') return [accounts.BUSINESS, accounts.MYMOBIZ].filter(Boolean);
     if (entity === 'CREDIT') return [accounts.CREDIT].filter(Boolean);
@@ -875,9 +982,9 @@ const PDFViewer = ({ entity, activeTxId, transactions, files, accounts }) => {
     return [];
   }, [entity, accounts]);
 
-  const viewerTransactions = entityAccounts.length
-    ? transactions.filter((tx) => entityAccounts.includes(tx.acc))
-    : transactions;
+  const viewerTransactions = entityAccounts.length && Array.isArray(transactions)
+    ? transactions.filter((tx) => tx && tx.acc && entityAccounts.includes(tx.acc))
+    : (Array.isArray(transactions) ? transactions : []);
 
   return (
     <div className="h-full bg-slate-200 border-r border-slate-300 flex flex-col relative">
@@ -885,7 +992,7 @@ const PDFViewer = ({ entity, activeTxId, transactions, files, accounts }) => {
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold text-slate-700">Document Viewer</span>
           <span className="text-[10px] text-slate-400">|</span>
-          <span className="text-xs text-slate-600 font-mono">{currentFile?.name || 'No file'}</span>
+          <span className="text-xs text-slate-600 font-mono">{currentFile && currentFile.name ? currentFile.name.replace(/[<>\"'&]/g, '') : 'No file'}</span>
         </div>
       </div>
       <div className="flex-1 overflow-auto custom-scroll p-8 flex justify-center bg-slate-200/50">
@@ -905,13 +1012,17 @@ const PDFViewer = ({ entity, activeTxId, transactions, files, accounts }) => {
               <span>DESCRIPTION</span>
               <span className="text-right">AMOUNT</span>
             </div>
-          {viewerTransactions.map((tx) => (
+          {viewerTransactions.map((tx) => {
+            if (!tx || !tx.id) return null;
+            const safeDesc = tx.desc ? String(tx.desc).replace(/[<>\"'&]/g, '') : '';
+            return (
               <div key={tx.id} className={`relative flex py-1 border-b border-dotted border-slate-100 hover:bg-yellow-50 ${activeTxId === tx.id ? 'bg-yellow-100' : ''}`}>
-                <span className="w-16">{tx.date}</span>
-                <span className="flex-1 truncate pr-2 uppercase">{tx.desc}</span>
-                <span className="w-20 text-right">{Math.abs(tx.amount).toFixed(2)}</span>
+                <span className="w-16">{tx.date || ''}</span>
+                <span className="flex-1 truncate pr-2 uppercase">{safeDesc}</span>
+                <span className="w-20 text-right">{tx.amount ? Math.abs(tx.amount).toFixed(2) : '0.00'}</span>
               </div>
-            ))}
+            );
+          })}
           </div>
         </div>
       </div>
@@ -952,7 +1063,7 @@ const EvidenceLockerView = ({ transactions, claims, files, accounts }) => {
       </div>
       <div className="flex-1 min-h-0">
         {filterEntity === 'ALL'
-          ? <DocumentInventory transactions={scopedTransactions} periodFilter={periodFilter} monthsInScope={monthsInScope} files={files} claims={claims} onImport={(file) => alert(`Importing ${file.name}. Document parsing would happen here in production.`)} />
+          ? <DocumentInventory transactions={scopedTransactions} periodFilter={periodFilter} monthsInScope={monthsInScope} files={files} claims={claims} onImport={(file) => console.log(`Importing ${file.name}. Document parsing would happen here in production.`)} />
           : <PDFViewer entity={filterEntity} transactions={transactions} activeTxId={null} files={files} accounts={accounts} />
         }
       </div>
@@ -1002,7 +1113,7 @@ const WorkbenchView = ({ data, transactions, setTransactions, claims, notes, set
     <div className="flex flex-1 h-full overflow-hidden">
       <div className="w-1/2 flex flex-col">
         {filterEntity === 'ALL'
-          ? <DocumentInventory transactions={filteredTx} periodFilter={periodFilter} monthsInScope={monthsInScope} files={data.files} claims={claims} onImport={(file) => alert(`Importing ${file.name}. Document parsing would happen here in production.`)} />
+          ? <DocumentInventory transactions={filteredTx} periodFilter={periodFilter} monthsInScope={monthsInScope} files={data.files} claims={claims} onImport={(file) => console.log(`Importing ${file.name}. Document parsing would happen here in production.`)} />
           : <PDFViewer entity={filterEntity} transactions={transactions} activeTxId={null} files={data.files} accounts={data.accounts} />
         }
       </div>
@@ -1028,40 +1139,45 @@ const WorkbenchView = ({ data, transactions, setTransactions, claims, notes, set
             <div className="text-center">Evidence</div>
             <div></div>
           </div>
-          {filteredTx.map(tx => (
-            <div key={tx.id} className="grid grid-cols-[80px_1fr_120px_110px_110px_30px] border-b border-slate-100 py-2.5 px-3 text-xs items-center hover:bg-amber-50 group transition-colors">
-              <div className="font-mono text-slate-500 text-[10px]">{tx.date}</div>
-              <div className="pr-2">
-                <div className="font-bold text-slate-700 truncate">{tx.clean}</div>
-                <div className="text-[9px] text-slate-400 truncate">{tx.acc}</div>
-              </div>
+          {filteredTx.map(tx => {
+            if (!tx || !tx.id) return null;
+            const safeClean = tx.clean ? String(tx.clean).replace(/[<>\"'&]/g, '') : '';
+            const safeAcc = tx.acc ? String(tx.acc).replace(/[<>\"'&]/g, '') : '';
+            return (
+              <div key={tx.id} className="grid grid-cols-[80px_1fr_120px_110px_110px_30px] border-b border-slate-100 py-2.5 px-3 text-xs items-center hover:bg-amber-50 group transition-colors">
+                <div className="font-mono text-slate-500 text-[10px]">{tx.date || ''}</div>
+                <div className="pr-2">
+                  <div className="font-bold text-slate-700 truncate">{safeClean}</div>
+                  <div className="text-[9px] text-slate-400 truncate">{safeAcc}</div>
+                </div>
               <div>
-                <select className={`text-[10px] px-1 py-1 rounded border border-slate-200 w-full outline-none focus:border-amber-400 ${tx.cat === 'Uncategorized' ? 'bg-slate-100 text-slate-500' : 'bg-white text-slate-700 font-medium'}`} value={tx.cat} onChange={(e) => handleCategoryChange(tx.id, e.target.value)}>
-                  {data.categories.map(c => <option key={c} value={c}>{c}</option>)}
+                <select className={`text-[10px] px-1 py-1 rounded border border-slate-200 w-full outline-none focus:border-amber-400 ${tx.cat === 'Uncategorized' ? 'bg-slate-100 text-slate-500' : 'bg-white text-slate-700 font-medium'}`} value={tx.cat || 'Uncategorized'} onChange={(e) => handleCategoryChange(tx.id, e.target.value)}>
+                  {(data.categories || []).map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
-              <div className={`font-mono font-bold text-right ${tx.type === 'income' ? 'text-emerald-600' : 'text-slate-700'}`}>
-                {tx.type === 'income' ? '+' : ''}{Math.abs(tx.amount).toFixed(2)}
+                <div className={`font-mono font-bold text-right ${tx.type === 'income' ? 'text-emerald-600' : 'text-slate-700'}`}>
+                  {tx.type === 'income' ? '+' : ''}{tx.amount ? Math.abs(tx.amount).toFixed(2) : '0.00'}
+                </div>
+                <div className="flex justify-center">
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold capitalize ${evidenceBadge(tx.status)}`}>
+                    {tx.status || 'pending'}
+                  </span>
+                </div>
+                <div className="text-center opacity-0 group-hover:opacity-100 transition-opacity relative">
+                  <button
+                    onClick={() => handleNoteClick(tx)}
+                    className={`text-slate-400 hover:text-amber-500 ${notes[tx.id] ? 'text-amber-500 opacity-100' : ''}`}
+                    title={notes[tx.id] ? 'Edit note' : 'Add note'}
+                  >
+                    <StickyNote size={14} />
+                  </button>
+                  {notes[tx.id] && (
+                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-500 rounded-full"></span>
+                  )}
+                </div>
               </div>
-              <div className="flex justify-center">
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold capitalize ${evidenceBadge(tx.status)}`}>
-                  {tx.status || 'pending'}
-                </span>
-              </div>
-              <div className="text-center opacity-0 group-hover:opacity-100 transition-opacity relative">
-                <button
-                  onClick={() => handleNoteClick(tx)}
-                  className={`text-slate-400 hover:text-amber-500 ${notes[tx.id] ? 'text-amber-500 opacity-100' : ''}`}
-                  title={notes[tx.id] ? 'Edit note' : 'Add note'}
-                >
-                  <StickyNote size={14} />
-                </button>
-                {notes[tx.id] && (
-                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-500 rounded-full"></span>
-                )}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
         <div className="h-10 bg-slate-50 border-t border-slate-200 flex items-center justify-between px-4 text-xs font-bold text-slate-600 shrink-0">
           <span>Total Visible:</span>
@@ -1089,6 +1205,7 @@ const App = () => {
   const [caseName, setCaseName] = useState('Rademan vs Rademan');
   const [fileUploadModal, setFileUploadModal] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [errorToast, setErrorToast] = useState(null);
   const saveTimeoutRef = useRef(null);
   const savedTimeoutRef = useRef(null);
   const loadProjectCleanupRef = useRef(null);
@@ -1200,7 +1317,7 @@ const App = () => {
       loadProjectCleanupRef.current = null;
     }
     
-    const cleanup = loadProject(file, setAppData, setTransactions, setClaims, setCaseName, setNotes);
+    const cleanup = loadProject(file, setAppData, setTransactions, setClaims, setCaseName, setNotes, setErrorToast);
     if (cleanup) {
       loadProjectCleanupRef.current = cleanup;
     }
@@ -1217,8 +1334,11 @@ const App = () => {
 
   const handleFileUpload = (files) => {
     // In a real implementation, this would process and add files
-    // For now, just show a message
-    alert(`${files.length} file(s) uploaded. Processing would happen here in production.`);
+    // For now, show a non-blocking notification
+    setErrorToast({ 
+      message: `${files.length} file(s) uploaded. Processing would happen here in production.`, 
+      type: 'warning' 
+    });
   };
 
   if (loadError) {
@@ -1257,8 +1377,8 @@ const App = () => {
             <EvidenceLockerView
               transactions={transactions}
               claims={claims}
-              files={appData.files}
-              accounts={appData.accounts}
+              files={appData.files || []}
+              accounts={appData.accounts || {}}
             />
           )}
         </div>
@@ -1268,6 +1388,13 @@ const App = () => {
         onClose={() => setFileUploadModal(false)}
         onUpload={handleFileUpload}
       />
+      {errorToast && (
+        <ErrorToast
+          message={errorToast.message}
+          type={errorToast.type}
+          onClose={() => setErrorToast(null)}
+        />
+      )}
     </div>
   );
 };

@@ -1,7 +1,7 @@
 # 43Mockup
 # 43Mockup
 
-A Vite + React implementation of the Rule 43 financial intelligence workspace. TODO: harden for production and connect to real data sources.
+A Vite + React implementation of the Rule 43 financial intelligence workspace. Includes error handling, input sanitization, and data validation improvements. TODO: connect to real data sources.
 
 ## Quick start
 
@@ -93,6 +93,9 @@ Deploy the contents of `dist/` to any static host (Netlify, S3, GitHub Pages, ng
 
 - The UI uses Tailwind utility classes. If you want the exact visual styles, enable Tailwind (already configured).
 - `frontend.html` is a reference preview; the Vite app is the recommended development target.
+- Error handling: All user-facing errors use non-blocking toast notifications instead of `alert()` dialogs.
+- Security: Input sanitization is implemented for case names, file names, and transaction notes to prevent XSS attacks.
+- Data validation: Enhanced JSON schema validation for project files with detailed error messages.
 
 ## Running the helpers
 
