@@ -25,6 +25,7 @@ import { processBankStatement, processFinancialAffidavit } from './utils/filePro
 import { parseDOCXClaims, parsePDFClaims } from './utils/documentParsers';
 import { mapCategory } from './utils/categoryMapper';
 import PDFDocumentViewer from './components/PDFDocumentViewer';
+import CSVViewer from './components/CSVViewer';
 
 const periodMonthsMap = { '1M': 1, '3M': 3, '6M': 6 };
 
@@ -1081,11 +1082,19 @@ const PDFViewer = ({ entity, activeTxId, transactions, files, accounts, setClaim
     ? transactions.filter((tx) => tx && tx.acc && entityAccounts.includes(tx.acc))
     : (Array.isArray(transactions) ? transactions : []);
 
-  // Handle file URL creation
+  // Determine file type
+  const fileType = useMemo(() => {
+    if (!currentFile) return null;
+    const fileName = currentFile.name || '';
+    const extension = fileName.split('.').pop()?.toLowerCase();
+    return extension;
+  }, [currentFile]);
+
+  // Handle file URL creation (for PDF files)
   useEffect(() => {
     let objectUrl = null;
 
-    if (!currentFile) {
+    if (!currentFile || fileType !== 'pdf') {
       setPdfUrl(null);
       return;
     }
@@ -1110,7 +1119,7 @@ const PDFViewer = ({ entity, activeTxId, transactions, files, accounts, setClaim
         URL.revokeObjectURL(objectUrl);
       }
     };
-  }, [currentFile]);
+  }, [currentFile, fileType]);
 
   const handleLoadSuccess = (numPages) => {
     setNumPages(numPages);
@@ -1126,8 +1135,13 @@ const PDFViewer = ({ entity, activeTxId, transactions, files, accounts, setClaim
         </div>
       </div>
       
-      {/* PDF Viewer */}
-      {pdfUrl ? (
+      {/* Document Viewer - PDF or CSV */}
+      {fileType === 'csv' ? (
+        <CSVViewer
+          file={currentFile?.file}
+          fileUrl={currentFile?.url || pdfUrl}
+        />
+      ) : pdfUrl && fileType === 'pdf' ? (
         <PDFDocumentViewer
           fileUrl={pdfUrl}
           onLoadSuccess={handleLoadSuccess}
@@ -1141,8 +1155,12 @@ const PDFViewer = ({ entity, activeTxId, transactions, files, accounts, setClaim
           <div className="bg-white w-[595px] h-[842px] shadow-lg shrink-0 p-10 relative text-slate-800 flex items-center justify-center">
             <div className="text-center text-slate-400">
               <FileText size={48} className="mx-auto mb-4" />
-              <p className="text-sm">No PDF file available</p>
-              <p className="text-xs mt-2">Upload a PDF file to view it here</p>
+              <p className="text-sm">
+                {fileType ? `Unsupported file type: ${fileType.toUpperCase()}` : 'No file available'}
+              </p>
+              <p className="text-xs mt-2">
+                {fileType ? 'Please upload a PDF or CSV file' : 'Upload a PDF or CSV file to view it here'}
+              </p>
             </div>
           </div>
         </div>
@@ -1511,14 +1529,15 @@ const App = () => {
             processedCount++;
           }
 
-          // Add file metadata
+          // Add file metadata (include file object for viewing)
           newFiles.push({
             id: `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
             name: file.name,
             desc: `Bank Statement - ${file.triage.parser}`,
             entity: file.triage.entity || 'PERSONAL',
             type: 'Bank Statement',
-            uploadedAt: new Date().toISOString()
+            uploadedAt: new Date().toISOString(),
+            file: file // Store file object for viewing
           });
 
         } else if (file.triage.type === 'Financial Affidavit') {
