@@ -34,6 +34,7 @@ export const parseCSV = (csvText) => {
         const desc = row.Description || row.DESCRIPTION || row.description || row.Details || '';
         const amountStr = row.Amount || row.AMOUNT || row.amount || row['Transaction Amount'] || row.Balance || '0';
         const categoryStr = row.Category || row.CATEGORY || row.category || row.Cat || row.CAT || '';
+        const subCategoryStr = row.SubCategory || row.SUBCATEGORY || row['Sub-Category'] || row.subcategory || row.subcat || row['Sub Category'] || '';
         
         // Parse date - FNB format varies
         let date = '';
@@ -67,6 +68,16 @@ export const parseCSV = (csvText) => {
             category = sanitized;
           }
         }
+        
+        // Sanitize sub-category to prevent CSV injection
+        let subCategory = '';
+        if (subCategoryStr && subCategoryStr.trim()) {
+          // Remove potentially dangerous characters (=, +, -, @, etc.) that could be formula injection
+          const sanitized = String(subCategoryStr).trim().replace(/^[=+\-@]/, '').substring(0, 100);
+          if (sanitized) {
+            subCategory = sanitized;
+          }
+        }
 
         return {
           id: generateId(),
@@ -76,6 +87,7 @@ export const parseCSV = (csvText) => {
           amount,
           acc: 'BUSINESS',
           cat: category,
+          subcat: subCategory || undefined, // Only include if present
           status: 'pending',
           type: amount < 0 ? 'expense' : 'income'
         };

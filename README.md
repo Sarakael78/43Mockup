@@ -96,7 +96,7 @@ Deploy the contents of `dist/` to any static host (Netlify, S3, GitHub Pages, ng
 - Security: Input sanitization is implemented for case names, file names, and transaction notes to prevent XSS attacks.
 - Data validation: Enhanced JSON schema validation for project files with detailed error messages.
 - File processing: CSV, PDF, and DOCX files can be parsed and processed for bank statements and financial affidavits.
-- CSV import: Supports importing transaction categories from CSV files. CSV parsers automatically detect category columns (case-insensitive: "category", "cat", "categories", etc.). Categories are sanitized to prevent CSV injection attacks.
+- CSV import: Supports importing transaction categories and sub-categories from CSV files. CSV parsers automatically detect category columns (case-insensitive: "category", "cat", "categories", etc.) and sub-category columns ("subcategory", "sub-category", "subcat", etc.). Categories and sub-categories are sanitized to prevent CSV injection attacks. Sub-categories are stored but not currently displayed in the UI.
 - Security: CSV files are limited to 100,000 rows to prevent DoS attacks. File size limits (10MB) are enforced with user feedback.
 - PDF viewer: Real PDF rendering using react-pdf with page navigation and zoom controls.
 - Document import: DOCX and PDF documents can be parsed to extract claimed expenses automatically.

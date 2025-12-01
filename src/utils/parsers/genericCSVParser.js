@@ -38,6 +38,7 @@ export const parseCSV = (csvText) => {
     const descCol = findColumn(['description', 'details', 'narrative', 'transaction description', 'memo']);
     const amountCol = findColumn(['amount', 'transaction amount', 'debit', 'credit', 'balance']);
     const categoryCol = findColumn(['category', 'cat', 'categories', 'expense category', 'transaction category']);
+    const subCategoryCol = findColumn(['subcategory', 'sub-category', 'subcat', 'sub cat', 'sub_category', 'sub_category']);
 
     if (!dateCol) {
       throw new Error('Could not find date column in CSV');
@@ -57,6 +58,7 @@ export const parseCSV = (csvText) => {
         const desc = (descCol && row[descCol]) || '';
         const amountStr = (amountCol && row[amountCol]) || '0';
         const categoryStr = (categoryCol && row[categoryCol]) || '';
+        const subCategoryStr = (subCategoryCol && row[subCategoryCol]) || '';
         
         // Try to parse date
         let date = '';
@@ -88,6 +90,16 @@ export const parseCSV = (csvText) => {
             category = sanitized;
           }
         }
+        
+        // Sanitize sub-category to prevent CSV injection
+        let subCategory = '';
+        if (subCategoryStr && subCategoryStr.trim()) {
+          // Remove potentially dangerous characters (=, +, -, @, etc.) that could be formula injection
+          const sanitized = String(subCategoryStr).trim().replace(/^[=+\-@]/, '').substring(0, 100);
+          if (sanitized) {
+            subCategory = sanitized;
+          }
+        }
 
         return {
           id: generateId(),
@@ -97,6 +109,7 @@ export const parseCSV = (csvText) => {
           amount,
           acc: 'PERSONAL',
           cat: category,
+          subcat: subCategory || undefined, // Only include if present
           status: 'pending',
           type: amount < 0 ? 'expense' : 'income'
         };
