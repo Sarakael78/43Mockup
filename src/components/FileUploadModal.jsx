@@ -84,11 +84,18 @@ const FileUploadModal = ({ isOpen, onClose, onUpload, showToast }) => {
   const handleTriageSubmit = (fileIndex, triageData) => {
     setFiles(prev => prev.map((f, i) => {
       if (i === fileIndex) {
-        // Create a wrapper object instead of mutating the File object
-        // This preserves immutability and is better practice
-        if (f && typeof f.slice === 'function' && typeof f.stream === 'function') {
-          // It's a File/Blob object - create wrapper with triage
-          return Object.assign(Object.create(Object.getPrototypeOf(f)), f, { triage: triageData });
+        // Add triage property directly to the file using defineProperty
+        // This preserves the File object's getters and methods
+        if (f && f instanceof File) {
+          // Create a copy to avoid mutating the original
+          const fileWithTriage = f;
+          Object.defineProperty(fileWithTriage, 'triage', {
+            value: triageData,
+            writable: true,
+            enumerable: true,
+            configurable: true
+          });
+          return fileWithTriage;
         } else {
           // If it's already a plain object, spread it
           return { ...f, triage: triageData };
@@ -108,6 +115,7 @@ const FileUploadModal = ({ isOpen, onClose, onUpload, showToast }) => {
         uploadTimeout = setTimeout(resolve, 1000);
       });
       if (onUpload) {
+        // Files already have triage attached via defineProperty, so just pass them directly
         onUpload(files);
       }
       setFiles([]);
@@ -167,14 +175,27 @@ const FileUploadModal = ({ isOpen, onClose, onUpload, showToast }) => {
           {files.length > 0 && (
             <div className="mt-6 space-y-4">
               <h3 className="text-sm font-bold text-slate-700">Files to Process ({files.length})</h3>
-              {files.map((file, index) => (
-                <FileTriageRow
-                  key={`${file.name}-${file.size}-${index}`}
-                  file={file}
-                  onRemove={() => handleRemoveFile(index)}
-                  onSubmit={(data) => handleTriageSubmit(index, data)}
-                />
-              ))}
+              {files.map((file, index) => {
+                // Safely extract file properties to avoid getter issues
+                let fileName, fileSize;
+                try {
+                  fileName = file?.name || `file-${index}`;
+                  fileSize = file?.size || 0;
+                } catch (e) {
+                  // Fallback if accessing properties fails
+                  fileName = `file-${index}`;
+                  fileSize = 0;
+                }
+                
+                return (
+                  <FileTriageRow
+                    key={`${fileName}-${fileSize}-${index}`}
+                    file={file}
+                    onRemove={() => handleRemoveFile(index)}
+                    onSubmit={(data) => handleTriageSubmit(index, data)}
+                  />
+                );
+              })}
               <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
                 <button
                   onClick={onClose}

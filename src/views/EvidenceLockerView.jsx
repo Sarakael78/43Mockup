@@ -25,8 +25,19 @@ const EvidenceLockerView = ({ transactions, claims, files, accounts, onError, se
         </div>
         <div className="flex items-center gap-3">
           <div className="flex bg-slate-200 p-0.5 rounded-lg">
-            {['ALL', 'PERSONAL', 'BUSINESS', 'CREDIT'].map((f) => (
-              <button key={f} onClick={() => setFilterEntity(f)} className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${filterEntity === f ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{f}</button>
+            {['ALL', 'PERSONAL', 'BUSINESS', 'TRUST'].map((f) => (
+              <button 
+                key={f} 
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setFilterEntity(f);
+                }} 
+                className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${filterEntity === f ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                {f}
+              </button>
             ))}
           </div>
           <div className="flex bg-slate-200 p-0.5 rounded-lg">

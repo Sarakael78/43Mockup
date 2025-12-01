@@ -2,7 +2,7 @@
  * Claims import utilities
  */
 
-import { parseDOCXClaims, parsePDFClaims } from './documentParsers';
+import { parseDOCXClaims, parsePDFClaims, parseCSVClaims } from './documentParsers';
 import { mapCategory } from './categoryMapper';
 
 /**
@@ -29,8 +29,10 @@ export const createClaimsImportHandler = (setClaims, onError) => {
         parsedClaims = await parseDOCXClaims(file);
       } else if (fileExtension === 'pdf') {
         parsedClaims = await parsePDFClaims(file);
+      } else if (fileExtension === 'csv') {
+        parsedClaims = await parseCSVClaims(file);
       } else {
-        throw new Error('Unsupported file type. Please use DOCX or PDF.');
+        throw new Error('Unsupported file type. Please use CSV, DOCX, or PDF.');
       }
 
       // Map categories

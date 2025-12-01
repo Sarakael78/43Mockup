@@ -1,9 +1,10 @@
 import mammoth from 'mammoth';
+import Papa from 'papaparse';
 import { extractTextFromPDF } from './pdfExtractor';
-import { generateId } from './constants';
+import { generateId, CSV_MAX_ROWS } from './constants';
 import { logger } from './logger';
 import { MIN_AMOUNT_THRESHOLD, MAX_AMOUNT_THRESHOLD, MIN_LINE_LENGTH } from './constants';
-import { readFileAsArrayBuffer } from './fileUtils';
+import { readFileAsArrayBuffer, readFileAsText } from './fileUtils';
 
 export const parseDOCXClaims = async (file) => {
   try {
@@ -139,6 +140,8 @@ export const parsePDFClaims = async (file) => {
     // Stop when we see the next category pattern or a total/income line
     
     // First, find all positions where we have "Category:" patterns
+    // Categories should be meaningful words, not single letters or reference codes
+    // Better pattern: require at least 2 words or a meaningful single word
     const categoryPattern = /([A-Z][a-zA-Z\s/&]+?):/g;
     const categoryPositions = [];
     let categoryMatch;
@@ -146,7 +149,8 @@ export const parsePDFClaims = async (file) => {
     // Reset regex
     categoryPattern.lastIndex = 0;
     while ((categoryMatch = categoryPattern.exec(text)) !== null) {
-      const category = categoryMatch[1].trim();
+      let category = categoryMatch[1].trim();
+      const matchStart = categoryMatch.index;
       const lowerCategory = category.toLowerCase();
       
       // Skip header/total patterns
@@ -154,6 +158,56 @@ export const parsePDFClaims = async (file) => {
           lowerCategory.includes('description') ||
           lowerCategory.includes('amount') ||
           lowerCategory.includes('reference')) {
+        continue;
+      }
+      
+      // Check what comes before this match to avoid matching reference codes
+      // Look back up to 30 characters to see if there's a reference code pattern
+      const contextBefore = text.substring(Math.max(0, matchStart - 30), matchStart);
+      
+      // Filter out invalid categories
+      if (category.length < 3) {
+        continue;
+      }
+      
+      // CRITICAL FIX: Skip categories that start with a single letter + space
+      // These are almost always part of reference codes (like "KPR8 A")
+      // Valid categories like "Groceries" don't start with "A "
+      // Check: first word is exactly one letter
+      const firstWord = category.split(/\s+/)[0];
+      if (firstWord && firstWord.length === 1 && /^[A-Z]$/.test(firstWord)) {
+        // Always skip single-letter starts - they're reference code fragments
+        // Examples: "A Household Consumables" -> skip (should be "Household Consumables")
+        logger.log(`[PDF Claims Parser] Pattern 0: Skipping category starting with single letter: "${category}"`);
+        continue;
+      }
+      
+      // Also check if category name itself contains fragments from previous entries
+      // Look for patterns like "transport Vehicle Maintenance" where "transport" is leftover
+      // This happens when text is concatenated: "...transport Vehicle Maintenance & Insurance:"
+      // Strategy: Find the first proper category name (starts with capital, followed by more capitals/words)
+      const words = category.split(/\s+/);
+      let properCategoryStart = -1;
+      
+      // Find where the real category name starts (first word that's all caps or starts with capital)
+      for (let i = 0; i < words.length; i++) {
+        const word = words[i];
+        // Real category words: start with capital, are at least 3 chars, or are known category words
+        if (/^[A-Z]/.test(word) && (word.length >= 3 || /^(A|&)$/.test(word))) {
+          properCategoryStart = i;
+          break;
+        }
+      }
+      
+      // If we found a proper start, use that part
+      if (properCategoryStart > 0 && properCategoryStart < words.length) {
+        category = words.slice(properCategoryStart).join(' ').trim();
+        logger.log(`[PDF Claims Parser] Pattern 0: Cleaned category from "${categoryMatch[1]}" to "${category}"`);
+      }
+      
+      // Final validation: category should start with a capital letter
+      if (!/^[A-Z]/.test(category)) {
+        logger.log(`[PDF Claims Parser] Pattern 0: Skipping category that doesn't start with capital: "${category}"`);
         continue;
       }
       
@@ -179,11 +233,23 @@ export const parsePDFClaims = async (file) => {
       const segment = text.substring(startPos, endPos).trim();
       
       // Look for amount pattern: 3-6 digit number, optionally followed by KPR reference
-      // Pattern: amount (3-6 digits) optional reference (KPR codes like "KPR5", "KPR8 A", etc.)
-      const amountPattern = /\s+(\d{3,6})\s+([A-Z0-9]+(?:\s+[A-Z0-9]+)?)?/;
+      // Find the first valid amount (3-6 digits) in the segment
+      // It should be followed by optional reference code (like "KPR5", "KPR8 A") or whitespace/end
+      // Use word boundary to avoid matching digits in the middle of words
+      const amountPattern = /\b(\d{3,6})\b(?:\s+([A-Z][A-Z0-9]*(?:\s+[A-Z0-9]+)?))?/;
       const amountMatch = segment.match(amountPattern);
       
       if (amountMatch) {
+        // Additional check: if we found an amount, verify it's not part of a larger number
+        // by checking what comes before it (shouldn't be a digit)
+        if (amountMatch.index > 0) {
+          const charBefore = segment[amountMatch.index - 1];
+          if (/\d/.test(charBefore)) {
+            // Skip this match - it's part of a larger number
+            logger.log(`[PDF Claims Parser] Pattern 0: Skipping amount "${amountMatch[1]}" (part of larger number)`);
+            continue;
+          }
+        }
         const amountStr = amountMatch[1];
         const ref = amountMatch[2] ? amountMatch[2].trim() : '';
         const amount = parseFloat(amountStr.replace(/,/g, '')) || 0;
@@ -192,9 +258,11 @@ export const parsePDFClaims = async (file) => {
         const descEndPos = amountMatch.index;
         let desc = segment.substring(0, descEndPos).trim();
         
-        // Clean up description - remove trailing reference codes and category-like text
-        desc = desc.replace(/\s+[A-Z0-9]+(?:\s+[A-Z0-9]+)?\s*$/, '').trim();
-        desc = desc.replace(/\s+[A-Z][a-zA-Z\s/&]+$/, '').trim();
+        // Clean up description - remove trailing punctuation and extra whitespace
+        desc = desc.replace(/[,\s]+$/, '').trim();
+        
+        // If description seems to continue after amount+ref (like "detergents, small sundries"),
+        // that's likely from next entry concatenation - we already have the correct desc
         
         const category = currentCategoryPos.category;
         const lowerCategory = category.toLowerCase();
@@ -416,6 +484,93 @@ export const parsePDFClaims = async (file) => {
 
   } catch (error) {
     throw new Error(`Failed to parse PDF: ${error.message}`);
+  }
+};
+
+export const parseCSVClaims = async (file) => {
+  try {
+    logger.log('[CSV Claims Parser] Starting to parse CSV claims from file:', file.name);
+    const csvText = await readFileAsText(file);
+    
+    const results = Papa.parse(csvText, {
+      header: true,
+      skipEmptyLines: true,
+      encoding: 'UTF-8',
+      preview: CSV_MAX_ROWS
+    });
+
+    if (!results.data || results.data.length === 0) {
+      logger.log('[CSV Claims Parser] CSV file is empty or invalid');
+      return [];
+    }
+
+    // Auto-detect column names (case-insensitive)
+    const firstRow = results.data[0];
+    if (!firstRow) {
+      logger.log('[CSV Claims Parser] Could not read CSV header row');
+      return [];
+    }
+
+    const findColumn = (names) => {
+      const keys = Object.keys(firstRow);
+      const lowerKeys = keys.map(k => k.toLowerCase());
+      for (const name of names) {
+        const idx = lowerKeys.indexOf(name.toLowerCase());
+        if (idx >= 0) return keys[idx];
+      }
+      return null;
+    };
+
+    const categoryCol = findColumn(['category', 'cat', 'expense category', 'claim category', 'name']);
+    const amountCol = findColumn(['amount', 'claimed', 'claim amount', 'value', 'total']);
+    const descCol = findColumn(['description', 'desc', 'details', 'notes', 'comment']);
+
+    if (!categoryCol) {
+      throw new Error('Could not find category column in CSV. Expected columns: Category, Amount.');
+    }
+
+    if (!amountCol) {
+      throw new Error('Could not find amount column in CSV. Expected columns: Category, Amount.');
+    }
+
+    const claims = [];
+    
+    // Process each row
+    const dataRows = results.data.slice(0, CSV_MAX_ROWS);
+    dataRows.forEach((row, index) => {
+      if (!row || !row[categoryCol]) return; // Skip empty rows
+
+      const categoryStr = String(row[categoryCol] || '').trim();
+      const amountStr = String(row[amountCol] || '0').trim();
+      const descStr = descCol ? String(row[descCol] || '').trim() : '';
+
+      if (!categoryStr) return; // Skip rows without category
+
+      // Parse amount - remove currency symbols and commas
+      const amount = parseFloat(amountStr.replace(/[R,\s]/g, '')) || 0;
+
+      if (amount > 0 && amount >= MIN_AMOUNT_THRESHOLD) {
+        // Check for duplicates (same category)
+        const existing = claims.find(c => c.category.toLowerCase() === categoryStr.toLowerCase());
+        if (!existing) {
+          logger.log(`[CSV Claims Parser] Parsed claim: "${categoryStr}" = R${amount}`);
+          claims.push({
+            id: generateId(),
+            category: categoryStr,
+            claimed: amount,
+            desc: descStr
+          });
+        } else {
+          logger.log(`[CSV Claims Parser] Skipping duplicate category: "${categoryStr}"`);
+        }
+      }
+    });
+
+    logger.log(`[CSV Claims Parser] Successfully parsed ${claims.length} unique claims from CSV`);
+    return claims;
+
+  } catch (error) {
+    throw new Error(`Failed to parse CSV: ${error.message}`);
   }
 };
 

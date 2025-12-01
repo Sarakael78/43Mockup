@@ -1,4 +1,5 @@
 import { CATEGORY_MATCH_RATIO } from './constants';
+import { getDefaultCategories } from '../config/categories';
 
 // Map extracted category names to standard categories
 const categoryMap = {
@@ -92,11 +93,7 @@ export const mapCategory = (extractedCategory) => {
   }
   
   // Check if it matches standard categories (capitalize first letter of each word)
-  const standardCategories = [
-    'Groceries/Household', 'School Fees', 'Medical', 'Utilities', 'Transport',
-    'Insurance', 'Bond Repayment', 'Rent', 'Maintenance', 'Child Maintenance',
-    'Legal Fees', 'Clothing', 'Entertainment', 'Uncategorized'
-  ];
+  const standardCategories = getDefaultCategories();
   
   for (const standard of standardCategories) {
     if (fuzzyMatch(extractedCategory, standard)) {

@@ -1,9 +1,10 @@
 import mammoth from 'mammoth';
+import Papa from 'papaparse';
 import { parseCSV as standardBankParseCSV } from './parsers/standardBankParser.js';
 import { parseCSV as fnbParseCSV } from './parsers/fnbParser.js';
 import { parseCSV as genericParseCSV } from './parsers/genericCSVParser.js';
 import { extractTextFromPDF } from './pdfExtractor';
-import { generateId } from './constants';
+import { generateId, CSV_MAX_ROWS } from './constants';
 import { readFileAsText, readFileAsArrayBuffer } from './fileUtils';
 
 export const processBankStatement = async (file, parser, entity, fileId = null) => {
@@ -144,7 +145,92 @@ export const processFinancialAffidavit = async (file, fileId = null) => {
 
     const fileExtension = file.name.split('.').pop()?.toLowerCase();
 
-    if (fileExtension === 'docx' || fileExtension === 'doc') {
+    if (fileExtension === 'csv') {
+      // Parse claims from CSV file
+      const csvText = await readFileAsText(file);
+      
+      try {
+        const results = Papa.parse(csvText, {
+          header: true,
+          skipEmptyLines: true,
+          encoding: 'UTF-8',
+          preview: CSV_MAX_ROWS
+        });
+
+        if (!results.data || results.data.length === 0) {
+          errors.push({ file: file.name, message: 'CSV file is empty or invalid.' });
+          return { claims, errors };
+        }
+
+        // Auto-detect column names (case-insensitive)
+        const firstRow = results.data[0];
+        if (!firstRow) {
+          errors.push({ file: file.name, message: 'Could not read CSV header row.' });
+          return { claims, errors };
+        }
+
+        const findColumn = (names) => {
+          const keys = Object.keys(firstRow);
+          const lowerKeys = keys.map(k => k.toLowerCase());
+          for (const name of names) {
+            const idx = lowerKeys.indexOf(name.toLowerCase());
+            if (idx >= 0) return keys[idx];
+          }
+          return null;
+        };
+
+        const categoryCol = findColumn(['category', 'cat', 'expense category', 'claim category', 'name']);
+        const amountCol = findColumn(['amount', 'claimed', 'claim amount', 'value', 'total']);
+        const descCol = findColumn(['description', 'desc', 'details', 'notes', 'comment']);
+
+        if (!categoryCol) {
+          errors.push({ file: file.name, message: 'Could not find category column in CSV. Expected columns: Category, Amount.' });
+          return { claims, errors };
+        }
+
+        if (!amountCol) {
+          errors.push({ file: file.name, message: 'Could not find amount column in CSV. Expected columns: Category, Amount.' });
+          return { claims, errors };
+        }
+
+        // Process each row
+        const dataRows = results.data.slice(0, CSV_MAX_ROWS);
+        dataRows.forEach((row, index) => {
+          if (!row || !row[categoryCol]) return; // Skip empty rows
+
+          const categoryStr = String(row[categoryCol] || '').trim();
+          const amountStr = String(row[amountCol] || '0').trim();
+          const descStr = descCol ? String(row[descCol] || '').trim() : '';
+
+          if (!categoryStr) return; // Skip rows without category
+
+          // Parse amount - remove currency symbols and commas
+          const amount = parseFloat(amountStr.replace(/[R,\s]/g, '')) || 0;
+
+          if (amount > 0) {
+            // Check for duplicates (same category)
+            const existing = claims.find(c => c.category.toLowerCase() === categoryStr.toLowerCase());
+            if (!existing) {
+              claims.push({
+                id: generateId(),
+                category: categoryStr,
+                claimed: amount,
+                desc: descStr,
+                fileId: fileId || null
+              });
+            }
+          }
+        });
+
+        if (claims.length === 0) {
+          errors.push({ file: file.name, message: 'No valid claims found in CSV. Please ensure the CSV contains Category and Amount columns with valid data.' });
+        }
+
+      } catch (csvError) {
+        errors.push({ file: file.name, message: `Error parsing CSV: ${csvError.message}` });
+      }
+
+    } else if (fileExtension === 'docx' || fileExtension === 'doc') {
       const arrayBuffer = await readFileAsArrayBuffer(file);
       const result = await mammoth.extractRawText({ arrayBuffer });
       const text = result.value;
@@ -234,7 +320,7 @@ export const processFinancialAffidavit = async (file, fileId = null) => {
       }
 
     } else {
-      throw new Error(`Unsupported file format: ${fileExtension}. Please use DOCX or PDF.`);
+      throw new Error(`Unsupported file format: ${fileExtension}. Please use CSV, DOCX, or PDF.`);
     }
 
     return { claims, errors };
