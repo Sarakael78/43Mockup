@@ -364,6 +364,27 @@ const App = () => {
             setTransactions(prev => [...prev, ...transactionsWithEntity]);
             transactionCount += transactionsWithEntity.length;
             processedCount++;
+            
+            // Add any new categories from transactions to the category list
+            const txCategories = transactionsWithEntity
+              .map(tx => tx.cat)
+              .filter(c => c && c !== 'Uncategorized');
+            if (txCategories.length > 0) {
+              setAppData(prev => {
+                const existing = prev.categories || [];
+                const existingLower = existing.map(c => c.toLowerCase());
+                const toAdd = [...new Set(txCategories)].filter(c => 
+                  !existingLower.includes(c.toLowerCase())
+                );
+                if (toAdd.length === 0) return prev;
+                const merged = [...existing, ...toAdd].sort((a, b) => {
+                  if (a === 'Uncategorized') return 1;
+                  if (b === 'Uncategorized') return -1;
+                  return a.localeCompare(b, undefined, { sensitivity: 'base' });
+                });
+                return { ...prev, categories: merged };
+              });
+            }
           }
 
           // Read CSV content for later viewing (needed after export/import)
@@ -544,28 +565,33 @@ const App = () => {
     return false;
   };
 
-  // Replace all categories (used when importing CSV with expense categories)
-  // Also resets all transactions to "Uncategorized" so user can re-categorize with new categories
+  // Merge new categories with existing ones (used when importing CSV with expense categories)
   const handleSetCategories = (newCategories) => {
     if (!Array.isArray(newCategories)) return;
-    const sorted = [...newCategories].sort((a, b) => {
-      // Keep "Uncategorized" at the end
-      if (a === 'Uncategorized') return 1;
-      if (b === 'Uncategorized') return -1;
-      return a.localeCompare(b, undefined, { sensitivity: 'base' });
+    
+    setAppData(prev => {
+      const existing = prev.categories || [];
+      // Merge: add new categories that don't already exist (case-insensitive)
+      const existingLower = existing.map(c => c.toLowerCase());
+      const toAdd = newCategories.filter(c => 
+        c && !existingLower.includes(c.toLowerCase())
+      );
+      const merged = [...existing, ...toAdd];
+      
+      // Sort with "Uncategorized" at the end
+      const sorted = merged.sort((a, b) => {
+        if (a === 'Uncategorized') return 1;
+        if (b === 'Uncategorized') return -1;
+        return a.localeCompare(b, undefined, { sensitivity: 'base' });
+      });
+      
+      return {
+        ...prev,
+        categories: sorted
+      };
     });
-    setAppData(prev => ({
-      ...prev,
-      categories: sorted
-    }));
     
-    // Reset all transactions to "Uncategorized" so they can be re-categorized
-    setTransactions(prev => prev.map(tx => ({
-      ...tx,
-      cat: 'Uncategorized'
-    })));
-    
-    showToast(`Categories updated: ${sorted.length} categories loaded. Transactions reset to Uncategorized.`, 'success');
+    showToast(`Categories merged: ${newCategories.length} categories from CSV.`, 'success');
   };
 
   const handleUpdateTransactionStatus = (txId, status) => {
