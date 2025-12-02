@@ -437,12 +437,6 @@ const DocumentInventory = ({
     onReorderClaim(claimId, direction);
   };
 
-  const getProvenTotal = (category) => {
-    return transactions
-      .filter(t => t.cat === category && t.amount < 0)
-      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
-  };
-
   // Get latest transaction date for period calculations
   const latestTxDate = useMemo(() => {
     if (!transactions || transactions.length === 0) return null;
