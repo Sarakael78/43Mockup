@@ -181,7 +181,7 @@ const FileUploadModal = ({ isOpen, onClose, onUpload, showToast }) => {
         <div className="p-3">
           <div
             className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
-              dragActive ? 'border-blue-500 bg-blue-50' : 'border-slate-300 bg-slate-50'
+              dragActive ? 'border-slate-500 bg-slate-50' : 'border-slate-300 bg-slate-50'
             }`}
             onDragEnter={handleDrag}
             onDragLeave={handleDrag}
@@ -195,7 +195,7 @@ const FileUploadModal = ({ isOpen, onClose, onUpload, showToast }) => {
             </p>
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="px-3 py-1 bg-blue-600 text-white text-[11px] font-bold rounded hover:bg-blue-500 transition-colors"
+              className="px-3 py-1 bg-slate-600 text-white text-[11px] font-bold rounded hover:bg-slate-500 transition-colors"
             >
               Select Files
             </button>
@@ -243,7 +243,7 @@ const FileUploadModal = ({ isOpen, onClose, onUpload, showToast }) => {
                 <button
                   onClick={handleUpload}
                   disabled={uploading || files.some(f => !f.triage)}
-                  className="px-3 py-1 bg-blue-600 text-white text-[11px] font-bold rounded hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-1 bg-slate-600 text-white text-[11px] font-bold rounded hover:bg-slate-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {uploading ? 'Uploading...' : 'Upload & Process'}
                 </button>

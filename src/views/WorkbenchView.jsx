@@ -548,15 +548,15 @@ const WorkbenchView = ({
                 </div>
               )}
               {selectedTxIds.size > 1 && (
-                <div className="px-1.5 py-1 text-[9px] bg-blue-50 border-b border-blue-100 flex items-center justify-between text-blue-800">
+                <div className="px-1.5 py-1 text-[9px] bg-slate-50 border-b border-slate-100 flex items-center justify-between text-slate-800">
                   <span>
                     <span className="font-bold">{selectedTxIds.size}</span> items selected
-                    <span className="text-blue-500 ml-2">(Change category on any to update all)</span>
+                    <span className="text-slate-500 ml-2">(Change category on any to update all)</span>
                   </span>
                   <button
                     type="button"
                     onClick={() => { setSelectedTxIds(new Set()); setSelectionAnchor(null); }}
-                    className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-100 hover:bg-blue-200 transition-colors"
+                    className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 transition-colors"
                   >
                     Clear selection
                   </button>

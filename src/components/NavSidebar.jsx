@@ -6,20 +6,20 @@ const NavSidebar = ({ view, setView, onAddEvidence }) => (
       R43
     </div>
     <div className="flex flex-col space-y-1 w-full items-center">
-      <button onClick={() => setView('dashboard')} className={`w-7 h-7 rounded flex items-center justify-center transition-all ${view === 'dashboard' ? 'bg-slate-700 text-blue-400' : 'text-slate-500 hover:text-slate-300'}`} title="Dashboard">
+      <button onClick={() => setView('dashboard')} className={`w-7 h-7 rounded flex items-center justify-center transition-all ${view === 'dashboard' ? 'bg-slate-700 text-slate-300' : 'text-slate-500 hover:text-slate-300'}`} title="Dashboard">
         <PieChart size={14} />
       </button>
-      <button onClick={() => setView('workbench')} className={`w-7 h-7 rounded flex items-center justify-center transition-all ${view === 'workbench' ? 'bg-slate-700 text-blue-400' : 'text-slate-500 hover:text-slate-300'}`} title="Reconciliation Workbench">
+      <button onClick={() => setView('workbench')} className={`w-7 h-7 rounded flex items-center justify-center transition-all ${view === 'workbench' ? 'bg-slate-700 text-slate-300' : 'text-slate-500 hover:text-slate-300'}`} title="Reconciliation Workbench">
         <TableProperties size={14} />
       </button>
-      <button onClick={() => setView('evidence')} className={`w-7 h-7 rounded flex items-center justify-center transition-all ${view === 'evidence' ? 'bg-slate-700 text-blue-400' : 'text-slate-500 hover:text-slate-300'}`} title="Evidence Locker">
+      <button onClick={() => setView('evidence')} className={`w-7 h-7 rounded flex items-center justify-center transition-all ${view === 'evidence' ? 'bg-slate-700 text-slate-300' : 'text-slate-500 hover:text-slate-300'}`} title="Evidence Locker">
         <FileStack size={14} />
       </button>
     </div>
     <div className="mt-auto flex flex-col space-y-1.5 items-center">
       <button
         onClick={onAddEvidence}
-        className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-md hover:bg-blue-500 transition-all hover:scale-105"
+        className="w-7 h-7 rounded-full bg-slate-600 text-white flex items-center justify-center shadow-md hover:bg-slate-500 transition-all hover:scale-105"
         title="Add Evidence"
       >
         <Plus size={14} />

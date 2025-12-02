@@ -79,7 +79,7 @@ const SettingsModal = ({ isOpen, onClose, settings, onSettingsChange }) => {
                   onClick={() => handleFontSizeChange(size.value)}
                   className={`px-1 py-1 text-[8px] font-bold rounded transition-all ${
                     localSettings.fontSize === size.value
-                      ? 'bg-blue-600 text-white shadow-sm'
+                      ? 'bg-slate-600 text-white shadow-sm'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                   title={`${size.label} (${size.scale}x)`}
@@ -106,7 +106,7 @@ const SettingsModal = ({ isOpen, onClose, settings, onSettingsChange }) => {
                   onClick={() => handleDensityChange(density.value)}
                   className={`px-1 py-1 text-[8px] font-bold rounded transition-all ${
                     localSettings.density === density.value
-                      ? 'bg-blue-600 text-white shadow-sm'
+                      ? 'bg-slate-600 text-white shadow-sm'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                   title={`${density.label} (${density.scale}x)`}
@@ -118,8 +118,8 @@ const SettingsModal = ({ isOpen, onClose, settings, onSettingsChange }) => {
             <div className="mt-1.5 flex items-center gap-2 text-[10px] text-slate-500">
               <span>Less space</span>
               <div className="flex-1 h-1 bg-slate-200 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-blue-500 transition-all"
+                <div
+                  className="h-full bg-slate-500 transition-all"
                   style={{ width: `${(DENSITY_LEVELS.findIndex(d => d.value === localSettings.density) + 1) / DENSITY_LEVELS.length * 100}%` }}
                 />
               </div>

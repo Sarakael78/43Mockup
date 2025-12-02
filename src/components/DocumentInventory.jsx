@@ -534,7 +534,7 @@ const DocumentInventory = ({
                     <div key={file.id} className="bg-white border border-slate-200 rounded p-1 flex flex-col gap-0.5 shadow-sm hover:border-blue-300 transition-colors group">
                       <div className="flex items-center justify-between gap-1">
                         <div className="flex items-center gap-1 text-[10px] font-semibold text-slate-700 flex-1 min-w-0">
-                          <div className="text-blue-500 shrink-0">
+                          <div className="text-slate-500 shrink-0">
                             {safeName.toLowerCase().includes('pdf') ? <FileText size={10} /> : <File size={10} />}
                           </div>
                           <div className="truncate">{safeName}</div>
@@ -670,7 +670,7 @@ const DocumentInventory = ({
                       <button
                         type="button"
                         onClick={handleManualClaimSubmit}
-                        className="w-full px-1 py-0.5 text-[9px] font-bold rounded bg-blue-600 text-white shadow-sm hover:bg-blue-700 transition-colors"
+                        className="w-full px-1 py-0.5 text-[9px] font-bold rounded bg-slate-600 text-white shadow-sm hover:bg-slate-700 transition-colors"
                       >
                         Add
                       </button>
@@ -698,7 +698,7 @@ const DocumentInventory = ({
                           <button
                             type="button"
                             onClick={handleCreateNewCategory}
-                            className="px-1.5 py-0.5 text-[9px] font-bold rounded bg-emerald-600 text-white hover:bg-emerald-500 transition-colors"
+                            className="px-1.5 py-0.5 text-[9px] font-bold rounded bg-slate-600 text-white hover:bg-slate-500 transition-colors"
                           >
                             Add
                           </button>

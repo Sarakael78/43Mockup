@@ -102,7 +102,7 @@ const FileTriageRow = ({ file, onRemove, onSubmit }) => {
           </div>
           <button
             onClick={handleSubmit}
-            className="px-2 py-0.5 bg-blue-600 text-white text-[10px] font-bold rounded hover:bg-blue-500 transition-colors"
+            className="px-2 py-0.5 bg-slate-600 text-white text-[10px] font-bold rounded hover:bg-slate-500 transition-colors"
           >
             ✓ Confirm
           </button>

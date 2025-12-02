@@ -59,10 +59,10 @@ const Toast = ({ id, message, type = 'error', onClose }) => {
       Icon: AlertTriangle
     },
     info: {
-      bg: 'bg-blue-50',
-      border: 'border-blue-200',
-      text: 'text-blue-800',
-      icon: 'text-blue-500',
+      bg: 'bg-slate-50',
+      border: 'border-slate-200',
+      text: 'text-slate-800',
+      icon: 'text-slate-500',
       Icon: Info
     }
   };

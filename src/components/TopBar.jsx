@@ -55,13 +55,13 @@ const TopBar = ({ title, subtitle, caseName, onCaseNameChange, onSave, onNewCase
               onBlur={handleSave}
               onKeyDown={handleKeyDown}
               maxLength={CASE_NAME_MAX_LENGTH}
-              className="px-1.5 py-0 bg-white text-blue-700 text-[9px] font-bold uppercase rounded-full tracking-wider border-2 border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="px-1.5 py-0 bg-white text-slate-700 text-[9px] font-bold uppercase rounded-full tracking-wider border-2 border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-400"
               autoFocus
             />
           ) : (
             <span
               onClick={() => setIsEditing(true)}
-              className="px-1.5 py-0 bg-blue-50 text-blue-700 text-[9px] font-bold uppercase rounded-full tracking-wider border border-blue-100 cursor-pointer hover:bg-blue-100 transition-colors"
+              className="px-1.5 py-0 bg-slate-50 text-slate-700 text-[9px] font-bold uppercase rounded-full tracking-wider border border-slate-100 cursor-pointer hover:bg-slate-100 transition-colors"
               title="Click to edit case name"
             >
               {caseName}
@@ -120,7 +120,7 @@ const TopBar = ({ title, subtitle, caseName, onCaseNameChange, onSave, onNewCase
         {onNewCase && (
           <button
             onClick={onNewCase}
-            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] font-bold rounded bg-blue-600 text-white shadow-sm hover:bg-blue-500 transition-colors"
+            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] font-bold rounded bg-slate-600 text-white shadow-sm hover:bg-slate-500 transition-colors"
             title="Start a new case (clears all current data)"
           >
             <Plus size={12} />

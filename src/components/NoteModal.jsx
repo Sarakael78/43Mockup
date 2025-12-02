@@ -27,7 +27,7 @@ const NoteModal = ({ isOpen, onClose, transaction, note, onSave }) => {
       <div className="bg-white rounded-lg shadow-2xl w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
         <div className="px-3 py-2 border-b border-slate-200 flex items-center justify-between">
           <h3 className="text-xs font-bold text-slate-800 flex items-center gap-1">
-            <StickyNote size={12} className="text-blue-500" />
+            <StickyNote size={12} className="text-slate-500" />
             Note
           </h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
@@ -67,7 +67,7 @@ const NoteModal = ({ isOpen, onClose, transaction, note, onSave }) => {
           </button>
           <button
             onClick={handleSave}
-            className="px-2 py-1 bg-blue-600 text-white text-[10px] font-bold rounded hover:bg-blue-700 transition-colors"
+            className="px-2 py-1 bg-slate-600 text-white text-[10px] font-bold rounded hover:bg-slate-700 transition-colors"
           >
             Save
           </button>
