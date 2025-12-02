@@ -23,6 +23,16 @@ const EVIDENCE_STATUS_OPTIONS = [
   { value: 'rejected', label: 'Rejected' }
 ];
 
+// Default column widths for transactions table (right panel)
+const DEFAULT_TX_COLUMN_WIDTHS = {
+  date: 70,
+  description: 200,
+  category: 100,
+  amount: 80,
+  evidence: 75,
+  notes: 24
+};
+
 const WorkbenchView = ({
   data,
   transactions,
@@ -57,6 +67,9 @@ const WorkbenchView = ({
   const rightContainerRef = useRef(null);
   const [internalLeftWidth, setInternalLeftWidth] = useState(leftPanelWidth);
   const [internalRightHeights, setInternalRightHeights] = useState(rightPanelHeights);
+  const [txColumnWidths, setTxColumnWidths] = useState(DEFAULT_TX_COLUMN_WIDTHS);
+  const [colResizeState, setColResizeState] = useState(null);
+  const tableRef = useRef(null);
   const periodMonthsMap = getPeriodMonthsMap();
   const monthsInScope = periodMonthsMap[periodFilter] || 1;
   const latestTransactionDate = useMemo(() => getLatestTransactionDate(transactions), [transactions]);
@@ -282,6 +295,46 @@ const WorkbenchView = ({
     };
   }, [rightDragState, rightPanelHeights, onRightPanelHeightsChange]);
 
+  // Column resize handling for transaction table
+  const handleColResizeStart = (columnKey, e) => {
+    e.preventDefault();
+    setColResizeState({
+      column: columnKey,
+      startX: e.clientX,
+      startWidth: txColumnWidths[columnKey]
+    });
+  };
+
+  useEffect(() => {
+    if (!colResizeState) return;
+
+    const handleMouseMove = (e) => {
+      const delta = e.clientX - colResizeState.startX;
+      const newWidth = Math.max(30, colResizeState.startWidth + delta);
+      setTxColumnWidths(prev => ({
+        ...prev,
+        [colResizeState.column]: newWidth
+      }));
+    };
+
+    const handleMouseUp = () => setColResizeState(null);
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [colResizeState]);
+
+  // Generate grid template from column widths
+  const txGridTemplate = `${txColumnWidths.date}px 1fr ${txColumnWidths.category}px ${txColumnWidths.amount}px ${txColumnWidths.evidence}px ${txColumnWidths.notes}px`;
+
   return (
     <div ref={containerRef} className="flex flex-1 h-full overflow-hidden relative">
       <div className="flex flex-col" style={{ width: `${currentLeftPanelWidth}%` }}>
@@ -371,63 +424,89 @@ const WorkbenchView = ({
                   </button>
                 </div>
               )}
-              <div className="grid grid-cols-[70px_1fr_100px_90px_90px_24px] bg-slate-50 border-y border-slate-200 text-[7px] font-bold text-slate-500 uppercase tracking-wide py-0.5 px-1 sticky top-0 z-10">
-                <button
-                  onClick={() => handleSort('date')}
-                  className="flex items-center gap-1 hover:text-slate-700 transition-colors text-left"
-                >
-                  Date
-                  {sortColumn === 'date' ? (
-                    sortDirection === 'asc' ? <ArrowUp size={10} /> : <ArrowDown size={10} />
-                  ) : (
-                    <ArrowUpDown size={10} className="opacity-30" />
-                  )}
-                </button>
-                <button
-                  onClick={() => handleSort('description')}
-                  className="flex items-center gap-1 hover:text-slate-700 transition-colors text-left"
-                >
-                  Description
-                  {sortColumn === 'description' ? (
-                    sortDirection === 'asc' ? <ArrowUp size={10} /> : <ArrowDown size={10} />
-                  ) : (
-                    <ArrowUpDown size={10} className="opacity-30" />
-                  )}
-                </button>
-                <button
-                  onClick={() => handleSort('category')}
-                  className="flex items-center gap-1 hover:text-slate-700 transition-colors text-left"
-                >
-                  Category
-                  {sortColumn === 'category' ? (
-                    sortDirection === 'asc' ? <ArrowUp size={10} /> : <ArrowDown size={10} />
-                  ) : (
-                    <ArrowUpDown size={10} className="opacity-30" />
-                  )}
-                </button>
-                <button
-                  onClick={() => handleSort('amount')}
-                  className="flex items-center gap-1 hover:text-slate-700 transition-colors text-right justify-end"
-                >
-                  Amount
-                  {sortColumn === 'amount' ? (
-                    sortDirection === 'asc' ? <ArrowUp size={10} /> : <ArrowDown size={10} />
-                  ) : (
-                    <ArrowUpDown size={10} className="opacity-30" />
-                  )}
-                </button>
-                <button
-                  onClick={() => handleSort('evidence')}
-                  className="flex items-center gap-1 hover:text-slate-700 transition-colors text-center justify-center"
-                >
-                  Evidence
-                  {sortColumn === 'evidence' ? (
-                    sortDirection === 'asc' ? <ArrowUp size={10} /> : <ArrowDown size={10} />
-                  ) : (
-                    <ArrowUpDown size={10} className="opacity-30" />
-                  )}
-                </button>
-                <div></div>
+              <div ref={tableRef} className="grid bg-slate-50 border-y border-slate-200 text-[7px] font-bold text-slate-500 uppercase tracking-wide py-0.5 px-1 sticky top-0 z-10" style={{ gridTemplateColumns: txGridTemplate }}>
+                <div className="flex items-center relative">
+                  <button
+                    onClick={() => handleSort('date')}
+                    className="flex items-center gap-1 hover:text-slate-700 transition-colors text-left flex-1"
+                  >
+                    Date
+                    {sortColumn === 'date' ? (
+                      sortDirection === 'asc' ? <ArrowUp size={10} /> : <ArrowDown size={10} />
+                    ) : (
+                      <ArrowUpDown size={10} className="opacity-30" />
+                    )}
+                  </button>
+                  <div
+                    className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-amber-400 transition-colors"
+                    onMouseDown={(e) => handleColResizeStart('date', e)}
+                  />
+                </div>
+                <div className="flex items-center relative">
+                  <button
+                    onClick={() => handleSort('description')}
+                    className="flex items-center gap-1 hover:text-slate-700 transition-colors text-left flex-1"
+                  >
+                    Description
+                    {sortColumn === 'description' ? (
+                      sortDirection === 'asc' ? <ArrowUp size={10} /> : <ArrowDown size={10} />
+                    ) : (
+                      <ArrowUpDown size={10} className="opacity-30" />
+                    )}
+                  </button>
+                </div>
+                <div className="flex items-center relative">
+                  <button
+                    onClick={() => handleSort('category')}
+                    className="flex items-center gap-1 hover:text-slate-700 transition-colors text-left flex-1"
+                  >
+                    Category
+                    {sortColumn === 'category' ? (
+                      sortDirection === 'asc' ? <ArrowUp size={10} /> : <ArrowDown size={10} />
+                    ) : (
+                      <ArrowUpDown size={10} className="opacity-30" />
+                    )}
+                  </button>
+                  <div
+                    className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-amber-400 transition-colors"
+                    onMouseDown={(e) => handleColResizeStart('category', e)}
+                  />
+                </div>
+                <div className="flex items-center relative">
+                  <button
+                    onClick={() => handleSort('amount')}
+                    className="flex items-center gap-1 hover:text-slate-700 transition-colors text-right justify-end flex-1"
+                  >
+                    Amount
+                    {sortColumn === 'amount' ? (
+                      sortDirection === 'asc' ? <ArrowUp size={10} /> : <ArrowDown size={10} />
+                    ) : (
+                      <ArrowUpDown size={10} className="opacity-30" />
+                    )}
+                  </button>
+                  <div
+                    className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-amber-400 transition-colors"
+                    onMouseDown={(e) => handleColResizeStart('amount', e)}
+                  />
+                </div>
+                <div className="flex items-center relative">
+                  <button
+                    onClick={() => handleSort('evidence')}
+                    className="flex items-center gap-1 hover:text-slate-700 transition-colors text-center justify-center flex-1"
+                  >
+                    Evidence
+                    {sortColumn === 'evidence' ? (
+                      sortDirection === 'asc' ? <ArrowUp size={10} /> : <ArrowDown size={10} />
+                    ) : (
+                      <ArrowUpDown size={10} className="opacity-30" />
+                    )}
+                  </button>
+                  <div
+                    className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-amber-400 transition-colors"
+                    onMouseDown={(e) => handleColResizeStart('evidence', e)}
+                  />
+                </div>
+                <div className="text-center text-[7px]"></div>
               </div>
               {displayedTx.length === 0 ? (
                 <div className="flex items-center justify-center h-full text-slate-400 text-xs p-2">
@@ -447,7 +526,7 @@ const WorkbenchView = ({
                   const normalizedStatus = normalizeStatusValue(tx.status);
                   const statusLabel = EVIDENCE_STATUS_OPTIONS.find(opt => opt.value === normalizedStatus)?.label || 'Pending';
                   return (
-                    <div key={tx.id} className="grid grid-cols-[70px_1fr_100px_90px_90px_24px] border-b border-slate-100 py-0.5 px-1 text-[9px] items-center hover:bg-amber-50 group transition-colors">
+                    <div key={tx.id} className="grid border-b border-slate-100 py-0.5 px-1 text-[9px] items-center hover:bg-amber-50 group transition-colors" style={{ gridTemplateColumns: txGridTemplate }}>
                       <div className="font-mono text-slate-500 text-[8px]">{tx.date || ''}</div>
                       <div className="pr-1">
                         <div className="font-bold text-slate-700 truncate text-[9px]">{safeClean}</div>

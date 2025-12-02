@@ -20,6 +20,14 @@ const DEFAULT_PANEL_HEIGHTS = {
   table: 40
 };
 
+const DEFAULT_CLAIM_COLUMN_WIDTHS = {
+  category: 120,
+  claimed: 80,
+  proven: 90,
+  status: 70,
+  actions: 40
+};
+
 const DocumentInventory = ({
   transactions,
   periodFilter,
@@ -64,6 +72,8 @@ const DocumentInventory = ({
   const categoryListId = `${useId()}-claim-categories`;
   const fileInputRef = useRef(null);
   const containerRef = useRef(null);
+  const [claimColumnWidths, setClaimColumnWidths] = useState(DEFAULT_CLAIM_COLUMN_WIDTHS);
+  const [claimColResizeState, setClaimColResizeState] = useState(null);
   const sortedCategories = useMemo(() => {
     const unique = Array.from(new Set(categories));
     return unique.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
@@ -225,6 +235,47 @@ const DocumentInventory = ({
       document.body.style.userSelect = '';
     };
   }, [dragState, emitPanelHeights]);
+
+  // Column resize handling for claims table
+  const handleClaimColResizeStart = (columnKey, e) => {
+    e.preventDefault();
+    setClaimColResizeState({
+      column: columnKey,
+      startX: e.clientX,
+      startWidth: claimColumnWidths[columnKey]
+    });
+  };
+
+  useEffect(() => {
+    if (!claimColResizeState) return;
+
+    const handleMouseMove = (e) => {
+      const delta = e.clientX - claimColResizeState.startX;
+      const newWidth = Math.max(30, claimColResizeState.startWidth + delta);
+      setClaimColumnWidths(prev => ({
+        ...prev,
+        [claimColResizeState.column]: newWidth
+      }));
+    };
+
+    const handleMouseUp = () => setClaimColResizeState(null);
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [claimColResizeState]);
+
+  // Generate grid template from column widths
+  const claimGridTemplate = `1fr ${claimColumnWidths.claimed}px ${claimColumnWidths.proven}px ${claimColumnWidths.status}px ${claimColumnWidths.actions}px`;
+
   const entryModes = [
     { key: 'manual', label: 'Manual' },
     { key: 'import', label: 'Import' },
@@ -608,17 +659,39 @@ const DocumentInventory = ({
         style={{ height: displayManualPanel ? `${effectivePanelHeights.table}%` : '100%' }}
       >
         <div className="h-full overflow-auto custom-scroll p-0">
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-slate-50 sticky top-0 z-10 text-[7px] font-bold text-slate-500 uppercase tracking-wide">
-              <tr>
-                <th className="px-1 py-0.5 border-b">Category</th>
-                <th className="px-1 py-0.5 border-b text-right">Claimed</th>
-                <th className="px-1 py-0.5 border-b text-right">Proven ({periodFilter})</th>
-                <th className="px-1 py-0.5 border-b text-right w-20">Status</th>
-                <th className="px-1 py-0.5 border-b text-right w-8"></th>
-              </tr>
-            </thead>
-            <tbody>
+          <div className="w-full">
+            <div className="grid bg-slate-50 sticky top-0 z-10 text-[7px] font-bold text-slate-500 uppercase tracking-wide border-b border-slate-200" style={{ gridTemplateColumns: claimGridTemplate }}>
+              <div className="px-1 py-0.5 relative flex items-center">
+                Category
+                <div
+                  className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-amber-400 transition-colors"
+                  onMouseDown={(e) => handleClaimColResizeStart('category', e)}
+                />
+              </div>
+              <div className="px-1 py-0.5 text-right relative flex items-center justify-end">
+                Claimed
+                <div
+                  className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-amber-400 transition-colors"
+                  onMouseDown={(e) => handleClaimColResizeStart('claimed', e)}
+                />
+              </div>
+              <div className="px-1 py-0.5 text-right relative flex items-center justify-end">
+                Proven ({periodFilter})
+                <div
+                  className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-amber-400 transition-colors"
+                  onMouseDown={(e) => handleClaimColResizeStart('proven', e)}
+                />
+              </div>
+              <div className="px-1 py-0.5 text-right relative flex items-center justify-end">
+                Status
+                <div
+                  className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-amber-400 transition-colors"
+                  onMouseDown={(e) => handleClaimColResizeStart('status', e)}
+                />
+              </div>
+              <div className="px-1 py-0.5"></div>
+            </div>
+            <div>
               {claims.map((claim, index) => {
                 const proven = getProvenAvg(claim.category);
                 const traffic = getTrafficLight(proven, claim.claimed);
@@ -629,12 +702,13 @@ const DocumentInventory = ({
                 const isFocused = focusedCategory && claim.category && focusedCategory.toLowerCase() === claim.category.toLowerCase();
 
                 return (
-                  <tr
+                  <div
                     key={claim.id}
-                    className={`border-b border-slate-100 hover:bg-amber-50 text-[9px] group transition-colors ${isFocused ? 'bg-amber-50/70' : ''}`}
+                    className={`grid border-b border-slate-100 hover:bg-amber-50 text-[9px] group transition-colors items-center ${isFocused ? 'bg-amber-50/70' : ''}`}
+                    style={{ gridTemplateColumns: claimGridTemplate }}
                     onDoubleClick={() => onFocusClaim && onFocusClaim(claim.category)}
                   >
-                    <td className="px-1 py-0.5">
+                    <div className="px-1 py-0.5">
                       {isEditing ? (
                         <div className="space-y-0.5">
                           <input
@@ -661,8 +735,8 @@ const DocumentInventory = ({
                           {claim.desc && <div className="text-[8px] text-slate-400 truncate">{claim.desc}</div>}
                         </>
                       )}
-                    </td>
-                    <td className="px-1 py-0.5 text-right font-mono text-slate-500 text-[9px]">
+                    </div>
+                    <div className="px-1 py-0.5 text-right font-mono text-slate-500 text-[9px]">
                       {isEditing ? (
                         <input
                           type="number"
@@ -675,11 +749,11 @@ const DocumentInventory = ({
                       ) : (
                         claim.claimed.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 })
                       )}
-                    </td>
-                    <td className={`px-1 py-0.5 text-right font-mono font-bold text-[9px] ${traffic.colorClass}`}>
+                    </div>
+                    <div className={`px-1 py-0.5 text-right font-mono font-bold text-[9px] ${traffic.colorClass}`}>
                       {proven > 0 ? proven.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 }) : '-'}
-                    </td>
-                    <td className="px-1 py-0.5">
+                    </div>
+                    <div className="px-1 py-0.5">
                       <div className="flex flex-col gap-0.5">
                         <div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden">
                           <div
@@ -692,8 +766,8 @@ const DocumentInventory = ({
                           {traffic.label}
                         </div>
                       </div>
-                    </td>
-                    <td className="px-0.5 py-0.5 text-right">
+                    </div>
+                    <div className="px-0.5 py-0.5 text-right">
                       {isEditing ? (
                         <div className="flex gap-0.5 justify-end">
                           <button
@@ -735,12 +809,12 @@ const DocumentInventory = ({
                           )}
                         </div>
                       )}
-                    </td>
-                  </tr>
+                    </div>
+                  </div>
                 );
               })}
-            </tbody>
-          </table>
+            </div>
+          </div>
         </div>
       </div>
     </div>
