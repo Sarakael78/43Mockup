@@ -169,11 +169,11 @@ const WorkbenchView = ({
     return 'pending';
   };
 
-  const evidenceBadge = (status) => {
+  const getStatusSelectClasses = (status) => {
     const normalized = normalizeStatusValue(status);
-    if (normalized === 'confirmed') return 'bg-emerald-50 text-emerald-700 border border-emerald-100';
-    if (normalized === 'rejected') return 'bg-rose-50 text-rose-700 border border-rose-200';
-    return 'bg-slate-100 text-slate-600 border border-slate-200';
+    if (normalized === 'confirmed') return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+    if (normalized === 'rejected') return 'bg-rose-50 text-rose-700 border-rose-200';
+    return 'bg-slate-50 text-slate-600 border-slate-200';
   };
 
   // Handle resizing
@@ -460,20 +460,22 @@ const WorkbenchView = ({
                       <div className={`font-mono font-bold text-right text-[9px] ${tx.type === 'income' ? 'text-emerald-600' : 'text-slate-700'}`}>
                         {tx.type === 'income' ? '+' : ''}{tx.amount ? Math.abs(tx.amount).toFixed(2) : '0.00'}
                       </div>
-                      <div className="flex items-center justify-center gap-0.5">
-                        <span className={`px-1 py-0 rounded-full text-[8px] font-bold capitalize ${evidenceBadge(normalizedStatus)}`}>
-                          {statusLabel}
-                        </span>
-                        {onUpdateTransactionStatus && (
+                      <div className="flex items-center justify-center">
+                        {onUpdateTransactionStatus ? (
                           <select
                             value={normalizedStatus}
                             onChange={(e) => onUpdateTransactionStatus(tx.id, e.target.value)}
-                            className="text-[8px] px-0.5 py-0 border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-amber-400 bg-white"
+                            className={`text-[8px] px-1.5 py-0.5 border rounded-full font-bold cursor-pointer focus:outline-none focus:ring-1 focus:ring-amber-400 appearance-none text-center ${getStatusSelectClasses(normalizedStatus)}`}
+                            style={{ minWidth: '65px' }}
                           >
                             {EVIDENCE_STATUS_OPTIONS.map(opt => (
                               <option key={opt.value} value={opt.value}>{opt.label}</option>
                             ))}
                           </select>
+                        ) : (
+                          <span className={`px-1.5 py-0.5 rounded-full text-[8px] font-bold capitalize border ${getStatusSelectClasses(normalizedStatus)}`}>
+                            {statusLabel}
+                          </span>
                         )}
                       </div>
                       <div className="text-center opacity-0 group-hover:opacity-100 transition-opacity relative">
