@@ -74,7 +74,7 @@ const ClaimsComparisonChart = ({ claims, transactions }) => {
         <YAxis type="category" dataKey="name" fontSize={8} axisLine={false} tickLine={false} width={80} />
         <Tooltip 
           cursor={{ fill: '#f1f5f9' }} 
-          formatter={(value, name) => [`R ${value.toLocaleString()}`, name === 'claimed' ? 'Claimed' : 'Proven (6M Avg)']}
+          formatter={(value, name) => [`R ${value.toLocaleString()}`, name === 'Claimed' ? 'Claimed' : 'Proven (6M Avg)']}
           labelFormatter={(label, payload) => payload?.[0]?.payload?.fullName || label}
         />
         <Bar dataKey="claimed" name="Claimed" fill="hsl(90, 75%, 50%)" radius={[0, 2, 2, 0]} barSize={10} />
