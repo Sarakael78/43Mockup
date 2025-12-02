@@ -25,9 +25,25 @@ const getProvenAvgForMonths = (transactions, category, months, latestTxDate) => 
 // Claims Comparison Chart - shows claimed vs proven for each category
 const ClaimsComparisonChart = ({ claims, transactions, proofPeriod = '6M' }) => {
   const proofMonths = proofPeriod === '3M' ? 3 : 6;
-  const chartData = useMemo(() => {
+
+  // Base data that doesn't depend on proof period (claimed amounts, names, etc.)
+  const baseChartData = useMemo(() => {
     if (!claims || claims.length === 0) return [];
-    
+
+    return claims
+      .filter(claim => claim.claimed > 0)
+      .map(claim => ({
+        name: claim.category.length > 20 ? claim.category.substring(0, 18) + '...' : claim.category,
+        fullName: claim.category,
+        claimed: claim.claimed
+      }))
+      .sort((a, b) => b.claimed - a.claimed);
+  }, [claims]);
+
+  // Proven data that depends on proof period
+  const chartData = useMemo(() => {
+    if (baseChartData.length === 0) return [];
+
     // Find latest transaction date
     const latestTxDate = transactions.length > 0
       ? transactions.reduce((latest, tx) => {
@@ -36,29 +52,24 @@ const ClaimsComparisonChart = ({ claims, transactions, proofPeriod = '6M' }) => 
           return !latest || txDate > latest ? txDate : latest;
         }, null)
       : null;
-    
-    return claims
-      .map(claim => {
-        const provenAvg = getProvenAvgForMonths(transactions, claim.category, proofMonths, latestTxDate);
-        const pct = claim.claimed > 0 ? Math.round((provenAvg / claim.claimed) * 100) : 0;
-        
-        // Calculate color based on percentage (0-100 maps to hue 0-90) with reduced saturation for accessibility
-        const cappedPct = Math.min(pct, 100);
-        const hue = (cappedPct / 100) * 90;
-        const barColor = `hsl(${hue}, 60%, 45%)`;
-        
-        return {
-          name: claim.category.length > 20 ? claim.category.substring(0, 18) + '...' : claim.category,
-          fullName: claim.category,
-          claimed: claim.claimed,
-          proven: Math.round(provenAvg),
-          pct,
-          barColor
-        };
-      })
-      .filter(d => d.claimed > 0)
-      .sort((a, b) => b.claimed - a.claimed);
-  }, [claims, transactions, proofMonths]);
+
+    return baseChartData.map(item => {
+      const provenAvg = getProvenAvgForMonths(transactions, item.fullName, proofMonths, latestTxDate);
+      const pct = item.claimed > 0 ? Math.round((provenAvg / item.claimed) * 100) : 0;
+
+      // Calculate color based on percentage (0-100 maps to hue 0-90) with reduced saturation for accessibility
+      const cappedPct = Math.min(pct, 100);
+      const hue = (cappedPct / 100) * 90;
+      const barColor = `hsl(${hue}, 60%, 45%)`;
+
+      return {
+        ...item,
+        proven: Math.round(provenAvg),
+        pct,
+        barColor
+      };
+    });
+  }, [baseChartData, transactions, proofMonths]);
 
   if (chartData.length === 0) {
     return (
