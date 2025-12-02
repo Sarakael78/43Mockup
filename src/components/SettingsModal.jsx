@@ -2,18 +2,24 @@ import { useState, useEffect } from 'react';
 import { Settings, X, Type, Maximize2 } from 'lucide-react';
 
 const FONT_SIZES = [
-  { value: 'xs', label: 'Extra Small', scale: 0.85 },
+  { value: 'micro', label: 'Micro', scale: 0.65 },
+  { value: 'tiny', label: 'Tiny', scale: 0.7 },
+  { value: 'mini', label: 'Mini', scale: 0.75 },
+  { value: 'xs', label: 'XS', scale: 0.85 },
   { value: 'sm', label: 'Small', scale: 0.925 },
   { value: 'md', label: 'Medium', scale: 1 },
   { value: 'lg', label: 'Large', scale: 1.1 },
-  { value: 'xl', label: 'Extra Large', scale: 1.2 }
+  { value: 'xl', label: 'XL', scale: 1.2 }
 ];
 
 const DENSITY_LEVELS = [
+  { value: 'ultra', label: 'Ultra', scale: 0.3 },
+  { value: 'minimal', label: 'Minimal', scale: 0.4 },
+  { value: 'dense', label: 'Dense', scale: 0.5 },
   { value: 'compact', label: 'Compact', scale: 0.6 },
   { value: 'tight', label: 'Tight', scale: 0.8 },
   { value: 'normal', label: 'Normal', scale: 1 },
-  { value: 'comfortable', label: 'Comfortable', scale: 1.25 },
+  { value: 'comfortable', label: 'Comfy', scale: 1.25 },
   { value: 'spacious', label: 'Spacious', scale: 1.5 }
 ];
 
@@ -48,7 +54,7 @@ const SettingsModal = ({ isOpen, onClose, settings, onSettingsChange }) => {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-white rounded-lg shadow-2xl w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white rounded-lg shadow-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
         <div className="px-3 py-2 border-b border-slate-200 flex items-center justify-between">
           <h2 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
             <Settings size={14} className="text-slate-500" />
@@ -66,19 +72,19 @@ const SettingsModal = ({ isOpen, onClose, settings, onSettingsChange }) => {
               <Type size={12} />
               Font Size
             </label>
-            <div className="flex gap-1">
+            <div className="grid grid-cols-8 gap-0.5">
               {FONT_SIZES.map((size) => (
                 <button
                   key={size.value}
                   onClick={() => handleFontSizeChange(size.value)}
-                  className={`flex-1 px-2 py-1.5 text-[10px] font-bold rounded transition-all ${
+                  className={`px-1 py-1 text-[8px] font-bold rounded transition-all ${
                     localSettings.fontSize === size.value
                       ? 'bg-amber-500 text-white shadow-sm'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
-                  title={size.label}
+                  title={`${size.label} (${size.scale}x)`}
                 >
-                  {size.label.split(' ')[0]}
+                  {size.label}
                 </button>
               ))}
             </div>
@@ -93,17 +99,17 @@ const SettingsModal = ({ isOpen, onClose, settings, onSettingsChange }) => {
               <Maximize2 size={12} />
               Spacing Density
             </label>
-            <div className="flex gap-1">
+            <div className="grid grid-cols-8 gap-0.5">
               {DENSITY_LEVELS.map((density) => (
                 <button
                   key={density.value}
                   onClick={() => handleDensityChange(density.value)}
-                  className={`flex-1 px-1 py-1.5 text-[9px] font-bold rounded transition-all ${
+                  className={`px-1 py-1 text-[8px] font-bold rounded transition-all ${
                     localSettings.density === density.value
                       ? 'bg-blue-600 text-white shadow-sm'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
-                  title={density.label}
+                  title={`${density.label} (${density.scale}x)`}
                 >
                   {density.label.slice(0, 4)}
                 </button>
