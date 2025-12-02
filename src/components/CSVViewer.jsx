@@ -159,10 +159,10 @@ const CSVViewer = ({ file, fileUrl, csvContent }) => {
     }
   };
 
-  // Check if a column should be sortable (Date, Amount, Category)
+  // Check if a column should be sortable (Date, Amount, Category, Description)
   const isSortableColumn = (header) => {
     const normalized = normalizeColumnName(header);
-    return normalized === 'date' || normalized === 'amount' || normalized === 'category';
+    return normalized === 'date' || normalized === 'amount' || normalized === 'category' || normalized === 'description';
   };
 
   // Get sort direction indicator
