@@ -569,7 +569,7 @@ const DocumentInventory = ({
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept=".docx,.doc,.pdf"
+                  accept=".docx,.doc,.pdf,.csv"
                   className="hidden"
                   onChange={handleFileChange}
                 />

@@ -27,19 +27,24 @@ export const createClaimsImportHandler = (setClaims, onError) => {
 
       if (fileExtension === 'docx' || fileExtension === 'doc') {
         parsedClaims = await parseDOCXClaims(file);
+        // Map categories only for DOCX/DOC (where we extract from unstructured text)
+        parsedClaims = parsedClaims.map(claim => ({
+          ...claim,
+          category: mapCategory(claim.category) || 'Uncategorized'
+        }));
       } else if (fileExtension === 'pdf') {
         parsedClaims = await parsePDFClaims(file);
+        // Map categories only for PDF (where we extract from unstructured text)
+        parsedClaims = parsedClaims.map(claim => ({
+          ...claim,
+          category: mapCategory(claim.category) || 'Uncategorized'
+        }));
       } else if (fileExtension === 'csv') {
+        // CSV: preserve exact category names as provided
         parsedClaims = await parseCSVClaims(file);
       } else {
         throw new Error('Unsupported file type. Please use CSV, DOCX, or PDF.');
       }
-
-      // Map categories
-      parsedClaims = parsedClaims.map(claim => ({
-        ...claim,
-        category: mapCategory(claim.category) || 'Uncategorized'
-      }));
 
       // Add to claims state
       if (setClaims) {
