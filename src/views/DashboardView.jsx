@@ -131,7 +131,7 @@ const DashboardView = ({ data, transactions, claims, onLoadProject }) => {
         id: 'unproven',
         type: 'warning',
         icon: TrendingDown,
-        title: 'Unproven Expenses',
+        title: 'Unproven Monthly Expense Claims',
         msg: `${unprovenExpenses.length} expense categor${unprovenExpenses.length !== 1 ? 'ies' : 'y'} not fully proven`,
         value: unprovenExpenses.length
       });
