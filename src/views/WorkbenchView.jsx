@@ -173,6 +173,20 @@ const WorkbenchView = ({
     }
   };
 
+  const handleStatusChange = (id, newStatus) => {
+    // If this transaction is selected and there are multiple selections, update all selected
+    if (selectedTxIds.has(id) && selectedTxIds.size > 1) {
+      setTransactions(prev => prev.map(t => 
+        selectedTxIds.has(t.id) ? { ...t, status: newStatus } : t
+      ));
+    } else {
+      // Just update the single transaction
+      if (onUpdateTransactionStatus) {
+        onUpdateTransactionStatus(id, newStatus);
+      }
+    }
+  };
+
   const handleTxSelect = (id, e) => {
     const displayedIds = displayedTx.map(tx => tx.id);
     
@@ -700,7 +714,7 @@ const WorkbenchView = ({
                         {onUpdateTransactionStatus ? (
                           <select
                             value={normalizedStatus}
-                            onChange={(e) => onUpdateTransactionStatus(tx.id, e.target.value)}
+                            onChange={(e) => handleStatusChange(tx.id, e.target.value)}
                             className={`text-[8px] px-1.5 py-0.5 border rounded-full font-bold cursor-pointer focus:outline-none focus:ring-1 focus:ring-amber-400 appearance-none text-center ${getStatusSelectClasses(normalizedStatus)}`}
                             style={{ minWidth: '65px' }}
                           >
