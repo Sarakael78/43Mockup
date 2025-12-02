@@ -78,7 +78,7 @@ const ClaimsComparisonChart = ({ claims, transactions }) => {
           formatter={(value, name) => [`R ${value.toLocaleString()}`, name === 'claimed' ? 'Claimed' : 'Proven (6M Avg)']}
           labelFormatter={(label, payload) => payload?.[0]?.payload?.fullName || label}
         />
-        <Bar dataKey="claimed" name="Claimed" fill="#94a3b8" radius={[0, 2, 2, 0]} barSize={10} />
+        <Bar dataKey="claimed" name="Claimed" fill="hsl(90, 75%, 50%)" radius={[0, 2, 2, 0]} barSize={10} />
         <Bar 
           dataKey="proven" 
           name="Proven" 
