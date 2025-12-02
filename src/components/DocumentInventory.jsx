@@ -530,7 +530,7 @@ const DocumentInventory = ({
                     <div key={file.id} className="bg-white border border-slate-200 rounded p-1 flex flex-col gap-0.5 shadow-sm hover:border-blue-300 transition-colors group">
                       <div className="flex items-center justify-between gap-1">
                         <div className="flex items-center gap-1 text-[10px] font-semibold text-slate-700 flex-1 min-w-0">
-                          <div className="text-rose-600 shrink-0">
+                          <div className="text-blue-500 shrink-0">
                             {safeName.toLowerCase().includes('pdf') ? <FileText size={10} /> : <File size={10} />}
                           </div>
                           <div className="truncate">{safeName}</div>
