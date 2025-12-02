@@ -670,7 +670,7 @@ const DocumentInventory = ({
                       <button
                         type="button"
                         onClick={handleManualClaimSubmit}
-                        className="w-full px-1 py-0.5 text-[9px] font-bold rounded bg-amber-500 text-white shadow-sm hover:bg-amber-600 transition-colors"
+                        className="w-full px-1 py-0.5 text-[9px] font-bold rounded bg-blue-600 text-white shadow-sm hover:bg-blue-700 transition-colors"
                       >
                         Add
                       </button>

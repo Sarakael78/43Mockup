@@ -14,7 +14,7 @@ const Footer = () => {
   return (
     <footer className="h-5 bg-slate-800 text-slate-400 flex items-center justify-between px-3 text-[9px] shrink-0 border-t border-slate-700">
       <div className="flex items-center gap-2">
-        <Scale size={10} className="text-amber-500" />
+        <Scale size={10} className="text-slate-400" />
         <span className="font-semibold text-slate-300">{APP_NAME}</span>
         <span className="text-slate-500">v{APP_VERSION}</span>
       </div>

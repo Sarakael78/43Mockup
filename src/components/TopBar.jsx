@@ -55,13 +55,13 @@ const TopBar = ({ title, subtitle, caseName, onCaseNameChange, onSave, onNewCase
               onBlur={handleSave}
               onKeyDown={handleKeyDown}
               maxLength={CASE_NAME_MAX_LENGTH}
-              className="px-1.5 py-0 bg-white text-amber-700 text-[9px] font-bold uppercase rounded-full tracking-wider border-2 border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-400"
+              className="px-1.5 py-0 bg-white text-blue-700 text-[9px] font-bold uppercase rounded-full tracking-wider border-2 border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
               autoFocus
             />
           ) : (
             <span
               onClick={() => setIsEditing(true)}
-              className="px-1.5 py-0 bg-amber-50 text-amber-700 text-[9px] font-bold uppercase rounded-full tracking-wider border border-amber-100 cursor-pointer hover:bg-amber-100 transition-colors"
+              className="px-1.5 py-0 bg-blue-50 text-blue-700 text-[9px] font-bold uppercase rounded-full tracking-wider border border-blue-100 cursor-pointer hover:bg-blue-100 transition-colors"
               title="Click to edit case name"
             >
               {caseName}

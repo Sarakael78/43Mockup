@@ -85,7 +85,7 @@ const SettingsModal = ({ isOpen, onClose, settings, onSettingsChange }) => {
                   onClick={() => handleFontSizeChange(size.value)}
                   className={`px-1 py-1 text-[8px] font-bold rounded transition-all ${
                     localSettings.fontSize === size.value
-                      ? 'bg-amber-500 text-white shadow-sm'
+                      ? 'bg-blue-600 text-white shadow-sm'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                   title={`${size.label} (${size.scale}x)`}
