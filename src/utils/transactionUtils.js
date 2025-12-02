@@ -1,5 +1,5 @@
 const ENTITY_GROUPS = {
-  PERSONAL: ['PERSONAL', 'TRUST'],
+  PERSONAL: ['PERSONAL'],
   BUSINESS: ['BUSINESS', 'MYMOBIZ'],
   TRUST: ['TRUST'],
   CREDIT: ['CREDIT'],
@@ -7,7 +7,7 @@ const ENTITY_GROUPS = {
 };
 
 const FALLBACK_KEYWORDS = {
-  PERSONAL: ['personal', 'trust'],
+  PERSONAL: ['personal'],
   BUSINESS: ['business', 'mymobiz'],
   TRUST: ['trust'],
   CREDIT: ['credit'],
