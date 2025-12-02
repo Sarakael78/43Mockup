@@ -137,11 +137,10 @@ const DashboardView = ({ data, transactions, claims, onLoadProject }) => {
     });
     
     // 6. Inter-account transfers without corresponding entry
+    // Only look at transactions categorized as Inter-Account
     const transfers = transactions.filter(tx => {
       const cat = (tx.cat || '').toLowerCase();
-      const desc = (tx.desc || tx.clean || '').toLowerCase();
-      return cat.includes('inter-account') || cat.includes('transfer') || 
-             desc.includes('transfer') || desc.includes('trf ');
+      return cat.includes('inter-account') || cat === 'inter account' || cat === 'interaccount';
     });
     
     // Group by approximate amount and date to find unmatched transfers
@@ -170,8 +169,8 @@ const DashboardView = ({ data, transactions, claims, onLoadProject }) => {
         id: 'unmatched-transfers',
         type: 'warning',
         icon: ArrowLeftRight,
-        title: 'Unmatched Transfers',
-        msg: `${unmatchedTransfers.length} transfer${unmatchedTransfers.length !== 1 ? 's' : ''} without corresponding entry`,
+        title: 'Unmatched Inter-Account',
+        msg: `${unmatchedTransfers.length} inter-account transfer${unmatchedTransfers.length !== 1 ? 's' : ''} without matching entry in another account`,
         value: unmatchedTransfers.length
       });
     }
