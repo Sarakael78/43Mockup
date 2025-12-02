@@ -67,6 +67,34 @@ const ClaimsComparisonChart = ({ claims, transactions }) => {
     );
   }
 
+  // Custom tooltip content to show proven value with color
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (!active || !payload || payload.length === 0) return null;
+    
+    const data = payload[0].payload;
+    const claimedEntry = payload.find(p => p.dataKey === 'claimed');
+    const provenEntry = payload.find(p => p.dataKey === 'proven');
+    
+    return (
+      <div className="bg-white border border-slate-200 rounded shadow-lg p-2 text-xs">
+        <p className="font-bold text-slate-700 mb-1">{data.fullName || label}</p>
+        {claimedEntry && (
+          <p className="text-slate-600">
+            <span className="font-semibold">Claimed:</span> R {claimedEntry.value.toLocaleString()}
+          </p>
+        )}
+        {provenEntry && (
+          <p className="text-slate-600">
+            <span className="font-semibold">Proven (6M Avg):</span>{' '}
+            <span style={{ color: data.barColor, fontWeight: 'bold' }}>
+              R {provenEntry.value.toLocaleString()}
+            </span>
+          </p>
+        )}
+      </div>
+    );
+  };
+
   return (
     <ResponsiveContainer width="100%" height="100%">
       <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 10 }}>
@@ -74,8 +102,7 @@ const ClaimsComparisonChart = ({ claims, transactions }) => {
         <YAxis type="category" dataKey="name" fontSize={8} axisLine={false} tickLine={false} width={80} />
         <Tooltip 
           cursor={{ fill: '#f1f5f9' }} 
-          formatter={(value, name) => [`R ${value.toLocaleString()}`, name === 'Claimed' ? 'Claimed' : 'Proven (6M Avg)']}
-          labelFormatter={(label, payload) => payload?.[0]?.payload?.fullName || label}
+          content={<CustomTooltip />}
         />
         <Bar dataKey="claimed" name="Claimed" fill="hsl(90, 75%, 50%)" radius={[0, 2, 2, 0]} barSize={10} />
         <Bar 
