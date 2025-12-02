@@ -851,12 +851,21 @@ const DocumentInventory = ({
                     </div>
                     <div className="px-1 py-0.5">
                       <div className="flex flex-col gap-0.5">
-                        {/* Solid color progress bar based on status */}
+                        {/* Solid color progress bar - color based on progress percentage */}
                         <div className="w-full h-1.5 rounded-full overflow-hidden bg-slate-200">
-                          <div 
-                            className={`h-full rounded-full ${traffic.label === 'Shortfall' ? 'bg-rose-500' : traffic.label === 'Over' ? 'bg-blue-500' : traffic.label === 'Verified' ? 'bg-emerald-500' : 'bg-slate-300'}`}
-                            style={{ width: `${Math.max(0, Math.min(traffic.ratio * 100, 100))}%` }}
-                          />
+                          {(() => {
+                            const pct = traffic.ratio * 100;
+                            let barColor = 'bg-rose-500'; // 0-50%
+                            if (pct >= 95) barColor = 'bg-emerald-500'; // 95%+ = green
+                            else if (pct >= 75) barColor = 'bg-yellow-500'; // 75-95% = yellow
+                            else if (pct >= 50) barColor = 'bg-amber-500'; // 50-75% = orange
+                            return (
+                              <div 
+                                className={`h-full rounded-full ${barColor}`}
+                                style={{ width: `${Math.max(0, Math.min(pct, 100))}%` }}
+                              />
+                            );
+                          })()}
                         </div>
                         <div className={`text-[8px] font-semibold flex items-center gap-0.5 ${traffic.colorClass}`}>
                           {traffic.label === 'Verified' && <CheckCheck size={8} />}
