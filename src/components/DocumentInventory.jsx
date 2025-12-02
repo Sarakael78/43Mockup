@@ -10,8 +10,7 @@ import {
   X as CloseIcon,
   Save,
   ArrowUp,
-  ArrowDown,
-  Plus
+  ArrowDown
 } from 'lucide-react';
 
 const DEFAULT_PANEL_HEIGHTS = {
@@ -67,8 +66,6 @@ const DocumentInventory = ({
     reference: ''
   });
   const [editingError, setEditingError] = useState('');
-  const [newCategoryName, setNewCategoryName] = useState('');
-  const [newCategoryError, setNewCategoryError] = useState('');
   const categoryListId = `${useId()}-claim-categories`;
   const fileInputRef = useRef(null);
   const containerRef = useRef(null);
@@ -325,6 +322,14 @@ const DocumentInventory = ({
       return;
     }
 
+    // Auto-create category if it doesn't exist
+    const categoryExists = sortedCategories.some(
+      c => c.toLowerCase() === category.toLowerCase()
+    );
+    if (!categoryExists && onCreateCategory) {
+      onCreateCategory(category);
+    }
+
     onAddClaim({
       category,
       desc: description,
@@ -393,22 +398,6 @@ const DocumentInventory = ({
   const handleReorder = (claimId, direction) => {
     if (!onReorderClaim) return;
     onReorderClaim(claimId, direction);
-  };
-
-  const handleCreateCategory = () => {
-    if (!onCreateCategory) return;
-    const name = newCategoryName.trim();
-    if (!name) {
-      setNewCategoryError('Category name is required.');
-      return;
-    }
-    const result = onCreateCategory(name);
-    if (result === false) {
-      setNewCategoryError('Category already exists.');
-      return;
-    }
-    setNewCategoryName('');
-    setNewCategoryError('');
   };
 
   const getProvenAvg = (category) => {
@@ -621,28 +610,6 @@ const DocumentInventory = ({
                   </div>
                   {manualError && (
                     <p className="text-[9px] text-rose-600 mt-0.5">{manualError}</p>
-                  )}
-                  {onCreateCategory && (
-                    <div className="mt-1 pt-1 border-t border-slate-100 flex gap-1 items-center">
-                      <input
-                        type="text"
-                        value={newCategoryName}
-                        onChange={(e) => setNewCategoryName(e.target.value)}
-                        placeholder="New category..."
-                        className="flex-1 text-[9px] px-1 py-0.5 border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-amber-400"
-                      />
-                      <button
-                        type="button"
-                        onClick={handleCreateCategory}
-                        className="inline-flex items-center gap-0.5 px-1 py-0.5 text-[9px] font-bold rounded bg-slate-800 text-white hover:bg-slate-700 transition-colors"
-                      >
-                        <Plus size={10} />
-                        Cat
-                      </button>
-                      {newCategoryError && (
-                        <span className="text-[9px] text-rose-600">{newCategoryError}</span>
-                      )}
-                    </div>
                   )}
                 </div>
               )}
