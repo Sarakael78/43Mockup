@@ -68,7 +68,7 @@ const TopBar = ({ title, subtitle, caseName, onCaseNameChange, onSave, onNewCase
             </span>
           )}
           {saved && (
-            <span className="text-emerald-600 flex items-center gap-0.5 text-[9px] animate-fade-in">
+            <span className="text-slate-600 flex items-center gap-0.5 text-[9px] animate-fade-in">
               <Check size={10} />
               Saved
             </span>
@@ -88,7 +88,7 @@ const TopBar = ({ title, subtitle, caseName, onCaseNameChange, onSave, onNewCase
               onClick={() => onProofPeriodChange('3M')}
               className={`px-2 py-0.5 text-[8px] font-bold rounded transition-all ${
                 proofPeriod === '3M'
-                  ? 'bg-emerald-600 text-white shadow-sm'
+                  ? 'bg-slate-600 text-white shadow-sm'
                   : 'text-slate-500 hover:text-slate-700'
               }`}
               title="Use 3-month average to determine if claims are proven"
@@ -99,7 +99,7 @@ const TopBar = ({ title, subtitle, caseName, onCaseNameChange, onSave, onNewCase
               onClick={() => onProofPeriodChange('6M')}
               className={`px-2 py-0.5 text-[8px] font-bold rounded transition-all ${
                 proofPeriod === '6M'
-                  ? 'bg-emerald-600 text-white shadow-sm'
+                  ? 'bg-slate-600 text-white shadow-sm'
                   : 'text-slate-500 hover:text-slate-700'
               }`}
               title="Use 6-month average to determine if claims are proven"
@@ -153,7 +153,7 @@ const TopBar = ({ title, subtitle, caseName, onCaseNameChange, onSave, onNewCase
         )}
         <button
           onClick={onSave}
-          className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] font-bold rounded bg-emerald-600 text-white shadow-sm hover:bg-emerald-500 transition-colors"
+          className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] font-bold rounded bg-slate-600 text-white shadow-sm hover:bg-slate-500 transition-colors"
           title="Export Analysis (Save Project)"
         >
           <Save size={12} />
