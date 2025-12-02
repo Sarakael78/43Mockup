@@ -419,7 +419,7 @@ const DashboardView = ({ data, transactions, claims }) => {
         <>
           <div className="grid grid-cols-4 gap-1.5 mb-1.5">
             <div className="p-2 rounded-lg border border-slate-100 shadow-sm bg-white border-l-4 border-l-emerald-500">
-              <div className="text-[9px] font-bold text-slate-400 uppercase">Income (Proven)</div>
+              <div className="text-[9px] font-bold text-slate-400 uppercase">Income</div>
               <div className="text-lg font-mono font-bold text-emerald-600">
                 {totalIncome.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 })}
               </div>
@@ -428,21 +428,12 @@ const DashboardView = ({ data, transactions, claims }) => {
               </div>
             </div>
             <div className="p-2 rounded-lg border border-slate-100 shadow-sm bg-white border-l-4 border-l-rose-500">
-              <div className="text-[9px] font-bold text-slate-400 uppercase">Expenses (Proven)</div>
+              <div className="text-[9px] font-bold text-slate-400 uppercase">Expenses</div>
               <div className="text-lg font-mono font-bold text-rose-600">
                 {totalExpenses.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 })}
               </div>
               <div className="text-[9px] text-rose-400">
                 {transactions.filter(tx => tx && tx.amount < 0).length} tx
-              </div>
-            </div>
-            <div className="p-2 rounded-lg border border-slate-100 shadow-sm bg-white border-l-4 border-l-slate-500">
-              <div className="text-[9px] font-bold text-slate-400 uppercase">Monthly Claimed</div>
-              <div className="text-lg font-mono font-bold text-slate-600">
-                {totalClaimed.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 })}
-              </div>
-              <div className="text-[9px] text-slate-400">
-                {claims.length} categor{claims.length !== 1 ? 'ies' : 'y'}
               </div>
             </div>
             <div className="p-2 rounded-lg border border-slate-100 shadow-sm bg-white border-l-4 border-l-amber-500">
@@ -452,6 +443,15 @@ const DashboardView = ({ data, transactions, claims }) => {
               </div>
               <div className={`text-[9px] ${deficit < 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
                 {deficit < 0 ? 'Negative' : 'Positive'}
+              </div>
+            </div>
+            <div className="p-2 rounded-lg border border-slate-100 shadow-sm bg-white border-l-4 border-l-slate-500">
+              <div className="text-[9px] font-bold text-slate-400 uppercase">Monthly Claimed</div>
+              <div className="text-lg font-mono font-bold text-slate-600">
+                {totalClaimed.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 })}
+              </div>
+              <div className="text-[9px] text-slate-400">
+                {claims.length} categor{claims.length !== 1 ? 'ies' : 'y'}
               </div>
             </div>
           </div>
