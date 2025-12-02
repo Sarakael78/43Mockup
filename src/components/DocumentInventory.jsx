@@ -788,11 +788,21 @@ const DocumentInventory = ({
                 const canMoveDown = Boolean(onReorderClaim) && index < claims.length - 1;
                 const isFocused = focusedCategory && claim.category && focusedCategory.toLowerCase() === claim.category.toLowerCase();
 
+                // Calculate progress bar color based on percentage
+                const pct = traffic.ratio * 100;
+                let barColor = 'rgba(244, 63, 94, 0.15)'; // rose-500 at 15% opacity
+                if (pct >= 95) barColor = 'rgba(16, 185, 129, 0.15)'; // emerald-500
+                else if (pct >= 75) barColor = 'rgba(234, 179, 8, 0.15)'; // yellow-500
+                else if (pct >= 50) barColor = 'rgba(245, 158, 11, 0.15)'; // amber-500
+
                 return (
                   <div
                     key={claim.id}
-                    className={`grid border-b border-slate-100 hover:bg-amber-50 text-[9px] group transition-colors items-center ${isFocused ? 'bg-amber-50/70' : ''}`}
-                    style={{ gridTemplateColumns: claimGridTemplate }}
+                    className={`grid border-b border-slate-100 hover:brightness-95 text-[9px] group transition-all items-center relative ${isFocused ? 'ring-1 ring-amber-400' : ''}`}
+                    style={{ 
+                      gridTemplateColumns: claimGridTemplate,
+                      background: `linear-gradient(to right, ${barColor} ${Math.min(pct, 100)}%, transparent ${Math.min(pct, 100)}%)`
+                    }}
                     onDoubleClick={() => onFocusClaim && onFocusClaim(claim.category)}
                   >
                     <div className="px-1 py-0.5">
@@ -850,27 +860,9 @@ const DocumentInventory = ({
                       {total > 0 ? total.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 }) : '-'}
                     </div>
                     <div className="px-1 py-0.5">
-                      <div className="flex flex-col gap-0.5">
-                        {/* Solid color progress bar - color based on progress percentage */}
-                        <div className="w-full h-1.5 rounded-full overflow-hidden bg-slate-200">
-                          {(() => {
-                            const pct = traffic.ratio * 100;
-                            let barColor = 'bg-rose-500'; // 0-50%
-                            if (pct >= 95) barColor = 'bg-emerald-500'; // 95%+ = green
-                            else if (pct >= 75) barColor = 'bg-yellow-500'; // 75-95% = yellow
-                            else if (pct >= 50) barColor = 'bg-amber-500'; // 50-75% = orange
-                            return (
-                              <div 
-                                className={`h-full rounded-full ${barColor}`}
-                                style={{ width: `${Math.max(0, Math.min(pct, 100))}%` }}
-                              />
-                            );
-                          })()}
-                        </div>
-                        <div className={`text-[8px] font-semibold flex items-center gap-0.5 ${traffic.colorClass}`}>
-                          {traffic.label === 'Verified' && <CheckCheck size={8} />}
-                          {traffic.label} ({Math.round(traffic.ratio * 100)}%)
-                        </div>
+                      <div className={`text-[8px] font-semibold flex items-center justify-center gap-0.5 ${traffic.colorClass}`}>
+                        {traffic.label === 'Verified' && <CheckCheck size={8} />}
+                        {traffic.label} ({Math.round(traffic.ratio * 100)}%)
                       </div>
                     </div>
                     <div className="px-0.5 py-0.5 text-right">
