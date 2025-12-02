@@ -541,11 +541,11 @@ const DocumentInventory = ({
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
                           <span className={`text-[8px] px-0.5 py-0 rounded font-bold uppercase ${file.entity === 'LEGAL' ? 'bg-purple-50 text-purple-700' : 'bg-slate-100 text-slate-500'}`}>{file.entity || 'UNK'}</span>
-                          {file.cycleDay && (
-                            <span className="text-[8px] px-0.5 py-0 rounded font-medium bg-amber-50 text-amber-700" title="Statement cycle day">
-                              {file.cycleDay === 'last' ? 'Last' : `${file.cycleDay}${getOrdinalSuffix(parseInt(file.cycleDay))}`}
-                            </span>
-                          )}
+                          <span className="text-[8px] px-0.5 py-0 rounded font-medium bg-amber-50 text-amber-700" title="Statement cycle day">
+                            {file.cycleDay === 'last' ? 'Last' :
+                             file.cycleDay ? `${file.cycleDay}${getOrdinalSuffix(parseInt(file.cycleDay))}` :
+                             'Unknown'}
+                          </span>
                           {onDeleteFile && (
                             <button
                               onClick={(e) => {
