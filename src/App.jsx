@@ -544,6 +544,22 @@ const App = () => {
     return false;
   };
 
+  // Replace all categories (used when importing CSV with expense categories)
+  const handleSetCategories = (newCategories) => {
+    if (!Array.isArray(newCategories)) return;
+    const sorted = [...newCategories].sort((a, b) => {
+      // Keep "Uncategorized" at the end
+      if (a === 'Uncategorized') return 1;
+      if (b === 'Uncategorized') return -1;
+      return a.localeCompare(b, undefined, { sensitivity: 'base' });
+    });
+    setAppData(prev => ({
+      ...prev,
+      categories: sorted
+    }));
+    showToast(`Categories updated: ${sorted.length} categories loaded.`, 'success');
+  };
+
   const handleUpdateTransactionStatus = (txId, status) => {
     if (!txId) return;
     setTransactions(prev => prev.map(tx => tx.id === txId ? { ...tx, status } : tx));
@@ -634,6 +650,7 @@ const App = () => {
               onUpdateClaim={handleUpdateClaim}
               onReorderClaim={handleReorderClaim}
               onCreateCategory={handleCreateCategory}
+              setCategories={handleSetCategories}
               onUpdateTransactionStatus={handleUpdateTransactionStatus}
               inventoryPanelHeights={inventoryPanelHeights}
               onInventoryPanelHeightsChange={handleInventoryPanelHeightsChange}
@@ -657,6 +674,7 @@ const App = () => {
               onUpdateClaim={handleUpdateClaim}
               onReorderClaim={handleReorderClaim}
               onCreateCategory={handleCreateCategory}
+              setCategories={handleSetCategories}
               categories={appData.categories || []}
               inventoryPanelHeights={inventoryPanelHeights}
               onInventoryPanelHeightsChange={handleInventoryPanelHeightsChange}

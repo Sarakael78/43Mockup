@@ -49,6 +49,7 @@ const WorkbenchView = ({
   onUpdateClaim,
   onReorderClaim,
   onCreateCategory,
+  setCategories,
   onUpdateTransactionStatus,
   inventoryPanelHeights = DEFAULT_INVENTORY_PANEL_HEIGHTS,
   onInventoryPanelHeightsChange,
@@ -418,7 +419,7 @@ const WorkbenchView = ({
               files={data.files}
               claims={claims}
               categories={sortedCategories}
-              onImport={createClaimsImportHandler(setClaims, onError, onCreateCategory)}
+              onImport={createClaimsImportHandler(setClaims, onError, onCreateCategory, setCategories)}
               onAddClaim={onAddClaim}
               onDeleteClaim={onDeleteClaim}
               onUpdateClaim={onUpdateClaim}

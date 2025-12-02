@@ -10,9 +10,10 @@ import { mapCategory } from './categoryMapper';
  * @param {Function} setClaims - State setter for claims
  * @param {Function} onError - Error callback function
  * @param {Function} onCreateCategory - Optional callback to create new categories
+ * @param {Function} setCategories - Optional callback to replace all categories (used for CSV import)
  * @returns {Function} Claims import handler
  */
-export const createClaimsImportHandler = (setClaims, onError, onCreateCategory) => {
+export const createClaimsImportHandler = (setClaims, onError, onCreateCategory, setCategories) => {
   return async (file) => {
     try {
       if (!file || !file.name) {
@@ -33,6 +34,11 @@ export const createClaimsImportHandler = (setClaims, onError, onCreateCategory) 
           ...claim,
           category: mapCategory(claim.category) || 'Uncategorized'
         }));
+        // Add categories from claims to the category list
+        if (onCreateCategory) {
+          const newCategories = parsedClaims.map(c => c.category).filter(c => c && c !== 'Uncategorized');
+          newCategories.forEach(category => onCreateCategory(category));
+        }
       } else if (fileExtension === 'pdf') {
         parsedClaims = await parsePDFClaims(file);
         // Map categories only for PDF (where we extract from unstructured text)
@@ -40,17 +46,28 @@ export const createClaimsImportHandler = (setClaims, onError, onCreateCategory) 
           ...claim,
           category: mapCategory(claim.category) || 'Uncategorized'
         }));
+        // Add categories from claims to the category list
+        if (onCreateCategory) {
+          const newCategories = parsedClaims.map(c => c.category).filter(c => c && c !== 'Uncategorized');
+          newCategories.forEach(category => onCreateCategory(category));
+        }
       } else if (fileExtension === 'csv') {
         // CSV: preserve exact category names as provided
         parsedClaims = await parseCSVClaims(file);
+        
+        // For CSV imports, REPLACE the entire category list with CSV categories
+        // This ensures the transaction dropdown shows only the imported categories
+        if (setCategories) {
+          const csvCategories = parsedClaims
+            .map(c => c.category)
+            .filter(c => c && c !== 'Uncategorized');
+          // Get unique categories and add Uncategorized at the end
+          const uniqueCategories = [...new Set(csvCategories)];
+          uniqueCategories.push('Uncategorized');
+          setCategories(uniqueCategories);
+        }
       } else {
         throw new Error('Unsupported file type. Please use CSV, DOCX, or PDF.');
-      }
-
-      // Add categories from claims to the category list (so they appear in transaction dropdown)
-      if (onCreateCategory) {
-        const newCategories = parsedClaims.map(c => c.category).filter(c => c && c !== 'Uncategorized');
-        newCategories.forEach(category => onCreateCategory(category));
       }
 
       // Add to claims state

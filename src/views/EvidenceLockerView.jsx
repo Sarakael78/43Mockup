@@ -24,6 +24,7 @@ const EvidenceLockerView = ({
   onUpdateClaim,
   onReorderClaim,
   onCreateCategory,
+  setCategories,
   categories = [],
   inventoryPanelHeights = DEFAULT_INVENTORY_PANEL_HEIGHTS,
   onInventoryPanelHeightsChange
@@ -84,7 +85,7 @@ const EvidenceLockerView = ({
               files={files}
               claims={claims}
               categories={sortedCategories}
-              onImport={createClaimsImportHandler(setClaims, onError, onCreateCategory)}
+              onImport={createClaimsImportHandler(setClaims, onError, onCreateCategory, setCategories)}
               onAddClaim={onAddClaim}
               onDeleteClaim={onDeleteClaim}
               onUpdateClaim={onUpdateClaim}
