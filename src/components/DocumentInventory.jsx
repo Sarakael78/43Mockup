@@ -23,11 +23,13 @@ const DEFAULT_PANEL_HEIGHTS = {
 
 const DEFAULT_CLAIM_COLUMN_WIDTHS = {
   category: 140,
-  claimed: 80,
-  proven: 80,
-  total: 80,
-  status: 70,
-  actions: 45
+  claimed: 70,
+  proven: 70,
+  proven3m: 70,
+  proven6m: 70,
+  total: 70,
+  status: 60,
+  actions: 40
 };
 
 const DocumentInventory = ({
@@ -278,7 +280,7 @@ const DocumentInventory = ({
   }, [claimColResizeState]);
 
   // Generate grid template from column widths
-  const claimGridTemplate = `${claimColumnWidths.category}px ${claimColumnWidths.claimed}px ${claimColumnWidths.proven}px ${claimColumnWidths.total}px ${claimColumnWidths.status}px ${claimColumnWidths.actions}px`;
+  const claimGridTemplate = `${claimColumnWidths.category}px ${claimColumnWidths.claimed}px ${claimColumnWidths.proven}px ${claimColumnWidths.proven3m}px ${claimColumnWidths.proven6m}px ${claimColumnWidths.total}px ${claimColumnWidths.status}px ${claimColumnWidths.actions}px`;
 
   const entryModes = [
     { key: 'manual', label: 'Manual' },
@@ -432,6 +434,36 @@ const DocumentInventory = ({
     const divisor = monthsInScope > 0 ? monthsInScope : 1;
     return total / divisor;
   };
+
+  // Get latest transaction date for period calculations
+  const latestTxDate = useMemo(() => {
+    if (!transactions || transactions.length === 0) return null;
+    return transactions.reduce((latest, tx) => (tx?.date && tx.date > latest ? tx.date : latest), transactions[0]?.date || null);
+  }, [transactions]);
+
+  // Calculate proven average for a specific number of months
+  const getProvenAvgForMonths = (category, months) => {
+    if (!latestTxDate) return 0;
+    
+    const startDate = new Date(latestTxDate);
+    startDate.setDate(1);
+    startDate.setHours(0, 0, 0, 0);
+    startDate.setMonth(startDate.getMonth() - (months - 1));
+    
+    const periodTotal = transactions
+      .filter(t => {
+        if (t.cat !== category || t.amount >= 0) return false;
+        const txDate = new Date(t.date);
+        txDate.setHours(0, 0, 0, 0);
+        return txDate >= startDate;
+      })
+      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    
+    return periodTotal / months;
+  };
+
+  const getProvenAvg3M = (category) => getProvenAvgForMonths(category, 3);
+  const getProvenAvg6M = (category) => getProvenAvgForMonths(category, 6);
 
   const getTrafficLight = (proven, claimed) => {
     if (!claimed) {
@@ -711,10 +743,24 @@ const DocumentInventory = ({
                   />
                 </div>
                 <div className="px-1 py-0.5 text-right relative flex items-center justify-end">
-                  <span>Proven ({periodFilter})</span>
+                  <span>Avg ({periodFilter})</span>
                   <div
                     className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-amber-400 transition-colors"
                     onMouseDown={(e) => handleClaimColResizeStart('proven', e)}
+                  />
+                </div>
+                <div className="px-1 py-0.5 text-right relative flex items-center justify-end">
+                  <span>Avg 3M</span>
+                  <div
+                    className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-amber-400 transition-colors"
+                    onMouseDown={(e) => handleClaimColResizeStart('proven3m', e)}
+                  />
+                </div>
+                <div className="px-1 py-0.5 text-right relative flex items-center justify-end">
+                  <span>Avg 6M</span>
+                  <div
+                    className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-amber-400 transition-colors"
+                    onMouseDown={(e) => handleClaimColResizeStart('proven6m', e)}
                   />
                 </div>
                 <div className="px-1 py-0.5 text-right relative flex items-center justify-end">
@@ -736,6 +782,8 @@ const DocumentInventory = ({
               <div>
                 {claims.map((claim, index) => {
                 const proven = getProvenAvg(claim.category);
+                const proven3m = getProvenAvg3M(claim.category);
+                const proven6m = getProvenAvg6M(claim.category);
                 const total = getProvenTotal(claim.category);
                 const traffic = getTrafficLight(proven, claim.claimed);
                 const isEditing = editingClaimId === claim.id;
@@ -795,6 +843,12 @@ const DocumentInventory = ({
                     </div>
                     <div className={`px-1 py-0.5 text-right font-mono font-bold text-[9px] ${traffic.colorClass}`}>
                       {proven > 0 ? proven.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 }) : '-'}
+                    </div>
+                    <div className="px-1 py-0.5 text-right font-mono text-[9px] text-slate-600">
+                      {proven3m > 0 ? proven3m.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 }) : '-'}
+                    </div>
+                    <div className="px-1 py-0.5 text-right font-mono text-[9px] text-slate-600">
+                      {proven6m > 0 ? proven6m.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 }) : '-'}
                     </div>
                     <div className="px-1 py-0.5 text-right font-mono text-[9px] text-slate-500">
                       {total > 0 ? total.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 }) : '-'}
