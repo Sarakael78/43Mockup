@@ -354,11 +354,12 @@ const App = () => {
             errors.push(...result.errors);
           }
 
+          const cycleDay = file.triage.cycleDay || 'last';
           const transactionsWithEntity = (result.transactions || [])
             .filter(Boolean)
             .map(tx => {
               const txEntity = tx?.entity ? String(tx.entity).toUpperCase() : normalizedEntity;
-              return { ...tx, entity: txEntity };
+              return { ...tx, entity: txEntity, cycleDay }; // Include cycle day for period calculations
             });
 
           if (transactionsWithEntity.length > 0) {
@@ -410,6 +411,7 @@ const App = () => {
             desc: `Bank Statement - ${file.triage.parser}`,
             entity: file.triage.entity || 'PERSONAL',
             type: 'Bank Statement',
+            cycleDay: file.triage.cycleDay || 'last', // Statement cycle day (1-31 or 'last')
             uploadedAt: new Date().toISOString(),
             file: file, // Store file object for viewing (current session only)
             csvContent: csvContent // Store CSV content for viewing after export/import

@@ -1,11 +1,19 @@
 import { useState } from 'react';
 import { FileText, X, Check } from 'lucide-react';
 
+// Helper to get ordinal suffix (1st, 2nd, 3rd, etc.)
+const getOrdinalSuffix = (n) => {
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return s[(v - 20) % 10] || s[v] || s[0];
+};
+
 const FileTriageRow = ({ file, onRemove, onSubmit }) => {
   const [triage, setTriage] = useState({
     type: 'Bank Statement',
     entity: 'PERSONAL',
-    parser: 'Standard Bank'
+    parser: 'Standard Bank',
+    cycleDay: 'last' // 'last' for last day of month, or 1-31
   });
   const [submitted, setSubmitted] = useState(false);
 
@@ -39,7 +47,7 @@ const FileTriageRow = ({ file, onRemove, onSubmit }) => {
       </div>
       
       {!submitted ? (
-        <div className="grid grid-cols-4 gap-1.5 items-end">
+        <div className="grid grid-cols-5 gap-1.5 items-end">
           <div>
             <label className="block text-[8px] font-bold text-slate-500 uppercase mb-0.5">Type</label>
             <select
@@ -78,6 +86,20 @@ const FileTriageRow = ({ file, onRemove, onSubmit }) => {
               <option>Generic CSV</option>
             </select>
           </div>
+          <div>
+            <label className="block text-[8px] font-bold text-slate-500 uppercase mb-0.5">Cycle Day</label>
+            <select
+              value={triage.cycleDay}
+              onChange={(e) => setTriage({ ...triage, cycleDay: e.target.value })}
+              className="w-full text-[10px] px-1 py-0.5 border border-slate-200 rounded bg-white"
+              title="Day of month when statement cycle ends"
+            >
+              <option value="last">Last day</option>
+              {[...Array(31)].map((_, i) => (
+                <option key={i + 1} value={i + 1}>{i + 1}{getOrdinalSuffix(i + 1)}</option>
+              ))}
+            </select>
+          </div>
           <button
             onClick={handleSubmit}
             className="px-2 py-0.5 bg-blue-600 text-white text-[10px] font-bold rounded hover:bg-blue-500 transition-colors"
@@ -88,7 +110,7 @@ const FileTriageRow = ({ file, onRemove, onSubmit }) => {
       ) : (
         <div className="flex items-center gap-1 text-[10px] text-emerald-600">
           <Check size={10} />
-          <span>{triage.type} | {triage.entity} | {triage.parser}</span>
+          <span>{triage.type} | {triage.entity} | {triage.parser} | Cycle: {triage.cycleDay === 'last' ? 'Last day' : `${triage.cycleDay}${getOrdinalSuffix(parseInt(triage.cycleDay))}`}</span>
         </div>
       )}
     </div>
