@@ -260,7 +260,28 @@ const DashboardView = ({ data, transactions, claims }) => {
   const computedAlerts = useMemo(() => {
     const alerts = [];
     
-    // 1. Uncategorized items
+    // 1. Expenses not fully proven (claimed > proven) - TOP PRIORITY (RED)
+    const unprovenExpenses = claims.filter(claim => {
+      const provenTotal = transactions
+        .filter(tx => tx.cat === claim.category && tx.amount < 0)
+        .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
+      // Calculate monthly average (assume 3 months if no date info)
+      const monthsInData = 3;
+      const provenAvg = provenTotal / monthsInData;
+      return claim.claimed > 0 && provenAvg < claim.claimed * 0.95; // Less than 95% proven
+    });
+    if (unprovenExpenses.length > 0) {
+      alerts.push({
+        id: 'unproven',
+        type: 'critical',
+        icon: TrendingDown,
+        title: 'Unproven Monthly Expense Claims',
+        msg: `${unprovenExpenses.length} expense categor${unprovenExpenses.length !== 1 ? 'ies' : 'y'} not fully proven`,
+        value: unprovenExpenses.length
+      });
+    }
+    
+    // 2. Uncategorized items
     const uncategorizedItems = transactions.filter(tx => !tx.cat || tx.cat === 'Uncategorized');
     if (uncategorizedItems.length > 0) {
       alerts.push({
@@ -273,7 +294,7 @@ const DashboardView = ({ data, transactions, claims }) => {
       });
     }
     
-    // 2. Flagged items
+    // 3. Flagged items
     const flaggedItems = transactions.filter(tx => tx.flagged);
     if (flaggedItems.length > 0) {
       alerts.push({
@@ -286,24 +307,20 @@ const DashboardView = ({ data, transactions, claims }) => {
       });
     }
     
-    // 3. Inter-account transfers without corresponding entry
-    // Only look at transactions categorized as Inter-Account
+    // 4. Inter-account transfers without corresponding entry (ORANGE)
     const transfers = transactions.filter(tx => {
       const cat = (tx.cat || '').toLowerCase();
       return cat.includes('inter-account') || cat === 'inter account' || cat === 'interaccount';
     });
     
-    // Group by approximate amount and date to find unmatched transfers
     const unmatchedTransfers = [];
     transfers.forEach(tx => {
       const amount = Math.abs(tx.amount || 0);
       const date = tx.date;
-      // Look for a corresponding opposite transfer (±1 day, same amount)
       const hasMatch = transfers.some(other => {
         if (other.id === tx.id) return false;
         if (Math.abs(other.amount || 0) !== amount) return false;
         if ((tx.amount > 0 && other.amount > 0) || (tx.amount < 0 && other.amount < 0)) return false;
-        // Check if dates are within 3 days
         const txDate = new Date(date);
         const otherDate = new Date(other.date);
         const daysDiff = Math.abs((txDate - otherDate) / (1000 * 60 * 60 * 24));
@@ -325,7 +342,7 @@ const DashboardView = ({ data, transactions, claims }) => {
       });
     }
     
-    // 4. Miscellaneous items
+    // 5. Miscellaneous items (ORANGE)
     const miscItems = transactions.filter(tx => 
       tx.cat && tx.cat.toLowerCase().includes('miscellaneous')
     );
@@ -340,28 +357,7 @@ const DashboardView = ({ data, transactions, claims }) => {
       });
     }
     
-    // 4. Expenses not fully proven (claimed > proven)
-    const unprovenExpenses = claims.filter(claim => {
-      const provenTotal = transactions
-        .filter(tx => tx.cat === claim.category && tx.amount < 0)
-        .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
-      // Calculate monthly average (assume 3 months if no date info)
-      const monthsInData = 3;
-      const provenAvg = provenTotal / monthsInData;
-      return claim.claimed > 0 && provenAvg < claim.claimed * 0.95; // Less than 95% proven
-    });
-    if (unprovenExpenses.length > 0) {
-      alerts.push({
-        id: 'unproven',
-        type: 'warning',
-        icon: TrendingDown,
-        title: 'Unproven Monthly Expense Claims',
-        msg: `${unprovenExpenses.length} expense categor${unprovenExpenses.length !== 1 ? 'ies' : 'y'} not fully proven`,
-        value: unprovenExpenses.length
-      });
-    }
-    
-    // 5. Missing bank statement periods (per account)
+    // 6. Missing bank statement periods (per account)
     const accountMonths = {};
     transactions.forEach(tx => {
       if (!tx.date || !tx.acc) return;
