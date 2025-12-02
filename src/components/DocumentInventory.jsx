@@ -565,17 +565,11 @@ const DocumentInventory = ({
                                 value={cycleDayValue}
                                 onChange={(e) => setCycleDayValue(e.target.value)}
                                 onBlur={() => {
-                                  if (onUpdateFile && cycleDayValue !== (file.cycleDay || '')) {
-                                    onUpdateFile(file.id, { cycleDay: cycleDayValue || null });
-                                  }
                                   setEditingCycleDay(null);
                                   setCycleDayValue('');
                                 }}
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter') {
-                                    if (onUpdateFile && cycleDayValue !== (file.cycleDay || '')) {
-                                      onUpdateFile(file.id, { cycleDay: cycleDayValue || null });
-                                    }
                                     setEditingCycleDay(null);
                                     setCycleDayValue('');
                                   } else if (e.key === 'Escape') {
