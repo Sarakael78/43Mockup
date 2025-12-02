@@ -851,14 +851,11 @@ const DocumentInventory = ({
                     </div>
                     <div className="px-1 py-0.5">
                       <div className="flex flex-col gap-0.5">
-                        {/* Traffic light progress bar: Red → Orange → Yellow → Green, fills to progress */}
-                        <div className="w-full h-1.5 rounded-full overflow-hidden bg-slate-200 relative">
+                        {/* Solid color progress bar based on status */}
+                        <div className="w-full h-1.5 rounded-full overflow-hidden bg-slate-200">
                           <div 
-                            className="h-full rounded-full bg-gradient-to-r from-rose-500 via-amber-400 via-50% to-emerald-500"
-                            style={{ 
-                              width: '100%',
-                              clipPath: `inset(0 ${100 - Math.max(0, Math.min(traffic.ratio * 100, 100))}% 0 0)`
-                            }}
+                            className={`h-full rounded-full ${traffic.label === 'Shortfall' ? 'bg-rose-500' : traffic.label === 'Over' ? 'bg-blue-500' : traffic.label === 'Verified' ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                            style={{ width: `${Math.max(0, Math.min(traffic.ratio * 100, 100))}%` }}
                           />
                         </div>
                         <div className={`text-[8px] font-semibold flex items-center gap-0.5 ${traffic.colorClass}`}>
