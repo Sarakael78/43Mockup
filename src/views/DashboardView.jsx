@@ -242,8 +242,8 @@ const ProofGauge = ({ claims, transactions, proofPeriod = '6M' }) => {
           <span className="text-2xl font-bold block" style={{ color }}>{percentage}%</span>
           <span className="text-xs font-medium uppercase tracking-wider text-gray-500 block">PROVEN</span>
           <span className="text-sm">
-            <span className="font-bold">{totalProven.toLocaleString()}</span>
-            <span className="text-gray-400"> / {totalClaimed.toLocaleString()}</span>
+            <span className="font-bold">R{totalProven.toLocaleString()}</span>
+            <span className="text-gray-400"> / R{totalClaimed.toLocaleString()}</span>
           </span>
         </div>
         {showTooltip && (
@@ -254,9 +254,6 @@ const ProofGauge = ({ claims, transactions, proofPeriod = '6M' }) => {
             </div>
           </div>
         )}
-      </div>
-      <div className="text-[8px] text-slate-500 mt-1 text-center">
-        R{totalProven.toLocaleString()} / R{totalClaimed.toLocaleString()}
       </div>
     </div>
   );
