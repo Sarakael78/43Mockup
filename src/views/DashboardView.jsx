@@ -2,26 +2,57 @@ import { useRef, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { FileStack, FolderOpen, Bell, AlertCircle, AlertTriangle, Flag, HelpCircle, FileQuestion, TrendingDown, Calendar, ArrowLeftRight, Scale, CheckCircle2, XCircle } from 'lucide-react';
 
+// Helper to calculate proven average using same logic as expense progress bars
+const getProvenAvgForMonths = (transactions, category, months, latestTxDate) => {
+  if (!latestTxDate) return 0;
+  
+  const startDate = new Date(latestTxDate);
+  startDate.setDate(1);
+  startDate.setHours(0, 0, 0, 0);
+  startDate.setMonth(startDate.getMonth() - (months - 1));
+  
+  const periodTotal = transactions
+    .filter(t => {
+      if (t.cat !== category || t.amount >= 0) return false;
+      const txDate = new Date(t.date);
+      return txDate >= startDate;
+    })
+    .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+  
+  return periodTotal / months;
+};
+
 // Claims Comparison Chart - shows claimed vs proven for each category
 const ClaimsComparisonChart = ({ claims, transactions }) => {
   const chartData = useMemo(() => {
     if (!claims || claims.length === 0) return [];
     
+    // Find latest transaction date
+    const latestTxDate = transactions.length > 0
+      ? transactions.reduce((latest, tx) => {
+          if (!tx.date) return latest;
+          const txDate = new Date(tx.date);
+          return !latest || txDate > latest ? txDate : latest;
+        }, null)
+      : null;
+    
     return claims
       .map(claim => {
-        const provenTotal = transactions
-          .filter(tx => tx.cat === claim.category && tx.amount < 0)
-          .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
-        const monthsInData = 6; // Use 6-month average
-        const provenAvg = provenTotal / monthsInData;
+        const provenAvg = getProvenAvgForMonths(transactions, claim.category, 6, latestTxDate);
         const pct = claim.claimed > 0 ? Math.round((provenAvg / claim.claimed) * 100) : 0;
+        
+        // Calculate color based on percentage (0-100 maps to hue 0-90)
+        const cappedPct = Math.min(pct, 100);
+        const hue = (cappedPct / 100) * 90;
+        const barColor = `hsl(${hue}, 75%, 50%)`;
         
         return {
           name: claim.category.length > 20 ? claim.category.substring(0, 18) + '...' : claim.category,
           fullName: claim.category,
           claimed: claim.claimed,
           proven: Math.round(provenAvg),
-          pct
+          pct,
+          barColor
         };
       })
       .filter(d => d.claimed > 0)
@@ -48,7 +79,16 @@ const ClaimsComparisonChart = ({ claims, transactions }) => {
           labelFormatter={(label, payload) => payload?.[0]?.payload?.fullName || label}
         />
         <Bar dataKey="claimed" name="Claimed" fill="#94a3b8" radius={[0, 2, 2, 0]} barSize={10} />
-        <Bar dataKey="proven" name="Proven" fill="#10b981" radius={[0, 2, 2, 0]} barSize={10} />
+        <Bar 
+          dataKey="proven" 
+          name="Proven" 
+          radius={[0, 2, 2, 0]} 
+          barSize={10}
+        >
+          {chartData.map((entry, index) => (
+            <Cell key={`cell-${index}`} fill={entry.barColor} />
+          ))}
+        </Bar>
       </BarChart>
     </ResponsiveContainer>
   );
@@ -59,13 +99,18 @@ const ProofGauge = ({ claims, transactions }) => {
   const { totalClaimed, totalProven, percentage } = useMemo(() => {
     const totalClaimed = claims.reduce((sum, c) => sum + (c.claimed || 0), 0);
     
+    // Find latest transaction date
+    const latestTxDate = transactions.length > 0
+      ? transactions.reduce((latest, tx) => {
+          if (!tx.date) return latest;
+          const txDate = new Date(tx.date);
+          return !latest || txDate > latest ? txDate : latest;
+        }, null)
+      : null;
+    
     let totalProven = 0;
     claims.forEach(claim => {
-      const provenTotal = transactions
-        .filter(tx => tx.cat === claim.category && tx.amount < 0)
-        .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
-      const monthsInData = 6;
-      totalProven += provenTotal / monthsInData;
+      totalProven += getProvenAvgForMonths(transactions, claim.category, 6, latestTxDate);
     });
     
     const percentage = totalClaimed > 0 ? Math.round((totalProven / totalClaimed) * 100) : 0;
@@ -74,7 +119,7 @@ const ProofGauge = ({ claims, transactions }) => {
 
   // Calculate color based on percentage (0-100 maps to hue 0-90)
   const hue = (percentage / 100) * 90;
-  const color = `hsl(${hue}, 70%, 45%)`;
+  const color = `hsl(${hue}, 75%, 45%)`;
   
   // SVG arc calculation
   const radius = 38;
@@ -124,13 +169,18 @@ const CategoryBreakdown = ({ claims, transactions }) => {
   const { proven, partial, unproven } = useMemo(() => {
     let proven = 0, partial = 0, unproven = 0;
     
+    // Find latest transaction date
+    const latestTxDate = transactions.length > 0
+      ? transactions.reduce((latest, tx) => {
+          if (!tx.date) return latest;
+          const txDate = new Date(tx.date);
+          return !latest || txDate > latest ? txDate : latest;
+        }, null)
+      : null;
+    
     claims.forEach(claim => {
       if (!claim.claimed) return;
-      const provenTotal = transactions
-        .filter(tx => tx.cat === claim.category && tx.amount < 0)
-        .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
-      const monthsInData = 6;
-      const provenAvg = provenTotal / monthsInData;
+      const provenAvg = getProvenAvgForMonths(transactions, claim.category, 6, latestTxDate);
       const pct = provenAvg / claim.claimed;
       
       if (pct >= 0.95) proven++;
