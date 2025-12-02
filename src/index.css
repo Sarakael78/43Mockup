@@ -8,11 +8,20 @@
   --density-scale: 0.6;
   --base-padding: 4px;
   --base-gap: 4px;
+  --app-zoom: 0.8;
 }
 
 /* Global defaults configured for production */
-html, body, #root { height: 100%; }
+html, body, #root { 
+  height: 100%; 
+  overflow: hidden;
+}
 body { @apply bg-slate-100 font-sans; }
+
+/* Apply density scale to all padding and gaps globally */
+#root {
+  --tw-spacing-multiplier: var(--density-scale);
+}
 
 /* Typography */
 @layer base {

@@ -122,8 +122,10 @@ const App = () => {
     const fontScale = FONT_SIZES.find(f => f.value === displaySettings.fontSize)?.scale || 1;
     const densityScale = DENSITY_LEVELS.find(d => d.value === displaySettings.density)?.scale || 1;
     
-    document.documentElement.style.setProperty('--font-scale', fontScale);
-    document.documentElement.style.setProperty('--density-scale', densityScale);
+    document.documentElement.style.setProperty('--font-scale', String(fontScale));
+    document.documentElement.style.setProperty('--density-scale', String(densityScale));
+    // Combined zoom for the app - average of font and density scales
+    document.documentElement.style.setProperty('--app-zoom', String((fontScale + densityScale) / 2));
     
     // Save to localStorage
     try {
@@ -132,6 +134,10 @@ const App = () => {
       // localStorage may be disabled
     }
   }, [displaySettings]);
+
+  // Calculate effective scales for inline styles
+  const fontScale = FONT_SIZES.find(f => f.value === displaySettings.fontSize)?.scale || 1;
+  const densityScale = DENSITY_LEVELS.find(d => d.value === displaySettings.density)?.scale || 1;
 
   // Auto-save to localStorage whenever data changes
   useEffect(() => {
@@ -563,9 +569,25 @@ const App = () => {
     }));
   };
 
+  // Calculate dimensions to counteract zoom and fill viewport
+  const zoomCompensatedWidth = `${100 / fontScale}vw`;
+  const zoomCompensatedHeight = `${100 / fontScale}vh`;
+
   return (
-    <div className="flex h-screen w-screen bg-slate-100 font-sans text-slate-900" style={{ fontSize: `calc(1rem * var(--font-scale))` }}>
-      <NavSidebar view={view} setView={setView} onAddEvidence={() => setFileUploadModal(true)} />
+    <div 
+      className="flex bg-slate-100 font-sans text-slate-900 origin-top-left overflow-hidden" 
+      style={{ 
+        zoom: fontScale,
+        width: zoomCompensatedWidth,
+        height: zoomCompensatedHeight,
+      }}
+    >
+      <NavSidebar 
+        view={view} 
+        setView={setView} 
+        onAddEvidence={() => setFileUploadModal(true)} 
+        densityScale={densityScale}
+      />
       <div className="flex-1 flex flex-col min-w-0">
         <TopBar
           title="Rule 43 Workspace"
