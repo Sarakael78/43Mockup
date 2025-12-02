@@ -24,9 +24,6 @@ const NavSidebar = ({ view, setView, onAddEvidence }) => (
       >
         <Plus size={14} />
       </button>
-      <div className="w-5 h-5 rounded-full bg-slate-700 border border-slate-600 flex items-center justify-center text-[7px] text-white font-bold">
-        SC
-      </div>
     </div>
   </nav>
 );
