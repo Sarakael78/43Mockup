@@ -1,6 +1,194 @@
 import { useRef, useMemo } from 'react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { FileStack, FolderOpen, Bell, AlertCircle, AlertTriangle, Flag, HelpCircle, FileQuestion, TrendingDown, Calendar, ArrowLeftRight } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import { FileStack, FolderOpen, Bell, AlertCircle, AlertTriangle, Flag, HelpCircle, FileQuestion, TrendingDown, Calendar, ArrowLeftRight, Scale, CheckCircle2, XCircle } from 'lucide-react';
+
+// Claims Comparison Chart - shows claimed vs proven for each category
+const ClaimsComparisonChart = ({ claims, transactions }) => {
+  const chartData = useMemo(() => {
+    if (!claims || claims.length === 0) return [];
+    
+    return claims
+      .map(claim => {
+        const provenTotal = transactions
+          .filter(tx => tx.cat === claim.category && tx.amount < 0)
+          .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
+        const monthsInData = 6; // Use 6-month average
+        const provenAvg = provenTotal / monthsInData;
+        const pct = claim.claimed > 0 ? Math.round((provenAvg / claim.claimed) * 100) : 0;
+        
+        return {
+          name: claim.category.length > 20 ? claim.category.substring(0, 18) + '...' : claim.category,
+          fullName: claim.category,
+          claimed: claim.claimed,
+          proven: Math.round(provenAvg),
+          pct
+        };
+      })
+      .filter(d => d.claimed > 0)
+      .sort((a, b) => b.claimed - a.claimed)
+      .slice(0, 8); // Top 8 categories
+  }, [claims, transactions]);
+
+  if (chartData.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-full text-slate-400 text-xs">
+        No claims data. Import expense claims to see verification status.
+      </div>
+    );
+  }
+
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 10 }}>
+        <XAxis type="number" fontSize={8} axisLine={false} tickLine={false} tickFormatter={(val) => `R${val/1000}k`} />
+        <YAxis type="category" dataKey="name" fontSize={8} axisLine={false} tickLine={false} width={80} />
+        <Tooltip 
+          cursor={{ fill: '#f1f5f9' }} 
+          formatter={(value, name) => [`R ${value.toLocaleString()}`, name === 'claimed' ? 'Claimed' : 'Proven (6M Avg)']}
+          labelFormatter={(label, payload) => payload?.[0]?.payload?.fullName || label}
+        />
+        <Bar dataKey="claimed" name="Claimed" fill="#94a3b8" radius={[0, 2, 2, 0]} barSize={10} />
+        <Bar dataKey="proven" name="Proven" fill="#10b981" radius={[0, 2, 2, 0]} barSize={10} />
+      </BarChart>
+    </ResponsiveContainer>
+  );
+};
+
+// Proof Gauge - circular gauge showing overall proof percentage
+const ProofGauge = ({ claims, transactions }) => {
+  const { totalClaimed, totalProven, percentage } = useMemo(() => {
+    const totalClaimed = claims.reduce((sum, c) => sum + (c.claimed || 0), 0);
+    
+    let totalProven = 0;
+    claims.forEach(claim => {
+      const provenTotal = transactions
+        .filter(tx => tx.cat === claim.category && tx.amount < 0)
+        .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
+      const monthsInData = 6;
+      totalProven += provenTotal / monthsInData;
+    });
+    
+    const percentage = totalClaimed > 0 ? Math.round((totalProven / totalClaimed) * 100) : 0;
+    return { totalClaimed, totalProven: Math.round(totalProven), percentage: Math.min(percentage, 100) };
+  }, [claims, transactions]);
+
+  // Calculate color based on percentage (0-100 maps to hue 0-90)
+  const hue = (percentage / 100) * 90;
+  const color = `hsl(${hue}, 70%, 45%)`;
+  
+  // SVG arc calculation
+  const radius = 38;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (percentage / 100) * circumference;
+
+  return (
+    <div className="bg-slate-50 rounded-lg p-2 flex flex-col items-center">
+      <div className="text-[9px] font-bold text-slate-500 uppercase mb-1">Overall Proof</div>
+      <div className="relative">
+        <svg width="90" height="90" className="-rotate-90">
+          <circle
+            cx="45"
+            cy="45"
+            r={radius}
+            fill="none"
+            stroke="#e2e8f0"
+            strokeWidth="8"
+          />
+          <circle
+            cx="45"
+            cy="45"
+            r={radius}
+            fill="none"
+            stroke={color}
+            strokeWidth="8"
+            strokeDasharray={circumference}
+            strokeDashoffset={offset}
+            strokeLinecap="round"
+            className="transition-all duration-500"
+          />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-xl font-bold" style={{ color }}>{percentage}%</span>
+          <span className="text-[8px] text-slate-400">verified</span>
+        </div>
+      </div>
+      <div className="text-[8px] text-slate-500 mt-1 text-center">
+        R{totalProven.toLocaleString()} / R{totalClaimed.toLocaleString()}
+      </div>
+    </div>
+  );
+};
+
+// Category Breakdown - shows proven vs unproven categories
+const CategoryBreakdown = ({ claims, transactions }) => {
+  const { proven, partial, unproven } = useMemo(() => {
+    let proven = 0, partial = 0, unproven = 0;
+    
+    claims.forEach(claim => {
+      if (!claim.claimed) return;
+      const provenTotal = transactions
+        .filter(tx => tx.cat === claim.category && tx.amount < 0)
+        .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
+      const monthsInData = 6;
+      const provenAvg = provenTotal / monthsInData;
+      const pct = provenAvg / claim.claimed;
+      
+      if (pct >= 0.95) proven++;
+      else if (pct >= 0.5) partial++;
+      else unproven++;
+    });
+    
+    return { proven, partial, unproven };
+  }, [claims, transactions]);
+
+  const total = proven + partial + unproven;
+  if (total === 0) return null;
+
+  const pieData = [
+    { name: 'Proven', value: proven, color: '#10b981' },
+    { name: 'Partial', value: partial, color: '#f59e0b' },
+    { name: 'Unproven', value: unproven, color: '#f43f5e' }
+  ].filter(d => d.value > 0);
+
+  return (
+    <div className="bg-slate-50 rounded-lg p-2 flex-1 flex flex-col">
+      <div className="text-[9px] font-bold text-slate-500 uppercase mb-1 text-center">Categories</div>
+      <div className="flex-1 flex items-center justify-center">
+        <ResponsiveContainer width="100%" height={80}>
+          <PieChart>
+            <Pie
+              data={pieData}
+              cx="50%"
+              cy="50%"
+              innerRadius={20}
+              outerRadius={35}
+              paddingAngle={2}
+              dataKey="value"
+            >
+              {pieData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={entry.color} />
+              ))}
+            </Pie>
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="flex justify-around text-[8px] mt-1">
+        <div className="flex items-center gap-0.5">
+          <CheckCircle2 size={8} className="text-emerald-500" />
+          <span>{proven}</span>
+        </div>
+        <div className="flex items-center gap-0.5">
+          <AlertCircle size={8} className="text-amber-500" />
+          <span>{partial}</span>
+        </div>
+        <div className="flex items-center gap-0.5">
+          <XCircle size={8} className="text-rose-500" />
+          <span>{unproven}</span>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const DashboardView = ({ data, transactions, claims, onLoadProject }) => {
   const fileInputRef = useRef(null);
@@ -229,12 +417,12 @@ const DashboardView = ({ data, transactions, claims, onLoadProject }) => {
               </div>
             </div>
             <div className="p-2 rounded-lg border border-slate-100 shadow-sm bg-white border-l-4 border-l-slate-500">
-              <div className="text-[9px] font-bold text-slate-400 uppercase">Claimed (KPR8)</div>
+              <div className="text-[9px] font-bold text-slate-400 uppercase">Monthly Claimed</div>
               <div className="text-lg font-mono font-bold text-slate-600">
                 {totalClaimed.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 })}
               </div>
               <div className="text-[9px] text-slate-400">
-                {claims.length} claim{claims.length !== 1 ? 's' : ''}
+                {claims.length} categor{claims.length !== 1 ? 'ies' : 'y'}
               </div>
             </div>
             <div className="p-2 rounded-lg border border-slate-100 shadow-sm bg-white border-l-4 border-l-amber-500">
@@ -254,24 +442,22 @@ const DashboardView = ({ data, transactions, claims, onLoadProject }) => {
         <div className="grid grid-cols-3 gap-1.5" style={{ height: 'calc(100% - 80px)' }}>
           <div className="col-span-2 bg-white p-2 rounded-lg border border-slate-200 shadow-sm flex flex-col">
             <div className="flex justify-between items-center mb-1">
-              <h3 className="text-xs font-bold text-slate-700">Financial Trend</h3>
+              <h3 className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                <Scale size={12} className="text-amber-500" />
+                Claims Verification Status
+              </h3>
             </div>
-            <div className="flex-1 w-full min-h-0">
-              {data.charts && data.charts.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={data.charts}>
-                    <XAxis dataKey="name" fontSize={9} axisLine={false} tickLine={false} />
-                    <YAxis fontSize={9} axisLine={false} tickLine={false} tickFormatter={(val) => `R${val/1000}k`} />
-                    <Tooltip cursor={{ fill: '#f1f5f9' }} formatter={(value) => `R ${value.toLocaleString()}`} />
-                    <Bar dataKey="income" name="Income" fill="#10b981" radius={[2, 2, 0, 0]} barSize={16} />
-                    <Bar dataKey="expense" name="Expenses" fill="#f43f5e" radius={[2, 2, 0, 0]} barSize={16} />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full text-slate-400 text-xs">
-                  No chart data. Charts appear with sufficient transaction history.
-                </div>
-              )}
+            <div className="flex-1 w-full min-h-0 flex gap-2">
+              {/* Left: Claims vs Proven horizontal bar chart */}
+              <div className="flex-1 flex flex-col">
+                <ClaimsComparisonChart claims={claims} transactions={transactions} />
+              </div>
+              
+              {/* Right: Proof Status Gauge + Category Breakdown */}
+              <div className="w-48 flex flex-col gap-2">
+                <ProofGauge claims={claims} transactions={transactions} />
+                <CategoryBreakdown claims={claims} transactions={transactions} />
+              </div>
             </div>
           </div>
 
