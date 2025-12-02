@@ -156,7 +156,6 @@ const App = () => {
   const handleProofPeriodChange = (newPeriod) => {
     if (newPeriod === '3M' || newPeriod === '6M') {
       setProofPeriod(newPeriod);
-      showToast(`Proof period changed to ${newPeriod}`, 'info');
     }
   };
 
