@@ -434,9 +434,9 @@ const WorkbenchView = ({
         {filterEntity === 'ALL'
           ? (
             <DocumentInventory
-              transactions={filteredTx}
-              periodFilter={periodFilter}
-              monthsInScope={monthsInScope}
+              transactions={transactions}
+              periodFilter="1M"
+              monthsInScope={1}
               files={data.files}
               claims={claims}
               categories={sortedCategories}
