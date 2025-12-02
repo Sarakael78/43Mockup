@@ -544,15 +544,15 @@ const DashboardView = ({ data, transactions, claims, proofPeriod = '6M' }) => {
                 computedAlerts.map(alert => {
                   const IconComponent = alert.icon || (alert.type === 'critical' ? AlertCircle : AlertTriangle);
                   return (
-                    <div key={alert.id} className={`flex items-start p-1.5 rounded border ${alert.type === 'critical' ? 'bg-rose-50 border-rose-200' : 'bg-yellow-50 border-yellow-200'}`}>
-                      <div className={`mt-0.5 mr-1.5 shrink-0 ${alert.type === 'critical' ? 'text-rose-500' : 'text-yellow-500'}`}>
+                    <div key={alert.id} className={`flex items-start p-1.5 rounded border ${alert.type === 'critical' ? 'bg-rose-50 border-rose-200' : 'bg-amber-50 border-amber-200'}`}>
+                      <div className={`mt-0.5 mr-1.5 shrink-0 ${alert.type === 'critical' ? 'text-rose-500' : 'text-amber-500'}`}>
                         <IconComponent size={12} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className={`text-[10px] font-bold ${alert.type === 'critical' ? 'text-rose-800' : 'text-yellow-800'}`}>{alert.title}</h4>
-                        <p className={`text-[9px] ${alert.type === 'critical' ? 'text-rose-600' : 'text-yellow-700'}`}>{alert.msg}</p>
+                        <h4 className={`text-[10px] font-bold ${alert.type === 'critical' ? 'text-rose-800' : 'text-amber-800'}`}>{alert.title}</h4>
+                        <p className={`text-[9px] ${alert.type === 'critical' ? 'text-rose-600' : 'text-amber-700'}`}>{alert.msg}</p>
                       </div>
-                      <div className={`text-sm font-bold font-mono shrink-0 ${alert.type === 'critical' ? 'text-rose-600' : 'text-yellow-600'}`}>
+                      <div className={`text-sm font-bold font-mono shrink-0 ${alert.type === 'critical' ? 'text-rose-600' : 'text-amber-600'}`}>
                         {alert.value}
                       </div>
                     </div>
