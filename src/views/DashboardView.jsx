@@ -1,26 +1,10 @@
 import { useMemo, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LabelList } from 'recharts';
-import { FileStack, Bell, AlertCircle, AlertTriangle, Flag, HelpCircle, FileQuestion, TrendingDown, Calendar, ArrowLeftRight, Scale, CheckCircle2, XCircle } from 'lucide-react';
+import { FileStack, Bell, AlertCircle, AlertTriangle, Flag, HelpCircle, FileQuestion, TrendingDown, Calendar, ArrowLeftRight, Scale, CheckCircle2, XCircle, FileText } from 'lucide-react';
+import { getMissingStatements, getUnprovenClaims, getProvenAvgForMonths } from '../utils/analysisUtils';
+import { generateClientReport } from '../utils/pdfExport';
 
-// Helper to calculate proven average using same logic as expense progress bars
-const getProvenAvgForMonths = (transactions, category, months, latestTxDate) => {
-  if (!latestTxDate) return 0;
-  
-  const startDate = new Date(latestTxDate);
-  startDate.setDate(1);
-  startDate.setHours(0, 0, 0, 0);
-  startDate.setMonth(startDate.getMonth() - (months - 1));
-  
-  const periodTotal = transactions
-    .filter(t => {
-      if (t.cat !== category || t.amount >= 0) return false;
-      const txDate = new Date(t.date);
-      return txDate >= startDate;
-    })
-    .reduce((sum, t) => sum + Math.abs(t.amount), 0);
-  
-  return periodTotal / months;
-};
+// Note: getProvenAvgForMonths is now imported from analysisUtils
 
 // Claims Comparison Chart - shows claimed vs proven for each category
 const ClaimsComparisonChart = ({ claims, transactions, proofPeriod = '6M' }) => {
@@ -390,16 +374,12 @@ const DashboardView = ({ data, transactions, claims, proofPeriod = '6M' }) => {
     return accounts.size;
   }, [transactions]);
 
-  // Calculate dynamic alerts
+  // Calculate dynamic alerts using centralized Utils
   const computedAlerts = useMemo(() => {
     const alerts = [];
     
-    const proofMonths = (proofPeriod || '6M') === '3M' ? 3 : 6;
-    const unprovenExpenses = claims.filter(claim => {
-      if (!claim.claimed || claim.claimed <= 0) return false;
-      const provenAvg = getProvenAvgForMonths(transactions, claim.category, proofMonths, latestTxDate);
-      return provenAvg < claim.claimed * 0.95; // Less than 95% proven
-    });
+    // 1. Unproven Expenses
+    const unprovenExpenses = getUnprovenClaims(claims, transactions, proofPeriod, latestTxDate);
     if (unprovenExpenses.length > 0) {
       alerts.push({
         id: 'unproven',
@@ -491,7 +471,11 @@ const DashboardView = ({ data, transactions, claims, proofPeriod = '6M' }) => {
     // Group transactions by account and determine cycle day
     if (latestTxDate) {
       const accountTxMap = {};
-      const anchorDate = new Date(latestTxDate);
+      
+      // Use Today as the anchor for checking outstanding statements, 
+      // rather than just the latest transaction date.
+      const now = new Date();
+      const anchorDate = now;
       
       transactions.forEach(tx => {
         if (!tx.acc) return;
@@ -518,7 +502,7 @@ const DashboardView = ({ data, transactions, claims, proofPeriod = '6M' }) => {
       Object.entries(accountTxMap).forEach(([account, { txs, cycleDay }]) => {
         const missingStatements = [];
         
-        // Check last 6 cycles backwards from anchor date
+        // Check last 6 cycles backwards from anchor date (today)
         for (let i = 0; i < 6; i++) {
           // Determine the target cycle's end date
           let targetMonth = new Date(anchorDate);
@@ -544,11 +528,11 @@ const DashboardView = ({ data, transactions, claims, proofPeriod = '6M' }) => {
             cycleStart.setDate(cycleStart.getDate() + 1);
           }
           
-          // Check if any transaction exists within this specific cycle window
-          // We ignore the loop (i=0) if the cycle is technically in the future relative to the latest transaction
-          // But since anchorDate IS latestTxDate, i=0 is the current active cycle.
-          // We generally only flag missing statements if NO data exists for the WHOLE period.
+          // CRITICAL: If the cycle ends in the future relative to today, skip it.
+          // The statement for this cycle hasn't been generated yet.
+          if (cycleEnd > now) continue;
           
+          // Check if any transaction exists within this specific cycle window
           const hasData = txs.some(tx => {
             const d = new Date(tx.date);
             return d >= cycleStart && d <= cycleEnd;
@@ -597,6 +581,17 @@ const DashboardView = ({ data, transactions, claims, proofPeriod = '6M' }) => {
 
     return alerts;
   }, [transactions, claims, proofPeriod, latestTxDate]);
+
+  const handleGenerateReport = () => {
+    const reportProofMonths = proofPeriod === '3M' ? 3 : 6;
+    generateClientReport({
+      caseName: 'Financial Analysis',
+      missingStatements: getMissingStatements(transactions, latestTxDate),
+      unprovenClaims: getUnprovenClaims(claims, transactions, proofPeriod, latestTxDate),
+      transactions: transactions.filter(tx => tx.status !== 'proven'), // Only pending items
+      period: `Last ${reportProofMonths} Months`
+    });
+  };
 
   return (
     <div className="p-1.5 overflow-auto h-full custom-scroll bg-slate-50/50">
@@ -686,15 +681,24 @@ const DashboardView = ({ data, transactions, claims, proofPeriod = '6M' }) => {
           </div>
 
           <div className="bg-white p-2 rounded-lg border border-slate-200 shadow-sm overflow-auto custom-scroll flex flex-col">
-            <h3 className="text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1 shrink-0">
-              <Bell className="text-slate-400" size={12} />
-              Alerts
-              {computedAlerts.length > 0 && (
-                <span className="bg-rose-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full">
-                  {computedAlerts.length}
-                </span>
-              )}
-            </h3>
+            <div className="flex items-center justify-between mb-1.5 shrink-0">
+              <h3 className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                <Bell className="text-slate-400" size={12} />
+                Alerts
+                {computedAlerts.length > 0 && (
+                  <span className="bg-rose-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full">
+                    {computedAlerts.length}
+                  </span>
+                )}
+              </h3>
+              <button 
+                onClick={handleGenerateReport}
+                className="flex items-center gap-1 px-2 py-1 bg-slate-800 text-white text-[10px] font-medium rounded hover:bg-slate-700 transition-colors"
+              >
+                <FileText size={10} />
+                Client Request PDF
+              </button>
+            </div>
             <div className="flex-1 overflow-auto space-y-1">
               {computedAlerts.length > 0 ? (
                 computedAlerts.map(alert => {
