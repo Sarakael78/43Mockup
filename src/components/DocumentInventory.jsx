@@ -429,12 +429,6 @@ const DocumentInventory = ({
       .reduce((sum, t) => sum + Math.abs(t.amount), 0);
   };
 
-  const getProvenAvg = (category) => {
-    const total = getProvenTotal(category);
-    const divisor = monthsInScope > 0 ? monthsInScope : 1;
-    return total / divisor;
-  };
-
   // Get latest transaction date for period calculations
   const latestTxDate = useMemo(() => {
     if (!transactions || transactions.length === 0) return null;
@@ -462,6 +456,8 @@ const DocumentInventory = ({
     return periodTotal / months;
   };
 
+  // Use the same date-filtered calculation for the main Avg column
+  const getProvenAvg = (category) => getProvenAvgForMonths(category, monthsInScope);
   const getProvenAvg3M = (category) => getProvenAvgForMonths(category, 3);
   const getProvenAvg6M = (category) => getProvenAvgForMonths(category, 6);
 
