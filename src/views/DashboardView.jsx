@@ -62,7 +62,46 @@ const DashboardView = ({ data, transactions, claims, onLoadProject }) => {
       });
     }
     
-    // 3. Miscellaneous items
+    // 3. Inter-account transfers without corresponding entry
+    // Only look at transactions categorized as Inter-Account
+    const transfers = transactions.filter(tx => {
+      const cat = (tx.cat || '').toLowerCase();
+      return cat.includes('inter-account') || cat === 'inter account' || cat === 'interaccount';
+    });
+    
+    // Group by approximate amount and date to find unmatched transfers
+    const unmatchedTransfers = [];
+    transfers.forEach(tx => {
+      const amount = Math.abs(tx.amount || 0);
+      const date = tx.date;
+      // Look for a corresponding opposite transfer (±1 day, same amount)
+      const hasMatch = transfers.some(other => {
+        if (other.id === tx.id) return false;
+        if (Math.abs(other.amount || 0) !== amount) return false;
+        if ((tx.amount > 0 && other.amount > 0) || (tx.amount < 0 && other.amount < 0)) return false;
+        // Check if dates are within 3 days
+        const txDate = new Date(date);
+        const otherDate = new Date(other.date);
+        const daysDiff = Math.abs((txDate - otherDate) / (1000 * 60 * 60 * 24));
+        return daysDiff <= 3;
+      });
+      if (!hasMatch && !unmatchedTransfers.find(t => t.id === tx.id)) {
+        unmatchedTransfers.push(tx);
+      }
+    });
+    
+    if (unmatchedTransfers.length > 0) {
+      alerts.push({
+        id: 'unmatched-transfers',
+        type: 'warning',
+        icon: ArrowLeftRight,
+        title: 'Unmatched Inter-Account',
+        msg: `${unmatchedTransfers.length} inter-account transfer${unmatchedTransfers.length !== 1 ? 's' : ''} without matching entry in another account`,
+        value: unmatchedTransfers.length
+      });
+    }
+    
+    // 4. Miscellaneous items
     const miscItems = transactions.filter(tx => 
       tx.cat && tx.cat.toLowerCase().includes('miscellaneous')
     );
@@ -135,45 +174,6 @@ const DashboardView = ({ data, transactions, claims, onLoadProject }) => {
         });
       }
     });
-    
-    // 6. Inter-account transfers without corresponding entry
-    // Only look at transactions categorized as Inter-Account
-    const transfers = transactions.filter(tx => {
-      const cat = (tx.cat || '').toLowerCase();
-      return cat.includes('inter-account') || cat === 'inter account' || cat === 'interaccount';
-    });
-    
-    // Group by approximate amount and date to find unmatched transfers
-    const unmatchedTransfers = [];
-    transfers.forEach(tx => {
-      const amount = Math.abs(tx.amount || 0);
-      const date = tx.date;
-      // Look for a corresponding opposite transfer (±1 day, same amount)
-      const hasMatch = transfers.some(other => {
-        if (other.id === tx.id) return false;
-        if (Math.abs(other.amount || 0) !== amount) return false;
-        if ((tx.amount > 0 && other.amount > 0) || (tx.amount < 0 && other.amount < 0)) return false;
-        // Check if dates are within 3 days
-        const txDate = new Date(date);
-        const otherDate = new Date(other.date);
-        const daysDiff = Math.abs((txDate - otherDate) / (1000 * 60 * 60 * 24));
-        return daysDiff <= 3;
-      });
-      if (!hasMatch && !unmatchedTransfers.find(t => t.id === tx.id)) {
-        unmatchedTransfers.push(tx);
-      }
-    });
-    
-    if (unmatchedTransfers.length > 0) {
-      alerts.push({
-        id: 'unmatched-transfers',
-        type: 'warning',
-        icon: ArrowLeftRight,
-        title: 'Unmatched Inter-Account',
-        msg: `${unmatchedTransfers.length} inter-account transfer${unmatchedTransfers.length !== 1 ? 's' : ''} without matching entry in another account`,
-        value: unmatchedTransfers.length
-      });
-    }
     
     return alerts;
   }, [transactions, claims]);
