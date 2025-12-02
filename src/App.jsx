@@ -545,6 +545,7 @@ const App = () => {
   };
 
   // Replace all categories (used when importing CSV with expense categories)
+  // Also resets all transactions to "Uncategorized" so user can re-categorize with new categories
   const handleSetCategories = (newCategories) => {
     if (!Array.isArray(newCategories)) return;
     const sorted = [...newCategories].sort((a, b) => {
@@ -557,7 +558,14 @@ const App = () => {
       ...prev,
       categories: sorted
     }));
-    showToast(`Categories updated: ${sorted.length} categories loaded.`, 'success');
+    
+    // Reset all transactions to "Uncategorized" so they can be re-categorized
+    setTransactions(prev => prev.map(tx => ({
+      ...tx,
+      cat: 'Uncategorized'
+    })));
+    
+    showToast(`Categories updated: ${sorted.length} categories loaded. Transactions reset to Uncategorized.`, 'success');
   };
 
   const handleUpdateTransactionStatus = (txId, status) => {
