@@ -15,6 +15,13 @@ import {
   Tag
 } from 'lucide-react';
 
+// Helper to get ordinal suffix (1st, 2nd, 3rd, etc.)
+const getOrdinalSuffix = (n) => {
+  const s = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return s[(v - 20) % 10] || s[v] || s[0];
+};
+
 const DEFAULT_PANEL_HEIGHTS = {
   files: 34,
   manual: 26,
@@ -530,6 +537,11 @@ const DocumentInventory = ({
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
                           <span className={`text-[8px] px-0.5 py-0 rounded font-bold uppercase ${file.entity === 'LEGAL' ? 'bg-purple-50 text-purple-700' : 'bg-slate-100 text-slate-500'}`}>{file.entity || 'UNK'}</span>
+                          {file.cycleDay && (
+                            <span className="text-[8px] px-0.5 py-0 rounded font-medium bg-amber-50 text-amber-700" title="Statement cycle day">
+                              {file.cycleDay === 'last' ? 'Last' : `${file.cycleDay}${getOrdinalSuffix(parseInt(file.cycleDay))}`}
+                            </span>
+                          )}
                           {onDeleteFile && (
                             <button
                               onClick={(e) => {
