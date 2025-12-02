@@ -4,7 +4,7 @@ import { createClaimsImportHandler } from '../utils/claimsImport';
 import DocumentInventory from '../components/DocumentInventory';
 import PDFViewer from '../components/PDFViewer';
 
-const ENTITY_FILTERS = ['ALL', 'PERSONAL', 'BUSINESS', 'TRUST', 'SPOUSE', 'CREDIT'];
+const ENTITY_FILTERS = ['ALL', 'PERSONAL', 'BUSINESS', 'TRUST', 'CREDIT'];
 const DEFAULT_INVENTORY_PANEL_HEIGHTS = {
   files: 34,
   manual: 26,

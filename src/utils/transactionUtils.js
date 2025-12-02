@@ -2,16 +2,14 @@ const ENTITY_GROUPS = {
   PERSONAL: ['PERSONAL'],
   BUSINESS: ['BUSINESS', 'MYMOBIZ'],
   TRUST: ['TRUST'],
-  CREDIT: ['CREDIT'],
-  SPOUSE: ['SPOUSE']
+  CREDIT: ['CREDIT']
 };
 
 const FALLBACK_KEYWORDS = {
   PERSONAL: ['personal'],
   BUSINESS: ['business', 'mymobiz'],
   TRUST: ['trust'],
-  CREDIT: ['credit'],
-  SPOUSE: ['spouse']
+  CREDIT: ['credit']
 };
 
 export const normalizeEntity = (value) => {
@@ -83,8 +81,6 @@ const matchesAccountHeuristics = (tx, entity, accounts) => {
         return [accounts.TRUST].filter(Boolean);
       case 'CREDIT':
         return [accounts.CREDIT].filter(Boolean);
-      case 'SPOUSE':
-        return [accounts.SPOUSE, accounts.PERSONAL].filter(Boolean);
       default:
         return [];
     }

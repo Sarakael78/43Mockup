@@ -6,7 +6,7 @@ import DocumentInventory from '../components/DocumentInventory';
 import PDFViewer from '../components/PDFViewer';
 import NoteModal from '../components/NoteModal';
 
-const ENTITY_FILTERS = ['ALL', 'PERSONAL', 'BUSINESS', 'TRUST', 'SPOUSE', 'CREDIT'];
+const ENTITY_FILTERS = ['ALL', 'PERSONAL', 'BUSINESS', 'TRUST', 'CREDIT'];
 const DEFAULT_RIGHT_PANEL_HEIGHTS = {
   filters: 12,
   table: 78,

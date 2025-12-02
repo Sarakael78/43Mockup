@@ -62,7 +62,6 @@ const FileTriageRow = ({ file, onRemove, onSubmit }) => {
               <option>PERSONAL</option>
               <option>BUSINESS</option>
               <option>TRUST</option>
-              <option>SPOUSE</option>
               <option>CREDIT</option>
             </select>
           </div>
