@@ -313,6 +313,9 @@ const DocumentInventory = ({
       e.target.value = '';
       // Reset to manual mode after import
       setEntryMode('manual');
+    } else {
+      // Reset to manual mode if user cancelled the file dialog
+      setEntryMode('manual');
     }
   };
 
