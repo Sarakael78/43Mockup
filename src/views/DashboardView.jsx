@@ -1,6 +1,6 @@
-import { useRef } from 'react';
+import { useRef, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { FileStack, FolderOpen, Bell, AlertCircle, AlertTriangle } from 'lucide-react';
+import { FileStack, FolderOpen, Bell, AlertCircle, AlertTriangle, Flag, HelpCircle, FileQuestion, TrendingDown, Calendar, ArrowLeftRight } from 'lucide-react';
 
 const DashboardView = ({ data, transactions, claims, onLoadProject }) => {
   const fileInputRef = useRef(null);
@@ -31,6 +31,153 @@ const DashboardView = ({ data, transactions, claims, onLoadProject }) => {
   const deficit = totalIncome - totalExpenses;
 
   const hasData = transactions.length > 0 || claims.length > 0;
+
+  // Calculate dynamic alerts
+  const computedAlerts = useMemo(() => {
+    const alerts = [];
+    
+    // 1. Uncategorized items
+    const uncategorizedItems = transactions.filter(tx => !tx.cat || tx.cat === 'Uncategorized');
+    if (uncategorizedItems.length > 0) {
+      alerts.push({
+        id: 'uncategorized',
+        type: 'warning',
+        icon: HelpCircle,
+        title: 'Uncategorized Transactions',
+        msg: `${uncategorizedItems.length} transaction${uncategorizedItems.length !== 1 ? 's' : ''} need${uncategorizedItems.length === 1 ? 's' : ''} to be categorized`,
+        value: uncategorizedItems.length
+      });
+    }
+    
+    // 2. Flagged items
+    const flaggedItems = transactions.filter(tx => tx.flagged);
+    if (flaggedItems.length > 0) {
+      alerts.push({
+        id: 'flagged',
+        type: 'critical',
+        icon: Flag,
+        title: 'Flagged as Suspicious',
+        msg: `${flaggedItems.length} transaction${flaggedItems.length !== 1 ? 's' : ''} flagged for review`,
+        value: flaggedItems.length
+      });
+    }
+    
+    // 3. Miscellaneous items
+    const miscItems = transactions.filter(tx => 
+      tx.cat && tx.cat.toLowerCase().includes('miscellaneous')
+    );
+    if (miscItems.length > 0) {
+      alerts.push({
+        id: 'miscellaneous',
+        type: 'warning',
+        icon: FileQuestion,
+        title: 'Miscellaneous Expenses',
+        msg: `${miscItems.length} transaction${miscItems.length !== 1 ? 's' : ''} categorized as miscellaneous`,
+        value: miscItems.length
+      });
+    }
+    
+    // 4. Expenses not fully proven (claimed > proven)
+    const unprovenExpenses = claims.filter(claim => {
+      const provenTotal = transactions
+        .filter(tx => tx.cat === claim.category && tx.amount < 0)
+        .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
+      // Calculate monthly average (assume 3 months if no date info)
+      const monthsInData = 3;
+      const provenAvg = provenTotal / monthsInData;
+      return claim.claimed > 0 && provenAvg < claim.claimed * 0.95; // Less than 95% proven
+    });
+    if (unprovenExpenses.length > 0) {
+      alerts.push({
+        id: 'unproven',
+        type: 'warning',
+        icon: TrendingDown,
+        title: 'Unproven Expenses',
+        msg: `${unprovenExpenses.length} expense categor${unprovenExpenses.length !== 1 ? 'ies' : 'y'} not fully proven`,
+        value: unprovenExpenses.length
+      });
+    }
+    
+    // 5. Missing bank statement periods (per account)
+    const accountMonths = {};
+    transactions.forEach(tx => {
+      if (!tx.date || !tx.acc) return;
+      const date = new Date(tx.date);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const acc = tx.acc || tx.entity || 'Unknown';
+      if (!accountMonths[acc]) accountMonths[acc] = new Set();
+      accountMonths[acc].add(monthKey);
+    });
+    
+    // Check for gaps in each account
+    Object.entries(accountMonths).forEach(([account, months]) => {
+      if (months.size < 2) return;
+      const sortedMonths = Array.from(months).sort();
+      const startDate = new Date(sortedMonths[0] + '-01');
+      const endDate = new Date(sortedMonths[sortedMonths.length - 1] + '-01');
+      
+      const expectedMonths = [];
+      const current = new Date(startDate);
+      while (current <= endDate) {
+        expectedMonths.push(`${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`);
+        current.setMonth(current.getMonth() + 1);
+      }
+      
+      const missingMonths = expectedMonths.filter(m => !months.has(m));
+      if (missingMonths.length > 0) {
+        alerts.push({
+          id: `missing-${account}`,
+          type: 'critical',
+          icon: Calendar,
+          title: `Missing Periods: ${account}`,
+          msg: `${missingMonths.length} month${missingMonths.length !== 1 ? 's' : ''} missing: ${missingMonths.slice(0, 3).join(', ')}${missingMonths.length > 3 ? '...' : ''}`,
+          value: missingMonths.length
+        });
+      }
+    });
+    
+    // 6. Inter-account transfers without corresponding entry
+    const transfers = transactions.filter(tx => {
+      const cat = (tx.cat || '').toLowerCase();
+      const desc = (tx.desc || tx.clean || '').toLowerCase();
+      return cat.includes('inter-account') || cat.includes('transfer') || 
+             desc.includes('transfer') || desc.includes('trf ');
+    });
+    
+    // Group by approximate amount and date to find unmatched transfers
+    const unmatchedTransfers = [];
+    transfers.forEach(tx => {
+      const amount = Math.abs(tx.amount || 0);
+      const date = tx.date;
+      // Look for a corresponding opposite transfer (±1 day, same amount)
+      const hasMatch = transfers.some(other => {
+        if (other.id === tx.id) return false;
+        if (Math.abs(other.amount || 0) !== amount) return false;
+        if ((tx.amount > 0 && other.amount > 0) || (tx.amount < 0 && other.amount < 0)) return false;
+        // Check if dates are within 3 days
+        const txDate = new Date(date);
+        const otherDate = new Date(other.date);
+        const daysDiff = Math.abs((txDate - otherDate) / (1000 * 60 * 60 * 24));
+        return daysDiff <= 3;
+      });
+      if (!hasMatch && !unmatchedTransfers.find(t => t.id === tx.id)) {
+        unmatchedTransfers.push(tx);
+      }
+    });
+    
+    if (unmatchedTransfers.length > 0) {
+      alerts.push({
+        id: 'unmatched-transfers',
+        type: 'warning',
+        icon: ArrowLeftRight,
+        title: 'Unmatched Transfers',
+        msg: `${unmatchedTransfers.length} transfer${unmatchedTransfers.length !== 1 ? 's' : ''} without corresponding entry`,
+        value: unmatchedTransfers.length
+      });
+    }
+    
+    return alerts;
+  }, [transactions, claims]);
 
   return (
     <div className="p-1.5 overflow-auto h-full custom-scroll bg-slate-50/50">
@@ -133,26 +280,35 @@ const DashboardView = ({ data, transactions, claims, onLoadProject }) => {
             <h3 className="text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1 shrink-0">
               <Bell className="text-slate-400" size={12} />
               Alerts
+              {computedAlerts.length > 0 && (
+                <span className="bg-rose-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full">
+                  {computedAlerts.length}
+                </span>
+              )}
             </h3>
-            <div className="flex-1 overflow-auto">
-              {data.alerts && data.alerts.length > 0 ? (
-                data.alerts.map(alert => (
-                  <div key={alert.id} className={`flex items-start p-1.5 rounded border mb-1.5 ${alert.type === 'critical' ? 'bg-rose-50 border-rose-100' : 'bg-amber-50 border-amber-100'}`}>
-                    <div className={`mt-0.5 mr-1.5 ${alert.type === 'critical' ? 'text-rose-500' : 'text-amber-500'}`}>
-                      {alert.type === 'critical' ? <AlertCircle size={12} /> : <AlertTriangle size={12} />}
+            <div className="flex-1 overflow-auto space-y-1">
+              {computedAlerts.length > 0 ? (
+                computedAlerts.map(alert => {
+                  const IconComponent = alert.icon || (alert.type === 'critical' ? AlertCircle : AlertTriangle);
+                  return (
+                    <div key={alert.id} className={`flex items-start p-1.5 rounded border ${alert.type === 'critical' ? 'bg-rose-50 border-rose-200' : 'bg-amber-50 border-amber-200'}`}>
+                      <div className={`mt-0.5 mr-1.5 shrink-0 ${alert.type === 'critical' ? 'text-rose-500' : 'text-amber-500'}`}>
+                        <IconComponent size={12} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className={`text-[10px] font-bold ${alert.type === 'critical' ? 'text-rose-800' : 'text-amber-800'}`}>{alert.title}</h4>
+                        <p className={`text-[9px] ${alert.type === 'critical' ? 'text-rose-600' : 'text-amber-700'}`}>{alert.msg}</p>
+                      </div>
+                      <div className={`text-sm font-bold font-mono shrink-0 ${alert.type === 'critical' ? 'text-rose-600' : 'text-amber-600'}`}>
+                        {alert.value}
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className={`text-[10px] font-bold ${alert.type === 'critical' ? 'text-rose-800' : 'text-amber-800'}`}>{alert.title}</h4>
-                      <p className={`text-[9px] ${alert.type === 'critical' ? 'text-rose-600' : 'text-amber-700'}`}>{alert.msg}</p>
-                    </div>
-                    <div className={`text-[10px] font-bold font-mono shrink-0 ${alert.type === 'critical' ? 'text-rose-700' : 'text-amber-700'}`}>
-                      {alert.value}
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               ) : (
-                <div className="text-center text-slate-400 text-xs py-4">
-                  No alerts detected.
+                <div className="text-center text-emerald-500 text-xs py-4 flex flex-col items-center gap-1">
+                  <AlertCircle size={16} />
+                  <span>All clear! No issues detected.</span>
                 </div>
               )}
             </div>
