@@ -491,7 +491,7 @@ const DocumentInventory = ({
         ratio,
         colorClass: 'text-blue-600',
         barClass: 'bg-blue-600',
-        label: 'Inflation'
+        label: 'Over'
       };
     }
 
