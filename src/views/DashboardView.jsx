@@ -545,7 +545,7 @@ const DashboardView = ({ data, transactions, claims, proofPeriod = '6M' }) => {
                 {totalIncome.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 })}
               </div>
               <div className="text-[9px] text-slate-400">
-                {transactions.filter(tx => tx && tx.amount > 0).length} tx
+                {periodTransactions.filter(tx => tx && tx.amount > 0).length} tx
               </div>
             </div>
             <div className="p-2 rounded-lg border border-slate-100 shadow-sm bg-white border-l-4 border-l-rose-500">
@@ -554,7 +554,7 @@ const DashboardView = ({ data, transactions, claims, proofPeriod = '6M' }) => {
                 {totalExpenses.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 })}
               </div>
               <div className="text-[9px] text-rose-400">
-                {transactions.filter(tx => tx && tx.amount < 0).length} tx
+                {periodTransactions.filter(tx => tx && tx.amount < 0).length} tx
               </div>
             </div>
             <div className="p-2 rounded-lg border border-slate-100 shadow-sm bg-white border-l-4 border-l-amber-500">
