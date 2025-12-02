@@ -269,19 +269,49 @@ const CategoryBreakdown = ({ claims, transactions, proofPeriod = '6M' }) => {
   );
 };
 
+// Helper to filter transactions by selected time period
+const filterTransactionsByPeriod = (transactions, months, latestTxDate) => {
+  if (!latestTxDate || months === 0) return transactions;
+
+  const startDate = new Date(latestTxDate);
+  startDate.setDate(1);
+  startDate.setHours(0, 0, 0, 0);
+  startDate.setMonth(startDate.getMonth() - (months - 1));
+
+  return transactions.filter(tx => {
+    if (!tx || !tx.date) return false;
+    const txDate = new Date(tx.date);
+    return txDate >= startDate;
+  });
+};
+
 const DashboardView = ({ data, transactions, claims, proofPeriod = '6M' }) => {
-  // Calculate KPIs from actual data
-  const totalIncome = transactions
+  // Calculate KPIs from actual data based on selected period
+  const proofMonths = proofPeriod === '3M' ? 3 : 6;
+
+  // Find latest transaction date for period filtering
+  const latestTxDate = transactions.length > 0
+    ? transactions.reduce((latest, tx) => {
+        if (!tx.date) return latest;
+        const txDate = new Date(tx.date);
+        return !latest || txDate > latest ? txDate : latest;
+      }, null)
+    : null;
+
+  // Filter transactions by selected period
+  const periodTransactions = filterTransactionsByPeriod(transactions, proofMonths, latestTxDate);
+
+  const totalIncome = periodTransactions
     .filter(tx => tx && tx.amount > 0)
     .reduce((sum, tx) => sum + (tx.amount || 0), 0);
-  
-  const totalExpenses = Math.abs(transactions
+
+  const totalExpenses = Math.abs(periodTransactions
     .filter(tx => tx && tx.amount < 0)
     .reduce((sum, tx) => sum + (tx.amount || 0), 0));
-  
+
   const totalClaimed = claims
     .reduce((sum, claim) => sum + (claim.claimed || 0), 0);
-  
+
   const deficit = totalIncome - totalExpenses;
 
   const hasData = transactions.length > 0 || claims.length > 0;
@@ -467,7 +497,7 @@ const DashboardView = ({ data, transactions, claims, proofPeriod = '6M' }) => {
         <>
           <div className="grid grid-cols-4 gap-1.5 mb-1.5">
             <div className="p-2 rounded-lg border border-slate-100 shadow-sm bg-white border-l-4 border-l-emerald-500">
-              <div className="text-[9px] font-bold text-slate-400 uppercase">Income</div>
+              <div className="text-[9px] font-bold text-slate-400 uppercase">Total Income</div>
               <div className="text-lg font-mono font-bold text-emerald-600">
                 {totalIncome.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 })}
               </div>
@@ -476,7 +506,7 @@ const DashboardView = ({ data, transactions, claims, proofPeriod = '6M' }) => {
               </div>
             </div>
             <div className="p-2 rounded-lg border border-slate-100 shadow-sm bg-white border-l-4 border-l-rose-500">
-              <div className="text-[9px] font-bold text-slate-400 uppercase">Expenses</div>
+              <div className="text-[9px] font-bold text-slate-400 uppercase">Total Expenses</div>
               <div className="text-lg font-mono font-bold text-rose-600">
                 {totalExpenses.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 })}
               </div>
@@ -485,7 +515,7 @@ const DashboardView = ({ data, transactions, claims, proofPeriod = '6M' }) => {
               </div>
             </div>
             <div className="p-2 rounded-lg border border-slate-100 shadow-sm bg-white border-l-4 border-l-amber-500">
-              <div className="text-[9px] font-bold text-slate-400 uppercase">Deficit</div>
+              <div className="text-[9px] font-bold text-slate-400 uppercase">Total Deficit</div>
               <div className={`text-lg font-mono font-bold ${deficit < 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
                 {deficit.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 })}
               </div>
