@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Save, Plus, Check } from 'lucide-react';
+import { Save, Plus, Check, Settings } from 'lucide-react';
 import { CASE_NAME_MAX_LENGTH } from '../utils/constants';
 
-const TopBar = ({ title, subtitle, caseName, onCaseNameChange, onSave, onNewCase, saved, onError }) => {
+const TopBar = ({ title, subtitle, caseName, onCaseNameChange, onSave, onNewCase, saved, onError, onOpenSettings }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(caseName);
 
@@ -81,6 +81,15 @@ const TopBar = ({ title, subtitle, caseName, onCaseNameChange, onSave, onNewCase
           <button className="px-1.5 py-0 text-[9px] font-bold rounded bg-white text-slate-800 shadow-sm border border-slate-200">Rule 43</button>
           <button className="px-1.5 py-0 text-[9px] font-bold rounded text-slate-500 hover:text-slate-700">Divorce</button>
         </div>
+        {onOpenSettings && (
+          <button
+            onClick={onOpenSettings}
+            className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors"
+            title="Display Settings"
+          >
+            <Settings size={14} />
+          </button>
+        )}
         {onNewCase && (
           <button
             onClick={onNewCase}

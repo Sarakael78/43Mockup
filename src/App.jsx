@@ -9,9 +9,15 @@ import { defaultCategories } from './config/categories';
 import NavSidebar from './components/NavSidebar';
 import TopBar from './components/TopBar';
 import FileUploadModal from './components/FileUploadModal';
+import SettingsModal, { FONT_SIZES, DENSITY_LEVELS } from './components/SettingsModal';
 import DashboardView from './views/DashboardView';
 import WorkbenchView from './views/WorkbenchView';
 import EvidenceLockerView from './views/EvidenceLockerView';
+
+const DEFAULT_DISPLAY_SETTINGS = {
+  fontSize: 'md',
+  density: 'compact'
+};
 
 const DEFAULT_LAYOUT = {
   leftPanelWidth: 42,
@@ -51,8 +57,10 @@ const App = () => {
   const [notes, setNotes] = useState({});
   const [caseName, setCaseName] = useState('New Case');
   const [fileUploadModal, setFileUploadModal] = useState(false);
+  const [settingsModal, setSettingsModal] = useState(false);
   const [saved, setSaved] = useState(false);
   const [layoutSettings, setLayoutSettings] = useState(DEFAULT_LAYOUT);
+  const [displaySettings, setDisplaySettings] = useState(DEFAULT_DISPLAY_SETTINGS);
   const { showToast } = useToast();
   const saveTimeoutRef = useRef(null);
   const savedTimeoutRef = useRef(null);
@@ -61,6 +69,17 @@ const App = () => {
 
   // Load from localStorage on mount
   useEffect(() => {
+    // Load display settings
+    const savedDisplaySettings = localStorage.getItem('r43_display_settings');
+    if (savedDisplaySettings) {
+      try {
+        const parsed = JSON.parse(savedDisplaySettings);
+        setDisplaySettings({ ...DEFAULT_DISPLAY_SETTINGS, ...parsed });
+      } catch (e) {
+        // Use defaults
+      }
+    }
+
     const savedProject = localStorage.getItem('r43_project');
     if (savedProject) {
       try {
@@ -97,6 +116,22 @@ const App = () => {
     }
     // No fallback to mock data - app starts empty
   }, []);
+
+  // Apply CSS variables when display settings change
+  useEffect(() => {
+    const fontScale = FONT_SIZES.find(f => f.value === displaySettings.fontSize)?.scale || 1;
+    const densityScale = DENSITY_LEVELS.find(d => d.value === displaySettings.density)?.scale || 1;
+    
+    document.documentElement.style.setProperty('--font-scale', fontScale);
+    document.documentElement.style.setProperty('--density-scale', densityScale);
+    
+    // Save to localStorage
+    try {
+      localStorage.setItem('r43_display_settings', JSON.stringify(displaySettings));
+    } catch (e) {
+      // localStorage may be disabled
+    }
+  }, [displaySettings]);
 
   // Auto-save to localStorage whenever data changes
   useEffect(() => {
@@ -529,7 +564,7 @@ const App = () => {
   };
 
   return (
-    <div className="flex h-screen w-screen bg-slate-100 font-sans text-slate-900">
+    <div className="flex h-screen w-screen bg-slate-100 font-sans text-slate-900" style={{ fontSize: `calc(1rem * var(--font-scale))` }}>
       <NavSidebar view={view} setView={setView} onAddEvidence={() => setFileUploadModal(true)} />
       <div className="flex-1 flex flex-col min-w-0">
         <TopBar
@@ -541,6 +576,7 @@ const App = () => {
           onNewCase={handleNewCase}
           saved={saved}
           onError={(err) => showToast(err.message, err.type || 'error')}
+          onOpenSettings={() => setSettingsModal(true)}
         />
         <div className="flex-1 min-h-0 relative">
           {view === 'dashboard' && <DashboardView data={appData} transactions={transactions} claims={claims} onLoadProject={handleLoadProject} />}
@@ -595,6 +631,12 @@ const App = () => {
         onClose={() => setFileUploadModal(false)}
         onUpload={handleFileUpload}
         showToast={showToast}
+      />
+      <SettingsModal
+        isOpen={settingsModal}
+        onClose={() => setSettingsModal(false)}
+        settings={displaySettings}
+        onSettingsChange={setDisplaySettings}
       />
     </div>
   );

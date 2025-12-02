@@ -2,6 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Display settings CSS custom properties */
+:root {
+  --font-scale: 1;
+  --density-scale: 0.6;
+  --base-padding: 4px;
+  --base-gap: 4px;
+}
+
 /* Global defaults configured for production */
 html, body, #root { height: 100%; }
 body { @apply bg-slate-100 font-sans; }
@@ -14,6 +22,26 @@ body { @apply bg-slate-100 font-sans; }
   .font-mono {
     font-family: 'JetBrains Mono', monospace;
   }
+}
+
+/* Scaled components using CSS variables */
+@layer utilities {
+  .text-scaled-xs { font-size: calc(0.65rem * var(--font-scale)); }
+  .text-scaled-sm { font-size: calc(0.75rem * var(--font-scale)); }
+  .text-scaled-base { font-size: calc(0.875rem * var(--font-scale)); }
+  .text-scaled-lg { font-size: calc(1rem * var(--font-scale)); }
+  .text-scaled-xl { font-size: calc(1.125rem * var(--font-scale)); }
+  
+  .p-scaled { padding: calc(var(--base-padding) * var(--density-scale)); }
+  .px-scaled { padding-left: calc(var(--base-padding) * var(--density-scale)); padding-right: calc(var(--base-padding) * var(--density-scale)); }
+  .py-scaled { padding-top: calc(var(--base-padding) * var(--density-scale)); padding-bottom: calc(var(--base-padding) * var(--density-scale)); }
+  .p-scaled-2 { padding: calc(var(--base-padding) * 2 * var(--density-scale)); }
+  .p-scaled-3 { padding: calc(var(--base-padding) * 3 * var(--density-scale)); }
+  
+  .gap-scaled { gap: calc(var(--base-gap) * var(--density-scale)); }
+  .gap-scaled-2 { gap: calc(var(--base-gap) * 2 * var(--density-scale)); }
+  
+  .space-y-scaled > :not([hidden]) ~ :not([hidden]) { margin-top: calc(var(--base-gap) * var(--density-scale)); }
 }
 
 /* Custom scrollbar styles */
