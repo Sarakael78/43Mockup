@@ -160,6 +160,7 @@ const PDFViewer = ({ entity, activeTxId, transactions, files, accounts, setClaim
         <CSVViewer
           file={currentFile?.file}
           fileUrl={currentFile?.url}
+          csvContent={currentFile?.csvContent}
         />
       ) : pdfUrl && fileType === 'pdf' ? (
         <PDFDocumentViewer

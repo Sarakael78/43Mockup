@@ -4,7 +4,7 @@ import { FileText, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { CSV_PREVIEW_ROWS } from '../utils/constants';
 import { logger } from '../utils/logger';
 
-const CSVViewer = ({ file, fileUrl }) => {
+const CSVViewer = ({ file, fileUrl, csvContent }) => {
   const [csvData, setCsvData] = useState([]);
   const [headers, setHeaders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -20,8 +20,12 @@ const CSVViewer = ({ file, fileUrl }) => {
       try {
         let csvText = '';
         
+        // If we have CSV content directly (from saved project)
+        if (csvContent && typeof csvContent === 'string') {
+          csvText = csvContent;
+        }
         // If we have a File object, read it
-        if (file && file instanceof File) {
+        else if (file && file instanceof File) {
           csvText = await new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = (e) => resolve(e.target.result);
@@ -87,10 +91,10 @@ const CSVViewer = ({ file, fileUrl }) => {
       }
     };
 
-    if (file || fileUrl) {
+    if (file || fileUrl || csvContent) {
       loadCSV();
     }
-  }, [file, fileUrl]);
+  }, [file, fileUrl, csvContent]);
 
   // Helper to normalize column names for comparison
   const normalizeColumnName = (name) => {

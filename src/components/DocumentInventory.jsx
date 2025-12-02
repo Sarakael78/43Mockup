@@ -10,7 +10,9 @@ import {
   X as CloseIcon,
   Save,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  Plus,
+  Tag
 } from 'lucide-react';
 
 const DEFAULT_PANEL_HEIGHTS = {
@@ -20,11 +22,11 @@ const DEFAULT_PANEL_HEIGHTS = {
 };
 
 const DEFAULT_CLAIM_COLUMN_WIDTHS = {
-  category: 120,
-  claimed: 80,
-  proven: 90,
-  status: 70,
-  actions: 40
+  category: 150,
+  claimed: 90,
+  proven: 100,
+  status: 80,
+  actions: 50
 };
 
 const DocumentInventory = ({
@@ -47,7 +49,8 @@ const DocumentInventory = ({
   onFocusClaim,
   showFilesPanel = true,
   showHeader = true,
-  showManualEntry = true
+  showManualEntry = true,
+  showClaimsTable = true
 }) => {
   const [entryMode, setEntryMode] = useState('manual');
   const [dragState, setDragState] = useState(null);
@@ -66,6 +69,8 @@ const DocumentInventory = ({
     reference: ''
   });
   const [editingError, setEditingError] = useState('');
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
   const categoryListId = `${useId()}-claim-categories`;
   const fileInputRef = useRef(null);
   const containerRef = useRef(null);
@@ -78,6 +83,7 @@ const DocumentInventory = ({
   const displayFilesPanel = showFilesPanel !== false;
   const displayHeader = showHeader !== false;
   const displayManualPanel = showManualEntry !== false;
+  const displayClaimsTable = showClaimsTable !== false;
   const basePanelHeights = useMemo(() => {
     if (panelHeights && typeof panelHeights === 'object') {
       return {
@@ -271,7 +277,7 @@ const DocumentInventory = ({
   }, [claimColResizeState]);
 
   // Generate grid template from column widths
-  const claimGridTemplate = `1fr ${claimColumnWidths.claimed}px ${claimColumnWidths.proven}px ${claimColumnWidths.status}px ${claimColumnWidths.actions}px`;
+  const claimGridTemplate = `${claimColumnWidths.category}px ${claimColumnWidths.claimed}px ${claimColumnWidths.proven}px ${claimColumnWidths.status}px ${claimColumnWidths.actions}px`;
 
   const entryModes = [
     { key: 'manual', label: 'Manual' },
@@ -343,6 +349,20 @@ const DocumentInventory = ({
       reference: ''
     });
     setManualError('');
+  };
+
+  const handleCreateNewCategory = () => {
+    if (!onCreateCategory) return;
+    const name = newCategoryName.trim();
+    if (!name) return;
+    
+    const result = onCreateCategory(name);
+    if (result !== false) {
+      setNewCategoryName('');
+      setShowNewCategoryInput(false);
+      // Set the newly created category as the selected one
+      setManualClaim(prev => ({ ...prev, category: name }));
+    }
   };
 
   const handleStartEdit = (claim) => {
@@ -611,6 +631,49 @@ const DocumentInventory = ({
                   {manualError && (
                     <p className="text-[9px] text-rose-600 mt-0.5">{manualError}</p>
                   )}
+                  
+                  {/* New Category Creation */}
+                  {onCreateCategory && (
+                    <div className="mt-1.5 pt-1.5 border-t border-slate-100">
+                      {showNewCategoryInput ? (
+                        <div className="flex gap-1 items-center">
+                          <Tag size={10} className="text-slate-400 shrink-0" />
+                          <input
+                            type="text"
+                            value={newCategoryName}
+                            onChange={(e) => setNewCategoryName(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleCreateNewCategory()}
+                            placeholder="New category name..."
+                            className="flex-1 text-[9px] px-1 py-0.5 border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-amber-400"
+                            autoFocus
+                          />
+                          <button
+                            type="button"
+                            onClick={handleCreateNewCategory}
+                            className="px-1.5 py-0.5 text-[9px] font-bold rounded bg-emerald-600 text-white hover:bg-emerald-500 transition-colors"
+                          >
+                            Add
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setShowNewCategoryInput(false); setNewCategoryName(''); }}
+                            className="p-0.5 text-slate-400 hover:text-slate-600"
+                          >
+                            <CloseIcon size={12} />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setShowNewCategoryInput(true)}
+                          className="flex items-center gap-1 text-[9px] text-slate-500 hover:text-slate-700 transition-colors"
+                        >
+                          <Plus size={10} />
+                          <span>Add new category type</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -621,45 +684,46 @@ const DocumentInventory = ({
           />
         </>
       )}
-      <div
-        className="flex-1 overflow-hidden bg-white"
-        style={{ height: displayManualPanel ? `${effectivePanelHeights.table}%` : '100%' }}
-      >
-        <div className="h-full overflow-auto custom-scroll p-0">
-          <div className="w-full">
-            <div className="grid bg-slate-50 sticky top-0 z-10 text-[7px] font-bold text-slate-500 uppercase tracking-wide border-b border-slate-200" style={{ gridTemplateColumns: claimGridTemplate }}>
-              <div className="px-1 py-0.5 relative flex items-center">
-                Category
-                <div
-                  className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-amber-400 transition-colors"
-                  onMouseDown={(e) => handleClaimColResizeStart('category', e)}
-                />
+      {displayClaimsTable && (
+        <div
+          className="flex-1 overflow-hidden bg-white"
+          style={{ height: displayManualPanel ? `${effectivePanelHeights.table}%` : '100%' }}
+        >
+          <div className="h-full overflow-auto custom-scroll p-0">
+            <div className="w-full">
+              <div className="grid bg-slate-50 sticky top-0 z-10 text-[7px] font-bold text-slate-500 uppercase tracking-wide border-b border-slate-200" style={{ gridTemplateColumns: claimGridTemplate }}>
+                <div className="px-1 py-0.5 relative flex items-center justify-between">
+                  <span>Category</span>
+                  <div
+                    className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-amber-400 transition-colors"
+                    onMouseDown={(e) => handleClaimColResizeStart('category', e)}
+                  />
+                </div>
+                <div className="px-1 py-0.5 text-right relative flex items-center justify-end">
+                  <span>Claimed</span>
+                  <div
+                    className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-amber-400 transition-colors"
+                    onMouseDown={(e) => handleClaimColResizeStart('claimed', e)}
+                  />
+                </div>
+                <div className="px-1 py-0.5 text-right relative flex items-center justify-end">
+                  <span>Proven ({periodFilter})</span>
+                  <div
+                    className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-amber-400 transition-colors"
+                    onMouseDown={(e) => handleClaimColResizeStart('proven', e)}
+                  />
+                </div>
+                <div className="px-1 py-0.5 text-right relative flex items-center justify-end">
+                  <span>Status</span>
+                  <div
+                    className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-amber-400 transition-colors"
+                    onMouseDown={(e) => handleClaimColResizeStart('status', e)}
+                  />
+                </div>
+                <div className="px-1 py-0.5"></div>
               </div>
-              <div className="px-1 py-0.5 text-right relative flex items-center justify-end">
-                Claimed
-                <div
-                  className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-amber-400 transition-colors"
-                  onMouseDown={(e) => handleClaimColResizeStart('claimed', e)}
-                />
-              </div>
-              <div className="px-1 py-0.5 text-right relative flex items-center justify-end">
-                Proven ({periodFilter})
-                <div
-                  className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-amber-400 transition-colors"
-                  onMouseDown={(e) => handleClaimColResizeStart('proven', e)}
-                />
-              </div>
-              <div className="px-1 py-0.5 text-right relative flex items-center justify-end">
-                Status
-                <div
-                  className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-amber-400 transition-colors"
-                  onMouseDown={(e) => handleClaimColResizeStart('status', e)}
-                />
-              </div>
-              <div className="px-1 py-0.5"></div>
-            </div>
-            <div>
-              {claims.map((claim, index) => {
+              <div>
+                {claims.map((claim, index) => {
                 const proven = getProvenAvg(claim.category);
                 const traffic = getTrafficLight(proven, claim.claimed);
                 const isEditing = editingClaimId === claim.id;
@@ -779,11 +843,12 @@ const DocumentInventory = ({
                     </div>
                   </div>
                 );
-              })}
+                })}
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

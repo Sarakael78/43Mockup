@@ -366,7 +366,22 @@ const App = () => {
             processedCount++;
           }
 
-          // Add file metadata (include file object for viewing)
+          // Read CSV content for later viewing (needed after export/import)
+          let csvContent = null;
+          if (file.name.toLowerCase().endsWith('.csv')) {
+            try {
+              csvContent = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = () => reject(new Error('Failed to read CSV'));
+                reader.readAsText(file);
+              });
+            } catch (e) {
+              // Silent fail - CSV viewing will just not work
+            }
+          }
+
+          // Add file metadata (include file object and content for viewing)
           newFiles.push({
             id: fileId,
             name: file.name,
@@ -374,7 +389,8 @@ const App = () => {
             entity: file.triage.entity || 'PERSONAL',
             type: 'Bank Statement',
             uploadedAt: new Date().toISOString(),
-            file: file // Store file object for viewing
+            file: file, // Store file object for viewing (current session only)
+            csvContent: csvContent // Store CSV content for viewing after export/import
           });
 
         } else if (file.triage.type === 'Financial Affidavit') {
