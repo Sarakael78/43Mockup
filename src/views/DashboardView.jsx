@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LabelList } from 'recharts';
-import { FileStack, Bell, AlertCircle, AlertTriangle, Flag, HelpCircle, FileQuestion, TrendingDown, Calendar, ArrowLeftRight, Scale, CheckCircle2, XCircle } from 'lucide-react';
+import { FileStack, Bell, AlertCircle, AlertTriangle, Flag, HelpCircle, FileQuestion, TrendingDown, Calendar, ArrowLeftRight, Scale, CheckCircle2, XCircle, Building2 } from 'lucide-react';
 
 // Helper to calculate proven average using same logic as expense progress bars
 const getProvenAvgForMonths = (transactions, category, months, latestTxDate) => {
@@ -383,19 +383,18 @@ const DashboardView = ({ data, transactions, claims, proofPeriod = '6M' }) => {
 
   const hasData = transactions.length > 0 || claims.length > 0;
 
+  // Calculate unique accounts
+  const uniqueAccountCount = useMemo(() => {
+    const accounts = new Set();
+    transactions.forEach(tx => {
+      if (tx.acc) accounts.add(tx.acc);
+    });
+    return accounts.size;
+  }, [transactions]);
+
   // Calculate dynamic alerts
   const computedAlerts = useMemo(() => {
     const alerts = [];
-    
-    // 1. Expenses not fully proven (claimed > proven) - TOP PRIORITY (RED)
-    // Find latest transaction date for proper calculation
-    const latestTxDate = transactions.length > 0
-      ? transactions.reduce((latest, tx) => {
-          if (!tx.date) return latest;
-          const txDate = new Date(tx.date);
-          return !latest || txDate > latest ? txDate : latest;
-        }, null)
-      : null;
     
     const proofMonths = (proofPeriod || '6M') === '3M' ? 3 : 6;
     const unprovenExpenses = claims.filter(claim => {
@@ -490,43 +489,96 @@ const DashboardView = ({ data, transactions, claims, proofPeriod = '6M' }) => {
       });
     }
     
-    // 6. Missing bank statement periods (per account)
-    const accountMonths = {};
-    transactions.forEach(tx => {
-      if (!tx.date || !tx.acc) return;
-      const date = new Date(tx.date);
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      const acc = tx.acc || tx.entity || 'Unknown';
-      if (!accountMonths[acc]) accountMonths[acc] = new Set();
-      accountMonths[acc].add(monthKey);
-    });
-    
-    // Check for gaps in each account
-    Object.entries(accountMonths).forEach(([account, months]) => {
-      if (months.size < 2) return;
-      const sortedMonths = Array.from(months).sort();
-      const startDate = new Date(sortedMonths[0] + '-01');
-      const endDate = new Date(sortedMonths[sortedMonths.length - 1] + '-01');
+    // 6. Missing bank statement periods (per account) - CYCLE AWARE
+    // Group transactions by account and determine cycle day
+    if (latestTxDate) {
+      const accountTxMap = {};
+      const anchorDate = new Date(latestTxDate);
       
-      const expectedMonths = [];
-      const current = new Date(startDate);
-      while (current <= endDate) {
-        expectedMonths.push(`${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`);
-        current.setMonth(current.getMonth() + 1);
-      }
-      
-      const missingMonths = expectedMonths.filter(m => !months.has(m));
-      if (missingMonths.length > 0) {
-        alerts.push({
-          id: `missing-${account}`,
-          type: 'critical',
-          icon: Calendar,
-          title: `Missing Periods: ${account}`,
-          msg: `${missingMonths.length} month${missingMonths.length !== 1 ? 's' : ''} missing: ${missingMonths.slice(0, 3).join(', ')}${missingMonths.length > 3 ? '...' : ''}`,
-          value: missingMonths.length
-        });
-      }
-    });
+      transactions.forEach(tx => {
+        if (!tx.acc) return;
+        if (!accountTxMap[tx.acc]) {
+          accountTxMap[tx.acc] = {
+            txs: [],
+            cycleDay: 'last',
+            latestTx: null
+          };
+        }
+        
+        accountTxMap[tx.acc].txs.push(tx);
+        
+        // Update cycleDay from most recent transaction/file metadata
+        // Assuming transactions have 'cycleDay' property from file processing
+        if (!accountTxMap[tx.acc].latestTx || new Date(tx.date) > new Date(accountTxMap[tx.acc].latestTx)) {
+          accountTxMap[tx.acc].latestTx = tx.date;
+          if (tx.cycleDay) {
+            accountTxMap[tx.acc].cycleDay = tx.cycleDay;
+          }
+        }
+      });
+
+      Object.entries(accountTxMap).forEach(([account, { txs, cycleDay }]) => {
+        const missingStatements = [];
+        
+        // Check last 6 cycles backwards from anchor date
+        for (let i = 0; i < 6; i++) {
+          // Determine the target cycle's end date
+          let targetMonth = new Date(anchorDate);
+          targetMonth.setMonth(targetMonth.getMonth() - i);
+          
+          let cycleEnd, cycleStart;
+          
+          if (cycleDay === 'last') {
+            // Standard calendar month
+            cycleEnd = new Date(targetMonth.getFullYear(), targetMonth.getMonth() + 1, 0); // Last day of month
+            cycleStart = new Date(targetMonth.getFullYear(), targetMonth.getMonth(), 1);   // 1st day of month
+          } else {
+            // Custom cycle day (e.g., 25th)
+            const day = parseInt(cycleDay, 10);
+            const daysInMonth = new Date(targetMonth.getFullYear(), targetMonth.getMonth() + 1, 0).getDate();
+            const validDay = Math.min(day, daysInMonth);
+            
+            cycleEnd = new Date(targetMonth.getFullYear(), targetMonth.getMonth(), validDay);
+            
+            // Start date is previous month's cycle day + 1
+            cycleStart = new Date(cycleEnd);
+            cycleStart.setMonth(cycleStart.getMonth() - 1);
+            cycleStart.setDate(cycleStart.getDate() + 1);
+          }
+          
+          // Check if any transaction exists within this specific cycle window
+          // We ignore the loop (i=0) if the cycle is technically in the future relative to the latest transaction
+          // But since anchorDate IS latestTxDate, i=0 is the current active cycle.
+          // We generally only flag missing statements if NO data exists for the WHOLE period.
+          
+          const hasData = txs.some(tx => {
+            const d = new Date(tx.date);
+            return d >= cycleStart && d <= cycleEnd;
+          });
+          
+          if (!hasData) {
+            // Create a label for the missing period
+            const monthName = cycleEnd.toLocaleDateString('en-ZA', { month: 'short', year: 'numeric' });
+            const label = cycleDay === 'last' 
+              ? monthName 
+              : `End ${cycleEnd.getDate()} ${monthName}`;
+              
+            missingStatements.push(label);
+          }
+        }
+        
+        if (missingStatements.length > 0) {
+          alerts.push({
+            id: `missing-${account}`,
+            type: 'critical',
+            icon: Calendar,
+            title: `Missing Statements: ${account}`,
+            msg: `Missing cycles: ${missingStatements.reverse().slice(0, 3).join(', ')}${missingStatements.length > 3 ? '...' : ''}`,
+            value: `${missingStatements.length}`
+          });
+        }
+      });
+    }
 
     // 7. Transaction confirmation status
     const totalTransactions = transactions.length;
@@ -546,7 +598,7 @@ const DashboardView = ({ data, transactions, claims, proofPeriod = '6M' }) => {
     }
 
     return alerts;
-  }, [transactions, claims, proofPeriod]);
+  }, [transactions, claims, proofPeriod, latestTxDate]);
 
   return (
     <div className="p-1.5 overflow-auto h-full custom-scroll bg-slate-50/50">
@@ -562,9 +614,9 @@ const DashboardView = ({ data, transactions, claims, proofPeriod = '6M' }) => {
 
       {hasData && (
         <>
-          <div className="grid grid-cols-4 gap-1.5 mb-1.5">
+          <div className="grid grid-cols-5 gap-1.5 mb-1.5">
             <div className="p-2 rounded-lg border border-slate-100 shadow-sm bg-white border-l-4 border-l-emerald-500">
-              <div className="text-[9px] font-bold text-slate-400 uppercase">Total Income</div>
+              <div className="text-[9px] font-bold text-slate-400 uppercase">Total Income ({proofPeriod})</div>
               <div className="text-lg font-mono font-bold text-emerald-600">
                 {totalIncome.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 })}
               </div>
@@ -573,7 +625,7 @@ const DashboardView = ({ data, transactions, claims, proofPeriod = '6M' }) => {
               </div>
             </div>
             <div className="p-2 rounded-lg border border-slate-100 shadow-sm bg-white border-l-4 border-l-rose-500">
-              <div className="text-[9px] font-bold text-slate-400 uppercase">Total Expenses</div>
+              <div className="text-[9px] font-bold text-slate-400 uppercase">Total Expenses ({proofPeriod})</div>
               <div className="text-lg font-mono font-bold text-rose-600">
                 {totalExpenses.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 })}
               </div>
@@ -582,12 +634,21 @@ const DashboardView = ({ data, transactions, claims, proofPeriod = '6M' }) => {
               </div>
             </div>
             <div className="p-2 rounded-lg border border-slate-100 shadow-sm bg-white border-l-4 border-l-amber-500">
-              <div className="text-[9px] font-bold text-slate-400 uppercase">Total Deficit</div>
+              <div className="text-[9px] font-bold text-slate-400 uppercase">Total Deficit ({proofPeriod})</div>
               <div className={`text-lg font-mono font-bold ${deficit < 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
                 {deficit.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 })}
               </div>
               <div className="text-[9px] text-slate-400">
                 {proofPeriod} period
+              </div>
+            </div>
+             <div className="p-2 rounded-lg border border-slate-100 shadow-sm bg-white border-l-4 border-l-blue-500">
+              <div className="text-[9px] font-bold text-slate-400 uppercase">Active Accounts</div>
+              <div className="text-lg font-mono font-bold text-blue-600">
+                {uniqueAccountCount}
+              </div>
+               <div className="text-[9px] text-slate-400">
+                Imported Sources
               </div>
             </div>
             <div className="p-2 rounded-lg border border-slate-100 shadow-sm bg-white border-l-4 border-l-slate-500">
