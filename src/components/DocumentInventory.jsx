@@ -801,15 +801,17 @@ const DocumentInventory = ({
                     </div>
                     <div className="px-1 py-0.5">
                       <div className="flex flex-col gap-0.5">
-                        <div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full ${traffic.barClass}`}
-                            style={{ width: `${Math.max(0, Math.min(traffic.ratio * 100, 160))}%` }}
+                        {/* Traffic light progress bar: Red → Orange → Yellow → Green */}
+                        <div className="w-full h-1.5 rounded-full overflow-hidden relative bg-gradient-to-r from-rose-500 via-amber-400 via-50% to-emerald-500">
+                          {/* Progress indicator line */}
+                          <div 
+                            className="absolute top-0 bottom-0 w-0.5 bg-slate-900 shadow-sm"
+                            style={{ left: `${Math.max(0, Math.min(traffic.ratio * 100, 100))}%` }}
                           />
                         </div>
                         <div className={`text-[8px] font-semibold flex items-center gap-0.5 ${traffic.colorClass}`}>
                           {traffic.label === 'Verified' && <CheckCheck size={8} />}
-                          {traffic.label}
+                          {traffic.label} ({Math.round(traffic.ratio * 100)}%)
                         </div>
                       </div>
                     </div>
