@@ -110,20 +110,34 @@ const WorkbenchView = ({
   const filteredTx = useMemo(() => {
     let result = filterTransactionsByEntity(transactions, filterEntity, data.accounts);
     result = filterTransactionsByPeriod(result, periodFilter, latestTransactionDate);
-    
-    // Apply description search filter
+
+    // Apply search filter across all columns
     if (descriptionSearch.trim()) {
       const searchLower = descriptionSearch.toLowerCase().trim();
       result = result.filter(tx => {
+        // Search across multiple columns
         const desc = (tx.clean || tx.desc || '').toLowerCase();
-        return desc.includes(searchLower);
+        const category = (tx.cat || 'Uncategorized').toLowerCase();
+        const amount = tx.amount ? Math.abs(tx.amount).toFixed(2) : '0.00';
+        const status = (tx.status || 'pending').toLowerCase();
+        const date = (tx.date || '').toLowerCase();
+        const flagged = tx.flagged ? 'flagged' : '';
+        const txNotes = (notes[tx.id] || '').toLowerCase();
+
+        return desc.includes(searchLower) ||
+               category.includes(searchLower) ||
+               amount.includes(searchLower) ||
+               status.includes(searchLower) ||
+               date.includes(searchLower) ||
+               flagged.includes(searchLower) ||
+               txNotes.includes(searchLower);
       });
     }
-    
+
     // Apply sorting
     const sorted = [...result].sort((a, b) => {
       let aVal, bVal;
-      
+
       switch (sortColumn) {
         case 'date':
           aVal = a.date ? new Date(a.date).getTime() : 0;
@@ -148,14 +162,14 @@ const WorkbenchView = ({
         default:
           return 0;
       }
-      
+
       if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
       if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
       return 0;
     });
-    
+
     return sorted;
-  }, [transactions, filterEntity, periodFilter, data.accounts, latestTransactionDate, sortColumn, sortDirection, descriptionSearch]);
+  }, [transactions, filterEntity, periodFilter, data.accounts, latestTransactionDate, sortColumn, sortDirection, descriptionSearch, notes]);
   const normalizedFocusedCategory = focusedCategory ? focusedCategory.toLowerCase() : null;
   const displayedTx = useMemo(() => {
     if (!normalizedFocusedCategory) return filteredTx;
