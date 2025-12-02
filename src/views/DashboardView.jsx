@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LabelList } from 'recharts';
-import { FileStack, Bell, AlertCircle, AlertTriangle, Flag, HelpCircle, FileQuestion, TrendingDown, Calendar, ArrowLeftRight, Scale, CheckCircle2, XCircle, Building2 } from 'lucide-react';
+import { FileStack, Bell, AlertCircle, AlertTriangle, Flag, HelpCircle, FileQuestion, TrendingDown, Calendar, ArrowLeftRight, Scale, CheckCircle2, XCircle } from 'lucide-react';
 
 // Helper to calculate proven average using same logic as expense progress bars
 const getProvenAvgForMonths = (transactions, category, months, latestTxDate) => {
@@ -203,8 +203,6 @@ const ProofGauge = ({ claims, transactions, proofPeriod = '6M' }) => {
   const radius = 38;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (percentage / 100) * circumference;
-
-  const unprovenBalance = totalClaimed - totalProven;
 
   return (
     <div className="bg-slate-50 rounded-lg p-2 flex flex-col items-center justify-center">
