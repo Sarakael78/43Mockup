@@ -4,6 +4,7 @@
 
 import { FILE_SIZE_LIMIT_BYTES } from './constants';
 import { ensureTransactionEntities } from './transactionUtils';
+import { defaultCategories } from '../config/categories';
 
 /**
  * Export project data to a downloadable file
@@ -114,9 +115,13 @@ export const loadProject = (file, setAppData, setTransactions, setClaims, setCas
         }
       }
       
+      const normalizedCategories = Array.isArray(projectData.categories) && projectData.categories.length > 0
+        ? projectData.categories
+        : defaultCategories;
+
       setAppData({
         accounts: projectData.accounts,
-        categories: Array.isArray(projectData.categories) ? projectData.categories : [],
+        categories: normalizedCategories,
         files: Array.isArray(projectData.files) ? projectData.files : [],
         charts: Array.isArray(projectData.charts) ? projectData.charts : [],
         alerts: Array.isArray(projectData.alerts) ? projectData.alerts : []

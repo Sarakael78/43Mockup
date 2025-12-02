@@ -3,56 +3,80 @@ import { getDefaultCategories } from '../config/categories';
 
 // Map extracted category names to standard categories
 const categoryMap = {
+  'accommodation': 'Accommodation/Rent',
+  'housing': 'Accommodation/Rent',
+  'rent': 'Accommodation/Rent',
+  'rental': 'Accommodation/Rent',
+
   'groceries': 'Groceries/Household',
   'grocery': 'Groceries/Household',
   'household': 'Groceries/Household',
   'food': 'Groceries/Household',
-  
+  'personal care': 'Groceries/Household',
+
+  'dining': 'Dining & Entertainment',
+  'restaurant': 'Dining & Entertainment',
+  'entertainment': 'Entertainment',
+  'recreation': 'Entertainment',
+
   'school fees': 'School Fees',
   'schoolfees': 'School Fees',
   'tuition': 'School Fees',
   'education': 'School Fees',
-  
+
   'medical': 'Medical',
   'health': 'Medical',
   'doctor': 'Medical',
   'pharmacy': 'Medical',
-  
+  'medical aid': 'Medical',
+  'medicalaid': 'Medical',
+
   'utilities': 'Utilities',
+  'utility': 'Utilities',
   'electricity': 'Utilities',
   'water': 'Utilities',
   'municipal': 'Utilities',
-  
+  'communications': 'Utilities',
+  'data': 'Utilities',
+
   'fuel': 'Transport',
   'petrol': 'Transport',
   'diesel': 'Transport',
   'transport': 'Transport',
-  
+  'vehicle': 'Transport',
+
   'insurance': 'Insurance',
   'life insurance': 'Insurance',
-  'medical aid': 'Medical',
-  'medicalaid': 'Medical',
-  
+
   'bond': 'Bond Repayment',
   'bond repayment': 'Bond Repayment',
   'home loan': 'Bond Repayment',
   'mortgage': 'Bond Repayment',
-  
-  'rent': 'Rent',
-  'rental': 'Rent',
-  
+
   'maintenance': 'Maintenance',
   'child maintenance': 'Child Maintenance',
-  
+
   'legal': 'Legal Fees',
   'legal fees': 'Legal Fees',
+  'legal expenses': 'Legal Fees',
   'attorney': 'Legal Fees',
-  
+
   'clothing': 'Clothing',
   'clothes': 'Clothing',
-  
-  'entertainment': 'Entertainment',
-  'recreation': 'Entertainment',
+
+  'bank charges': 'Bank Charges',
+  'charges': 'Bank Charges',
+
+  'cash withdrawal': 'Cash Withdrawals',
+  'cash': 'Cash Withdrawals',
+
+  'inter-account': 'Inter-Account',
+  'transfer': 'Inter-Account',
+
+  'loans': 'Loans/Debt',
+  'debt': 'Loans/Debt',
+
+  'business': 'Business Ops'
 };
 
 // Fuzzy matching for similar category names

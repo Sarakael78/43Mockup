@@ -6,6 +6,8 @@ import DocumentInventory from '../components/DocumentInventory';
 import PDFViewer from '../components/PDFViewer';
 import NoteModal from '../components/NoteModal';
 
+const ENTITY_FILTERS = ['ALL', 'PERSONAL', 'BUSINESS', 'TRUST', 'SPOUSE', 'CREDIT'];
+
 const WorkbenchView = ({ data, transactions, setTransactions, claims, setClaims, notes, setNotes, onError, onDeleteFile }) => {
   const [filterEntity, setFilterEntity] = useState('ALL');
   const [periodFilter, setPeriodFilter] = useState('1M');
@@ -152,7 +154,7 @@ const WorkbenchView = ({ data, transactions, setTransactions, claims, setClaims,
       <div className="bg-white flex flex-col h-full shadow-xl z-20" style={{ width: `${100 - leftPanelWidth}%` }}>
         <div className="h-12 border-b border-slate-200 flex items-center justify-between px-4 shrink-0 bg-slate-50">
           <div className="flex bg-slate-200 p-0.5 rounded-lg">
-            {['ALL', 'PERSONAL', 'BUSINESS', 'TRUST'].map(f => (
+            {ENTITY_FILTERS.map(f => (
               <button 
                 key={f} 
                 type="button"

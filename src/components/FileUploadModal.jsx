@@ -3,6 +3,20 @@ import { UploadCloud, X } from 'lucide-react';
 import { FILE_SIZE_LIMIT_BYTES } from '../utils/constants';
 import FileTriageRow from './FileTriageRow';
 
+const ALLOWED_FILE_EXTENSIONS = ['pdf', 'docx', 'doc', 'csv'];
+const formatList = ALLOWED_FILE_EXTENSIONS.map(ext => ext.toUpperCase()).join(', ');
+
+const getFileExtension = (fileName) => {
+  if (!fileName || typeof fileName !== 'string') return '';
+  const parts = fileName.split('.');
+  return parts.length > 1 ? parts.pop().toLowerCase() : '';
+};
+
+const isSupportedExtension = (fileName) => {
+  const ext = getFileExtension(fileName);
+  return ALLOWED_FILE_EXTENSIONS.includes(ext);
+};
+
 const FileUploadModal = ({ isOpen, onClose, onUpload, showToast }) => {
   const [dragActive, setDragActive] = useState(false);
   const [files, setFiles] = useState([]);
@@ -26,7 +40,8 @@ const FileUploadModal = ({ isOpen, onClose, onUpload, showToast }) => {
     
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const allFiles = Array.from(e.dataTransfer.files);
-      const rejectedFiles = [];
+      const rejectedBySize = [];
+      const rejectedByType = [];
       const newFiles = allFiles.filter(file => {
         // Validate file has required properties
         if (!file || !file.name) {
@@ -35,15 +50,23 @@ const FileUploadModal = ({ isOpen, onClose, onUpload, showToast }) => {
           }
           return false;
         }
+        if (!isSupportedExtension(file.name)) {
+          rejectedByType.push(file.name);
+          return false;
+        }
         if (file.size > FILE_SIZE_LIMIT_BYTES) {
-          rejectedFiles.push(file.name);
+          rejectedBySize.push(file.name);
           return false;
         }
         return true;
       });
       
-      if (rejectedFiles.length > 0 && showToast) {
-        showToast(`${rejectedFiles.length} file(s) rejected: exceeds ${FILE_SIZE_LIMIT_BYTES / 1024 / 1024}MB limit. ${rejectedFiles.slice(0, 3).join(', ')}${rejectedFiles.length > 3 ? '...' : ''}`, 'warning');
+      if (rejectedByType.length > 0 && showToast) {
+        showToast(`${rejectedByType.length} file(s) rejected: unsupported type. Allowed: ${formatList}.`, 'warning');
+      }
+
+      if (rejectedBySize.length > 0 && showToast) {
+        showToast(`${rejectedBySize.length} file(s) rejected: exceeds ${FILE_SIZE_LIMIT_BYTES / 1024 / 1024}MB limit. ${rejectedBySize.slice(0, 3).join(', ')}${rejectedBySize.length > 3 ? '...' : ''}`, 'warning');
       }
       
       setFiles(prev => [...prev, ...newFiles]);
@@ -53,7 +76,8 @@ const FileUploadModal = ({ isOpen, onClose, onUpload, showToast }) => {
   const handleFileInput = (e) => {
     if (e.target.files && e.target.files.length > 0) {
       const allFiles = Array.from(e.target.files);
-      const rejectedFiles = [];
+      const rejectedBySize = [];
+      const rejectedByType = [];
       const newFiles = allFiles.filter(file => {
         // Validate file has required properties
         if (!file || !file.name) {
@@ -62,15 +86,23 @@ const FileUploadModal = ({ isOpen, onClose, onUpload, showToast }) => {
           }
           return false;
         }
+        if (!isSupportedExtension(file.name)) {
+          rejectedByType.push(file.name);
+          return false;
+        }
         if (file.size > FILE_SIZE_LIMIT_BYTES) {
-          rejectedFiles.push(file.name);
+          rejectedBySize.push(file.name);
           return false;
         }
         return true;
       });
       
-      if (rejectedFiles.length > 0 && showToast) {
-        showToast(`${rejectedFiles.length} file(s) rejected: exceeds ${FILE_SIZE_LIMIT_BYTES / 1024 / 1024}MB limit. ${rejectedFiles.slice(0, 3).join(', ')}${rejectedFiles.length > 3 ? '...' : ''}`, 'warning');
+      if (rejectedByType.length > 0 && showToast) {
+        showToast(`${rejectedByType.length} file(s) rejected: unsupported type. Allowed: ${formatList}.`, 'warning');
+      }
+
+      if (rejectedBySize.length > 0 && showToast) {
+        showToast(`${rejectedBySize.length} file(s) rejected: exceeds ${FILE_SIZE_LIMIT_BYTES / 1024 / 1024}MB limit. ${rejectedBySize.slice(0, 3).join(', ')}${rejectedBySize.length > 3 ? '...' : ''}`, 'warning');
       }
       
       setFiles(prev => [...prev, ...newFiles]);
@@ -158,7 +190,9 @@ const FileUploadModal = ({ isOpen, onClose, onUpload, showToast }) => {
           >
             <UploadCloud className="mx-auto mb-4 text-slate-400" size={48} />
             <p className="text-sm font-semibold text-slate-700 mb-2">Drop files here or click to browse</p>
-            <p className="text-xs text-slate-500 mb-4">Bank Statements, Financial Affidavits, PDFs, DOCX (Max 10MB per file)</p>
+            <p className="text-xs text-slate-500 mb-4">
+              Supported: {formatList.replace(/,/g, ', ')} • Max {(FILE_SIZE_LIMIT_BYTES / 1024 / 1024)}MB per file
+            </p>
             <button
               onClick={() => fileInputRef.current?.click()}
               className="px-4 py-2 bg-blue-600 text-white text-sm font-bold rounded-md hover:bg-blue-500 transition-colors"
@@ -171,7 +205,7 @@ const FileUploadModal = ({ isOpen, onClose, onUpload, showToast }) => {
               multiple
               className="hidden"
               onChange={handleFileInput}
-              accept=".pdf,.docx,.doc,.csv,.xlsx,.xls"
+              accept=".pdf,.docx,.doc,.csv"
             />
           </div>
 

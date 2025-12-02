@@ -3,6 +3,12 @@
  * Used across fileProcessors and documentParsers to avoid duplication
  */
 
+const isBlobLike = (file) =>
+  file &&
+  typeof file === 'object' &&
+  typeof file.slice === 'function' &&
+  typeof file.size === 'number';
+
 /**
  * Read a file as text
  * @param {File|Blob} file - File or Blob object to read
@@ -11,14 +17,13 @@
  */
 export const readFileAsText = (file) => {
   return new Promise((resolve, reject) => {
-    // Ensure file is a Blob/File object by checking for Blob methods
-    if (!file || typeof file.slice !== 'function' || typeof file.stream !== 'function') {
+    if (!isBlobLike(file)) {
       reject(new Error('Invalid file object: expected Blob or File'));
       return;
     }
     const reader = new FileReader();
     reader.onload = (e) => resolve(e.target.result);
-    reader.onerror = (e) => reject(new Error('Failed to read file'));
+    reader.onerror = () => reject(new Error('Failed to read file'));
     reader.readAsText(file);
   });
 };
@@ -31,14 +36,13 @@ export const readFileAsText = (file) => {
  */
 export const readFileAsArrayBuffer = (file) => {
   return new Promise((resolve, reject) => {
-    // Ensure file is a Blob/File object by checking for Blob methods
-    if (!file || typeof file.slice !== 'function' || typeof file.stream !== 'function') {
+    if (!isBlobLike(file)) {
       reject(new Error('Invalid file object: expected Blob or File'));
       return;
     }
     const reader = new FileReader();
     reader.onload = (e) => resolve(e.target.result);
-    reader.onerror = (e) => reject(new Error('Failed to read file'));
+    reader.onerror = () => reject(new Error('Failed to read file'));
     reader.readAsArrayBuffer(file);
   });
 };

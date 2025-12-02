@@ -44,10 +44,9 @@ export const createClaimsImportHandler = (setClaims, onError) => {
       // Add to claims state
       if (setClaims) {
         setClaims(prev => {
-          // Check for duplicates and merge or add
-          const existingCategories = new Set(prev.map(c => c.category.toLowerCase()));
-          const newClaims = parsedClaims.filter(c => !existingCategories.has(c.category.toLowerCase()));
-          return [...prev, ...newClaims];
+          const existingIds = new Set(prev.map(c => c.id));
+          const uniqueClaims = parsedClaims.filter(c => !existingIds.has(c.id));
+          return [...prev, ...uniqueClaims];
         });
       }
 

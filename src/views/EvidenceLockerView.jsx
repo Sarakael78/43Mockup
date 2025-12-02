@@ -4,6 +4,8 @@ import { createClaimsImportHandler } from '../utils/claimsImport';
 import DocumentInventory from '../components/DocumentInventory';
 import PDFViewer from '../components/PDFViewer';
 
+const ENTITY_FILTERS = ['ALL', 'PERSONAL', 'BUSINESS', 'TRUST', 'SPOUSE', 'CREDIT'];
+
 const EvidenceLockerView = ({ transactions, claims, files, accounts, onError, setClaims, onDeleteFile }) => {
   const [filterEntity, setFilterEntity] = useState('ALL');
   const [periodFilter, setPeriodFilter] = useState('3M');
@@ -25,7 +27,7 @@ const EvidenceLockerView = ({ transactions, claims, files, accounts, onError, se
         </div>
         <div className="flex items-center gap-3">
           <div className="flex bg-slate-200 p-0.5 rounded-lg">
-            {['ALL', 'PERSONAL', 'BUSINESS', 'TRUST'].map((f) => (
+            {ENTITY_FILTERS.map((f) => (
               <button 
                 key={f} 
                 type="button"

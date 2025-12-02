@@ -208,17 +208,13 @@ export const processFinancialAffidavit = async (file, fileId = null) => {
           const amount = parseFloat(amountStr.replace(/[R,\s]/g, '')) || 0;
 
           if (amount > 0) {
-            // Check for duplicates (same category)
-            const existing = claims.find(c => c.category.toLowerCase() === categoryStr.toLowerCase());
-            if (!existing) {
-              claims.push({
-                id: generateId(),
-                category: categoryStr,
-                claimed: amount,
-                desc: descStr,
-                fileId: fileId || null
-              });
-            }
+            claims.push({
+              id: generateId(),
+              category: categoryStr,
+              claimed: amount,
+              desc: descStr,
+              fileId: fileId || null
+            });
           }
         });
 
@@ -272,17 +268,13 @@ export const processFinancialAffidavit = async (file, fileId = null) => {
         if (amountMatch && currentCategory) {
           const amount = parseFloat(amountMatch[1].replace(/,/g, '')) || 0;
           if (amount > 0) {
-            // Check if we already have this category
-            const existing = claims.find(c => c.category === currentCategory);
-            if (!existing) {
-              claims.push({
-                id: generateId(),
-                category: currentCategory,
-                claimed: amount,
-                desc: '',
-                fileId: fileId || null
-              });
-            }
+            claims.push({
+              id: generateId(),
+              category: currentCategory,
+              claimed: amount,
+              desc: '',
+              fileId: fileId || null
+            });
           }
         }
       });

@@ -37,11 +37,11 @@ Open the URL shown by Vite (typically `http://localhost:5173`) in your browser.
 ## Workspace modes & UX highlights
 
 - **Dashboard** — KPI cards, six-month Recharts trend, and forensic alerts for lightning-fast case triage. Includes "Open Case" button to load saved projects.
-- **Workbench** — Split-pane forensic workbench with the transaction grid (category dropdowns, evidence badges, sticky notes) on the right and the Evidence Locker/PDF viewer on the left. Global entity + time filters drive the dynamic averaging engine (1M/3M/6M scopes) that powers the traffic-light schedule.
+- **Workbench** — Split-pane forensic workbench with the transaction grid (category dropdowns, evidence badges, sticky notes) on the right and the Evidence Locker/PDF viewer on the left. Global entity + time filters (Personal, Business, Trust, Spouse, Credit) drive the dynamic averaging engine (1M/3M/6M scopes) that powers the traffic-light schedule.
 - **Evidence Locker** — Focus view for source documents; switch entities to open the PDF viewer with real PDF rendering, or stay in `ALL` to work the Claimed vs. Proven schedule with Manual / Import / Auto-Calc entry modes.
 - **Traffic-light schedule** — Claimed vs. Proven table implements the Rule 43 "Golden Thread": shortfalls glow rose, inflations blue, verified rows render black with a double-check icon, and progress bars visualize ratios.
 - **Evidence status badges** — Every transaction row exposes its evidence state (`proven`, `flagged`, etc.) so updates immediately ripple back into the Golden Thread schedule.
-- **File Upload** — Modal dialog with drag-and-drop support for uploading bank statements and financial affidavits. Includes triage step for file classification (Type, Entity, Parser).
+- **File Upload** — Modal dialog with drag-and-drop support for uploading bank statements and financial affidavits. Includes triage step for file classification (Type, Entity, Parser) and enforces supported formats (PDF, DOCX/DOC, CSV) to prevent unsupported Excel uploads from getting stuck downstream.
 - **Project Persistence** — Save projects as `.r43` files and load them back. Auto-save to localStorage with visual feedback. Editable case name in the top bar. Start a new case from scratch with the "New Case" button.
 - **Sticky Notes** — Add annotations to individual transactions with a modal editor. Notes are persisted with the project.
 - **Import Mode** — Parse annexures (DOCX/PDF) directly into the schedule. Automatically extracts claimed expenses from financial affidavits.
@@ -95,6 +95,7 @@ Deploy the contents of `dist/` to any static host (Netlify, S3, GitHub Pages, ng
 - File processing: CSV, PDF, and DOCX files can be parsed and processed for bank statements and financial affidavits.
 - CSV import: Supports importing transaction categories and sub-categories from CSV files. CSV parsers automatically detect category columns (case-insensitive: "category", "cat", "categories", etc.) and sub-category columns ("subcategory", "sub-category", "subcat", etc.). Categories and sub-categories are sanitized to prevent CSV injection attacks. Sub-categories are stored but not currently displayed in the UI.
 - Security: CSV files are limited to 100,000 rows to prevent DoS attacks. File size limits (10MB) are enforced with user feedback.
+- Default categories (`src/config/categories.json`) mirror the parser output vocabulary (Accommodation/Rent, Groceries/Household, Dining & Entertainment, etc.) so dropdowns and imported claims stay in sync.
 - PDF viewer: Real PDF rendering using react-pdf with page navigation and zoom controls.
 - Document import: DOCX and PDF documents can be parsed to extract claimed expenses automatically.
 - Project persistence: Projects can be saved as `.r43` files and loaded back. Notes are included in project exports. Auto-save to localStorage with visual feedback.
