@@ -60,7 +60,8 @@ const DocumentInventory = ({
   showFilesPanel = true,
   showHeader = true,
   showManualEntry = true,
-  showClaimsTable = true
+  showClaimsTable = true,
+  proofPeriod = '6M'
 }) => {
   const [entryMode, setEntryMode] = useState('manual');
   const [dragState, setDragState] = useState(null);
@@ -793,7 +794,9 @@ const DocumentInventory = ({
                 const proven3m = getProvenAvg3M(claim.category);
                 const proven6m = getProvenAvg6M(claim.category);
                 const total = getProvenTotal(claim.category);
-                const traffic = getTrafficLight(proven6m, claim.claimed); // Use 6M average for status
+                // Use proofPeriod setting (3M or 6M) for status calculation
+                const provenForStatus = proofPeriod === '3M' ? proven3m : proven6m;
+                const traffic = getTrafficLight(provenForStatus, claim.claimed);
                 const isEditing = editingClaimId === claim.id;
                 const canEdit = claim.source === 'manual' && Boolean(onUpdateClaim);
                 const canMoveUp = Boolean(onReorderClaim) && index > 0;

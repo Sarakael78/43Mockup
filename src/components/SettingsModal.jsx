@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Settings, X, Type, Maximize2 } from 'lucide-react';
+import { Settings, X, Type, Maximize2, Calendar } from 'lucide-react';
 
 const FONT_SIZES = [
   { value: 'micro', label: 'Micro', scale: 0.65 },
@@ -46,8 +46,14 @@ const SettingsModal = ({ isOpen, onClose, settings, onSettingsChange }) => {
     onSettingsChange(newSettings);
   };
 
+  const handleProofPeriodChange = (value) => {
+    const newSettings = { ...localSettings, proofPeriod: value };
+    setLocalSettings(newSettings);
+    onSettingsChange(newSettings);
+  };
+
   const handleReset = () => {
-    const defaultSettings = { fontSize: 'md', density: 'compact' };
+    const defaultSettings = { fontSize: 'md', density: 'compact', proofPeriod: '6M' };
     setLocalSettings(defaultSettings);
     onSettingsChange(defaultSettings);
   };
@@ -124,6 +130,41 @@ const SettingsModal = ({ isOpen, onClose, settings, onSettingsChange }) => {
                 />
               </div>
               <span>More space</span>
+            </div>
+          </div>
+
+          {/* Proof Period Setting */}
+          <div>
+            <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700 uppercase mb-2">
+              <Calendar size={12} />
+              Proof Period
+            </label>
+            <div className="grid grid-cols-2 gap-1">
+              <button
+                onClick={() => handleProofPeriodChange('3M')}
+                className={`px-3 py-2 text-[10px] font-bold rounded transition-all ${
+                  (localSettings.proofPeriod || '6M') === '3M'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+                title="Use 3-month average to determine if claim is proven"
+              >
+                3 Months
+              </button>
+              <button
+                onClick={() => handleProofPeriodChange('6M')}
+                className={`px-3 py-2 text-[10px] font-bold rounded transition-all ${
+                  (localSettings.proofPeriod || '6M') === '6M'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+                title="Use 6-month average to determine if claim is proven"
+              >
+                6 Months
+              </button>
+            </div>
+            <div className="mt-1.5 text-[10px] text-slate-500">
+              Determines the period used to calculate proven averages for expense verification
             </div>
           </div>
 

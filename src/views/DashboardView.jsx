@@ -23,7 +23,8 @@ const getProvenAvgForMonths = (transactions, category, months, latestTxDate) => 
 };
 
 // Claims Comparison Chart - shows claimed vs proven for each category
-const ClaimsComparisonChart = ({ claims, transactions }) => {
+const ClaimsComparisonChart = ({ claims, transactions, proofPeriod = '6M' }) => {
+  const proofMonths = proofPeriod === '3M' ? 3 : 6;
   const chartData = useMemo(() => {
     if (!claims || claims.length === 0) return [];
     
@@ -38,7 +39,7 @@ const ClaimsComparisonChart = ({ claims, transactions }) => {
     
     return claims
       .map(claim => {
-        const provenAvg = getProvenAvgForMonths(transactions, claim.category, 6, latestTxDate);
+        const provenAvg = getProvenAvgForMonths(transactions, claim.category, proofMonths, latestTxDate);
         const pct = claim.claimed > 0 ? Math.round((provenAvg / claim.claimed) * 100) : 0;
         
         // Calculate color based on percentage (0-100 maps to hue 0-90)
@@ -57,7 +58,7 @@ const ClaimsComparisonChart = ({ claims, transactions }) => {
       })
       .filter(d => d.claimed > 0)
       .sort((a, b) => b.claimed - a.claimed);
-  }, [claims, transactions]);
+  }, [claims, transactions, proofMonths]);
 
   if (chartData.length === 0) {
     return (
@@ -85,7 +86,7 @@ const ClaimsComparisonChart = ({ claims, transactions }) => {
         )}
         {provenEntry && (
           <p className="text-slate-600">
-            <span className="font-semibold">Proven (6M Avg):</span>{' '}
+            <span className="font-semibold">Proven ({proofPeriod} Avg):</span>{' '}
             <span style={{ color: data.barColor, fontWeight: 'bold' }}>
               R {provenEntry.value.toLocaleString()}
             </span>
@@ -121,7 +122,8 @@ const ClaimsComparisonChart = ({ claims, transactions }) => {
 };
 
 // Proof Gauge - circular gauge showing overall proof percentage
-const ProofGauge = ({ claims, transactions }) => {
+const ProofGauge = ({ claims, transactions, proofPeriod = '6M' }) => {
+  const proofMonths = proofPeriod === '3M' ? 3 : 6;
   const { totalClaimed, totalProven, percentage } = useMemo(() => {
     const totalClaimed = claims.reduce((sum, c) => sum + (c.claimed || 0), 0);
     
@@ -136,12 +138,12 @@ const ProofGauge = ({ claims, transactions }) => {
     
     let totalProven = 0;
     claims.forEach(claim => {
-      totalProven += getProvenAvgForMonths(transactions, claim.category, 6, latestTxDate);
+      totalProven += getProvenAvgForMonths(transactions, claim.category, proofMonths, latestTxDate);
     });
     
     const percentage = totalClaimed > 0 ? Math.round((totalProven / totalClaimed) * 100) : 0;
     return { totalClaimed, totalProven: Math.round(totalProven), percentage: Math.min(percentage, 100) };
-  }, [claims, transactions]);
+  }, [claims, transactions, proofMonths]);
 
   // Calculate color based on percentage (0-100 maps to hue 0-90)
   const hue = (percentage / 100) * 90;
@@ -191,7 +193,8 @@ const ProofGauge = ({ claims, transactions }) => {
 };
 
 // Category Breakdown - shows proven vs unproven categories
-const CategoryBreakdown = ({ claims, transactions }) => {
+const CategoryBreakdown = ({ claims, transactions, proofPeriod = '6M' }) => {
+  const proofMonths = proofPeriod === '3M' ? 3 : 6;
   const { proven, partial, unproven } = useMemo(() => {
     let proven = 0, partial = 0, unproven = 0;
     
@@ -206,7 +209,7 @@ const CategoryBreakdown = ({ claims, transactions }) => {
     
     claims.forEach(claim => {
       if (!claim.claimed) return;
-      const provenAvg = getProvenAvgForMonths(transactions, claim.category, 6, latestTxDate);
+      const provenAvg = getProvenAvgForMonths(transactions, claim.category, proofMonths, latestTxDate);
       const pct = provenAvg / claim.claimed;
       
       if (pct >= 0.95) proven++;
@@ -215,7 +218,7 @@ const CategoryBreakdown = ({ claims, transactions }) => {
     });
     
     return { proven, partial, unproven };
-  }, [claims, transactions]);
+  }, [claims, transactions, proofMonths]);
 
   const total = proven + partial + unproven;
   if (total === 0) return null;
@@ -266,7 +269,7 @@ const CategoryBreakdown = ({ claims, transactions }) => {
   );
 };
 
-const DashboardView = ({ data, transactions, claims }) => {
+const DashboardView = ({ data, transactions, claims, proofPeriod = '6M' }) => {
   // Calculate KPIs from actual data
   const totalIncome = transactions
     .filter(tx => tx && tx.amount > 0)
@@ -288,7 +291,7 @@ const DashboardView = ({ data, transactions, claims }) => {
     const alerts = [];
     
     // 1. Expenses not fully proven (claimed > proven) - TOP PRIORITY (RED)
-    // Find latest transaction date for proper 6-month calculation
+    // Find latest transaction date for proper calculation
     const latestTxDate = transactions.length > 0
       ? transactions.reduce((latest, tx) => {
           if (!tx.date) return latest;
@@ -297,9 +300,10 @@ const DashboardView = ({ data, transactions, claims }) => {
         }, null)
       : null;
     
+    const proofMonths = (proofPeriod || '6M') === '3M' ? 3 : 6;
     const unprovenExpenses = claims.filter(claim => {
       if (!claim.claimed || claim.claimed <= 0) return false;
-      const provenAvg = getProvenAvgForMonths(transactions, claim.category, 6, latestTxDate);
+      const provenAvg = getProvenAvgForMonths(transactions, claim.category, proofMonths, latestTxDate);
       return provenAvg < claim.claimed * 0.95; // Less than 95% proven
     });
     if (unprovenExpenses.length > 0) {
@@ -428,7 +432,7 @@ const DashboardView = ({ data, transactions, claims }) => {
     });
     
     return alerts;
-  }, [transactions, claims]);
+  }, [transactions, claims, proofPeriod]);
 
   return (
     <div className="p-1.5 overflow-auto h-full custom-scroll bg-slate-50/50">
@@ -497,13 +501,13 @@ const DashboardView = ({ data, transactions, claims }) => {
             <div className="flex-1 w-full min-h-0 flex gap-2">
               {/* Left: Claims vs Proven horizontal bar chart */}
               <div className="flex-1 flex flex-col">
-                <ClaimsComparisonChart claims={claims} transactions={transactions} />
+                <ClaimsComparisonChart claims={claims} transactions={transactions} proofPeriod={proofPeriod} />
               </div>
               
               {/* Right: Proof Status Gauge + Category Breakdown */}
               <div className="w-48 flex flex-col gap-2">
-                <ProofGauge claims={claims} transactions={transactions} />
-                <CategoryBreakdown claims={claims} transactions={transactions} />
+                <ProofGauge claims={claims} transactions={transactions} proofPeriod={proofPeriod} />
+                <CategoryBreakdown claims={claims} transactions={transactions} proofPeriod={proofPeriod} />
               </div>
             </div>
           </div>

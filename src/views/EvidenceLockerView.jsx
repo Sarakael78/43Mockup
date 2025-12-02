@@ -27,7 +27,8 @@ const EvidenceLockerView = ({
   setCategories,
   categories = [],
   inventoryPanelHeights = DEFAULT_INVENTORY_PANEL_HEIGHTS,
-  onInventoryPanelHeightsChange
+  onInventoryPanelHeightsChange,
+  proofPeriod = '6M'
 }) => {
   const [filterEntity, setFilterEntity] = useState('ALL');
   const [periodFilter, setPeriodFilter] = useState('3M');
@@ -90,6 +91,7 @@ const EvidenceLockerView = ({
               panelHeights={inventoryPanelHeights}
               onPanelHeightsChange={onInventoryPanelHeightsChange}
               showClaimsTable={false}
+              proofPeriod={proofPeriod}
             />
           )
           : <PDFViewer entity={filterEntity} transactions={transactions} activeTxId={null} files={files} accounts={accounts} setClaims={setClaims} />

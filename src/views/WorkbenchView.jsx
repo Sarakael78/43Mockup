@@ -57,7 +57,8 @@ const WorkbenchView = ({
   leftPanelWidth = 50,
   onLeftPanelWidthChange,
   rightPanelHeights = DEFAULT_RIGHT_PANEL_HEIGHTS,
-  onRightPanelHeightsChange
+  onRightPanelHeightsChange,
+  proofPeriod = '6M'
 }) => {
   const [filterEntity, setFilterEntity] = useState('ALL');
   const [periodFilter, setPeriodFilter] = useState('1M');
@@ -454,6 +455,7 @@ const WorkbenchView = ({
               showFilesPanel={false}
               showHeader={false}
               showManualEntry={false}
+              proofPeriod={proofPeriod}
             />
           )
           : <PDFViewer entity={filterEntity} transactions={transactions} activeTxId={null} files={data.files} accounts={data.accounts} setClaims={setClaims} />

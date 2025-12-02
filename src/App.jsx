@@ -17,7 +17,8 @@ import EvidenceLockerView from './views/EvidenceLockerView';
 
 const DEFAULT_DISPLAY_SETTINGS = {
   fontSize: 'md',
-  density: 'compact'
+  density: 'compact',
+  proofPeriod: '6M'
 };
 
 const DEFAULT_LAYOUT = {
@@ -671,7 +672,7 @@ const App = () => {
           onOpenSettings={() => setSettingsModal(true)}
         />
         <div className="flex-1 min-h-0 relative">
-          {view === 'dashboard' && <DashboardView data={appData} transactions={transactions} claims={claims} />}
+          {view === 'dashboard' && <DashboardView data={appData} transactions={transactions} claims={claims} proofPeriod={displaySettings.proofPeriod || '6M'} />}
           {view === 'workbench' && (
             <WorkbenchView
               data={appData}
@@ -696,6 +697,7 @@ const App = () => {
               onLeftPanelWidthChange={handleLeftPanelWidthChange}
               rightPanelHeights={rightPanelHeights}
               onRightPanelHeightsChange={handleRightPanelHeightsChange}
+              proofPeriod={displaySettings.proofPeriod || '6M'}
             />
           )}
           {view === 'evidence' && (
@@ -716,6 +718,7 @@ const App = () => {
               categories={appData.categories || []}
               inventoryPanelHeights={inventoryPanelHeights}
               onInventoryPanelHeightsChange={handleInventoryPanelHeightsChange}
+              proofPeriod={displaySettings.proofPeriod || '6M'}
             />
           )}
         </div>
