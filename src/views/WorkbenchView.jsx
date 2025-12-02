@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { ArrowUp, ArrowDown, ArrowUpDown, StickyNote } from 'lucide-react';
+import { ArrowUp, ArrowDown, ArrowUpDown, StickyNote, Flag } from 'lucide-react';
 import { getLatestTransactionDate, filterTransactionsByEntity, filterTransactionsByPeriod, getPeriodMonthsMap } from '../utils/transactionFilters';
 import { createClaimsImportHandler } from '../utils/claimsImport';
 import DocumentInventory from '../components/DocumentInventory';
@@ -31,6 +31,7 @@ const DEFAULT_TX_COLUMN_WIDTHS = {
   category: 100,
   amount: 80,
   evidence: 75,
+  flag: 24,
   notes: 24
 };
 
@@ -234,6 +235,12 @@ const WorkbenchView = ({
     setNoteModal({ isOpen: true, transaction: tx });
   };
 
+  const handleToggleFlag = (txId) => {
+    setTransactions(prev => prev.map(tx => 
+      tx.id === txId ? { ...tx, flagged: !tx.flagged } : tx
+    ));
+  };
+
   const handleNoteSave = (txId, noteText) => {
     setNotes(prev => {
       const updated = { ...prev };
@@ -405,7 +412,7 @@ const WorkbenchView = ({
   }, [colResizeState]);
 
   // Generate grid template from column widths
-  const txGridTemplate = `${txColumnWidths.checkbox}px ${txColumnWidths.date}px 1fr ${txColumnWidths.category}px ${txColumnWidths.amount}px ${txColumnWidths.evidence}px ${txColumnWidths.notes}px`;
+  const txGridTemplate = `${txColumnWidths.checkbox}px ${txColumnWidths.date}px 1fr ${txColumnWidths.category}px ${txColumnWidths.amount}px ${txColumnWidths.evidence}px ${txColumnWidths.flag}px ${txColumnWidths.notes}px`;
 
   return (
     <div ref={containerRef} className="flex flex-1 h-full overflow-hidden relative">
@@ -630,6 +637,9 @@ const WorkbenchView = ({
                     onMouseDown={(e) => handleColResizeStart('evidence', e)}
                   />
                 </div>
+                <div className="text-center text-[7px]" title="Flag suspicious transactions">
+                  <Flag size={10} className="inline-block text-slate-400" />
+                </div>
                 <div className="text-center text-[7px]"></div>
               </div>
               {displayedTx.length === 0 ? (
@@ -653,7 +663,7 @@ const WorkbenchView = ({
                   return (
                     <div 
                       key={tx.id} 
-                      className={`transaction-row grid border-b border-slate-100 py-0.5 px-1 text-[9px] items-center group transition-colors cursor-pointer ${isSelected ? 'bg-amber-100 hover:bg-amber-150' : 'hover:bg-amber-50'}`} 
+                      className={`transaction-row grid border-b py-0.5 px-1 text-[9px] items-center group transition-colors cursor-pointer ${tx.flagged ? 'bg-rose-50 border-rose-200' : 'border-slate-100'} ${isSelected ? 'bg-amber-100 hover:bg-amber-150' : tx.flagged ? 'hover:bg-rose-100' : 'hover:bg-amber-50'}`} 
                       style={{ gridTemplateColumns: txGridTemplate }}
                       onClick={(e) => {
                         // Don't trigger selection when clicking on interactive elements
@@ -703,6 +713,15 @@ const WorkbenchView = ({
                             {statusLabel}
                           </span>
                         )}
+                      </div>
+                      <div className="text-center">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleToggleFlag(tx.id); }}
+                          className={`transition-colors ${tx.flagged ? 'text-rose-500' : 'text-slate-300 opacity-0 group-hover:opacity-100 hover:text-rose-400'}`}
+                          title={tx.flagged ? 'Remove flag' : 'Flag as suspicious'}
+                        >
+                          <Flag size={12} fill={tx.flagged ? 'currentColor' : 'none'} />
+                        </button>
                       </div>
                       <div className="text-center opacity-0 group-hover:opacity-100 transition-opacity relative">
                         <button
