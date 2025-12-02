@@ -19,6 +19,7 @@ const EvidenceLockerView = ({
   onError,
   setClaims,
   onDeleteFile,
+  onUpdateFile,
   onAddClaim,
   onDeleteClaim,
   onUpdateClaim,
@@ -88,6 +89,7 @@ const EvidenceLockerView = ({
               onReorderClaim={onReorderClaim}
               onCreateCategory={onCreateCategory}
               onDeleteFile={onDeleteFile}
+              onUpdateFile={onUpdateFile}
               panelHeights={inventoryPanelHeights}
               onPanelHeightsChange={onInventoryPanelHeightsChange}
               showClaimsTable={false}

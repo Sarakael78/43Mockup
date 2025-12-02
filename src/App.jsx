@@ -325,6 +325,25 @@ const App = () => {
 
     // Remove all transactions associated with this file
     setTransactions(prev => prev.filter(tx => tx.fileId !== fileId));
+  };
+
+  const handleUpdateFile = (fileId, updates) => {
+    if (!fileId || !updates) return;
+
+    // Update the file in appData
+    setAppData(prev => ({
+      ...prev,
+      files: (prev.files || []).map(f =>
+        f.id === fileId ? { ...f, ...updates } : f
+      )
+    }));
+
+    // If cycleDay is being updated, also update transactions with the new cycleDay
+    if (updates.cycleDay !== undefined) {
+      setTransactions(prev => prev.map(tx =>
+        tx.fileId === fileId ? { ...tx, cycleDay: updates.cycleDay } : tx
+      ));
+    }
 
     // Remove all claims associated with this file
     setClaims(prev => prev.filter(claim => claim.fileId !== fileId));
@@ -733,6 +752,7 @@ const App = () => {
               onError={(err) => showToast(err.message, err.type || 'error')}
               setClaims={setClaims}
               onDeleteFile={handleDeleteFile}
+              onUpdateFile={handleUpdateFile}
               onAddClaim={handleAddManualClaim}
               onDeleteClaim={handleDeleteClaim}
               onUpdateClaim={handleUpdateClaim}

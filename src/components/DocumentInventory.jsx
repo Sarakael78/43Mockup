@@ -53,6 +53,7 @@ const DocumentInventory = ({
   onReorderClaim,
   onCreateCategory,
   onDeleteFile,
+  onUpdateFile,
   panelHeights = DEFAULT_PANEL_HEIGHTS,
   onPanelHeightsChange,
   focusedCategory = null,
@@ -82,6 +83,8 @@ const DocumentInventory = ({
   const [editingError, setEditingError] = useState('');
   const [newCategoryName, setNewCategoryName] = useState('');
   const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
+  const [editingCycleDay, setEditingCycleDay] = useState(null);
+  const [cycleDayValue, setCycleDayValue] = useState('');
   const categoryListId = `${useId()}-claim-categories`;
   const fileInputRef = useRef(null);
   const containerRef = useRef(null);
@@ -541,11 +544,53 @@ const DocumentInventory = ({
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
                           <span className={`text-[8px] px-0.5 py-0 rounded font-bold uppercase ${file.entity === 'LEGAL' ? 'bg-purple-50 text-purple-700' : 'bg-slate-100 text-slate-500'}`}>{file.entity || 'UNK'}</span>
-                          <span className="text-[8px] px-0.5 py-0 rounded font-medium bg-amber-50 text-amber-700" title="Statement cycle day">
-                            {file.cycleDay === 'last' ? 'Last' :
-                             file.cycleDay ? `${file.cycleDay}${getOrdinalSuffix(parseInt(file.cycleDay))}` :
-                             'Unknown'}
-                          </span>
+                          {editingCycleDay === file.id ? (
+                            <div className="flex items-center gap-1">
+                              <select
+                                value={cycleDayValue}
+                                onChange={(e) => setCycleDayValue(e.target.value)}
+                                onBlur={() => {
+                                  if (onUpdateFile && cycleDayValue !== (file.cycleDay || '')) {
+                                    onUpdateFile(file.id, { cycleDay: cycleDayValue || null });
+                                  }
+                                  setEditingCycleDay(null);
+                                  setCycleDayValue('');
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    if (onUpdateFile && cycleDayValue !== (file.cycleDay || '')) {
+                                      onUpdateFile(file.id, { cycleDay: cycleDayValue || null });
+                                    }
+                                    setEditingCycleDay(null);
+                                    setCycleDayValue('');
+                                  } else if (e.key === 'Escape') {
+                                    setEditingCycleDay(null);
+                                    setCycleDayValue('');
+                                  }
+                                }}
+                                className="text-[8px] px-0.5 py-0 rounded font-medium bg-white border border-amber-300 text-amber-700 focus:outline-none focus:ring-1 focus:ring-amber-400"
+                                autoFocus
+                              >
+                                <option value="last">Last day</option>
+                                {[...Array(31)].map((_, i) => (
+                                  <option key={i + 1} value={i + 1}>{i + 1}{getOrdinalSuffix(i + 1)}</option>
+                                ))}
+                              </select>
+                            </div>
+                          ) : (
+                            <span
+                              className="text-[8px] px-0.5 py-0 rounded font-medium bg-amber-50 text-amber-700 cursor-pointer hover:bg-amber-100 transition-colors"
+                              title="Click to edit statement cycle day"
+                              onClick={() => {
+                                setEditingCycleDay(file.id);
+                                setCycleDayValue(file.cycleDay || '');
+                              }}
+                            >
+                              {file.cycleDay === 'last' ? 'Last' :
+                               file.cycleDay ? `${file.cycleDay}${getOrdinalSuffix(parseInt(file.cycleDay))}` :
+                               'Unknown'}
+                            </span>
+                          )}
                           {onDeleteFile && (
                             <button
                               onClick={(e) => {
