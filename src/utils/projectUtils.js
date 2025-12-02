@@ -14,7 +14,7 @@ import { defaultCategories } from '../config/categories';
  * @param {string} caseName - Case name
  * @param {Object} notes - Notes object mapping transaction IDs to notes
  */
-export const exportProject = (appData, transactions, claims, caseName, notes = {}) => {
+export const exportProject = (appData, transactions, claims, caseName, notes = {}, layout = null) => {
   const projectData = {
     version: '1.0',
     caseName: caseName || 'New Case',
@@ -26,7 +26,8 @@ export const exportProject = (appData, transactions, claims, caseName, notes = {
     claims: claims,
     notes: notes,
     charts: appData.charts,
-    alerts: appData.alerts
+    alerts: appData.alerts,
+    layout: layout
   };
   
   const blob = new Blob([JSON.stringify(projectData, null, 2)], { type: 'application/json' });
@@ -58,7 +59,7 @@ export const exportProject = (appData, transactions, claims, caseName, notes = {
  * @param {Function} showToast - Toast notification function
  * @returns {Function} Cleanup function
  */
-export const loadProject = (file, setAppData, setTransactions, setClaims, setCaseName, setNotes, showToast) => {
+export const loadProject = (file, setAppData, setTransactions, setClaims, setCaseName, setNotes, setLayoutSettings, showToast) => {
   // Validate file size (max 10MB)
   if (file.size > FILE_SIZE_LIMIT_BYTES) {
     if (showToast) {
@@ -118,10 +119,11 @@ export const loadProject = (file, setAppData, setTransactions, setClaims, setCas
       const normalizedCategories = Array.isArray(projectData.categories) && projectData.categories.length > 0
         ? projectData.categories
         : defaultCategories;
+      const sortedCategories = [...normalizedCategories].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
 
       setAppData({
         accounts: projectData.accounts,
-        categories: normalizedCategories,
+        categories: sortedCategories,
         files: Array.isArray(projectData.files) ? projectData.files : [],
         charts: Array.isArray(projectData.charts) ? projectData.charts : [],
         alerts: Array.isArray(projectData.alerts) ? projectData.alerts : []
@@ -134,6 +136,9 @@ export const loadProject = (file, setAppData, setTransactions, setClaims, setCas
       }
       if (projectData.notes && typeof projectData.notes === 'object' && setNotes) {
         setNotes(projectData.notes || {});
+      }
+      if (projectData.layout && setLayoutSettings) {
+        setLayoutSettings(projectData.layout);
       }
       
       // Save to localStorage with error handling

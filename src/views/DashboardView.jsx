@@ -33,11 +33,11 @@ const DashboardView = ({ data, transactions, claims, onLoadProject }) => {
   const hasData = transactions.length > 0 || claims.length > 0;
 
   return (
-    <div className="p-8 overflow-auto h-full custom-scroll bg-slate-50/50">
-      <div className="mb-6 flex justify-end">
+    <div className="p-3 overflow-auto h-full custom-scroll bg-slate-50/50">
+      <div className="mb-3 flex justify-end">
         <button
           onClick={handleLoadClick}
-          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-md bg-white text-slate-700 border border-slate-300 shadow-sm hover:bg-slate-50 transition-colors"
+          className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-md bg-white text-slate-700 border border-slate-300 shadow-sm hover:bg-slate-50 transition-colors"
         >
           <FolderOpen size={16} />
           Open Case
@@ -64,8 +64,8 @@ const DashboardView = ({ data, transactions, claims, onLoadProject }) => {
 
       {hasData && (
         <>
-          <div className="grid grid-cols-4 gap-6 mb-8">
-            <div className="p-5 rounded-xl border border-slate-100 shadow-sm bg-white border-l-4 border-l-emerald-500">
+          <div className="grid grid-cols-4 gap-3 mb-3">
+            <div className="p-3 rounded-xl border border-slate-100 shadow-sm bg-white border-l-4 border-l-emerald-500">
               <div className="text-xs font-bold text-slate-400 uppercase">Income (Proven)</div>
               <div className="text-2xl font-mono font-bold text-emerald-600">
                 {totalIncome.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 })}
@@ -74,7 +74,7 @@ const DashboardView = ({ data, transactions, claims, onLoadProject }) => {
                 {transactions.filter(tx => tx && tx.amount > 0).length} transactions
               </div>
             </div>
-            <div className="p-5 rounded-xl border border-slate-100 shadow-sm bg-white border-l-4 border-l-rose-500">
+            <div className="p-3 rounded-xl border border-slate-100 shadow-sm bg-white border-l-4 border-l-rose-500">
               <div className="text-xs font-bold text-slate-400 uppercase">Expenses (Proven)</div>
               <div className="text-2xl font-mono font-bold text-rose-600">
                 {totalExpenses.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 })}
@@ -83,7 +83,7 @@ const DashboardView = ({ data, transactions, claims, onLoadProject }) => {
                 {transactions.filter(tx => tx && tx.amount < 0).length} transactions
               </div>
             </div>
-            <div className="p-5 rounded-xl border border-slate-100 shadow-sm bg-white border-l-4 border-l-slate-500">
+            <div className="p-3 rounded-xl border border-slate-100 shadow-sm bg-white border-l-4 border-l-slate-500">
               <div className="text-xs font-bold text-slate-400 uppercase">Claimed Needs (KPR8)</div>
               <div className="text-2xl font-mono font-bold text-slate-600">
                 {totalClaimed.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 })}
@@ -92,7 +92,7 @@ const DashboardView = ({ data, transactions, claims, onLoadProject }) => {
                 {claims.length} claim{claims.length !== 1 ? 's' : ''}
               </div>
             </div>
-            <div className="p-5 rounded-xl border border-slate-100 shadow-sm bg-white border-l-4 border-l-amber-500">
+            <div className="p-3 rounded-xl border border-slate-100 shadow-sm bg-white border-l-4 border-l-amber-500">
               <div className="text-xs font-bold text-slate-400 uppercase">Deficit (Actual)</div>
               <div className={`text-2xl font-mono font-bold ${deficit < 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
                 {deficit.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 })}
@@ -106,9 +106,9 @@ const DashboardView = ({ data, transactions, claims, onLoadProject }) => {
       )}
 
       {hasData && (
-        <div className="grid grid-cols-3 gap-6 h-[400px]">
-          <div className="col-span-2 bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col">
-            <div className="flex justify-between items-center mb-6">
+        <div className="grid grid-cols-3 gap-3 h-[320px]">
+          <div className="col-span-2 bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-col">
+            <div className="flex justify-between items-center mb-4">
               <h3 className="font-bold text-slate-700">Financial Trend</h3>
             </div>
             <div className="flex-1 w-full min-h-0">
@@ -130,8 +130,8 @@ const DashboardView = ({ data, transactions, claims, onLoadProject }) => {
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm overflow-auto custom-scroll">
-            <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2">
+          <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm overflow-auto custom-scroll">
+            <h3 className="font-bold text-slate-700 mb-3 flex items-center gap-2">
               <Bell className="text-slate-400" size={16} />
               Forensic Alerts
             </h3>

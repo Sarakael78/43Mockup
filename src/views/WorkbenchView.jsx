@@ -7,19 +7,74 @@ import PDFViewer from '../components/PDFViewer';
 import NoteModal from '../components/NoteModal';
 
 const ENTITY_FILTERS = ['ALL', 'PERSONAL', 'BUSINESS', 'TRUST', 'SPOUSE', 'CREDIT'];
+const DEFAULT_RIGHT_PANEL_HEIGHTS = {
+  filters: 12,
+  table: 78,
+  footer: 10
+};
+const DEFAULT_INVENTORY_PANEL_HEIGHTS = {
+  files: 34,
+  manual: 26,
+  table: 40
+};
+const EVIDENCE_STATUS_OPTIONS = [
+  { value: 'pending', label: 'Pending' },
+  { value: 'confirmed', label: 'Confirmed' },
+  { value: 'rejected', label: 'Rejected' }
+];
 
-const WorkbenchView = ({ data, transactions, setTransactions, claims, setClaims, notes, setNotes, onError, onDeleteFile }) => {
+const WorkbenchView = ({
+  data,
+  transactions,
+  setTransactions,
+  claims,
+  setClaims,
+  notes,
+  setNotes,
+  onError,
+  onDeleteFile,
+  onAddClaim,
+  onDeleteClaim,
+  onUpdateClaim,
+  onReorderClaim,
+  onCreateCategory,
+  onUpdateTransactionStatus,
+  inventoryPanelHeights = DEFAULT_INVENTORY_PANEL_HEIGHTS,
+  onInventoryPanelHeightsChange,
+  leftPanelWidth = 50,
+  onLeftPanelWidthChange,
+  rightPanelHeights = DEFAULT_RIGHT_PANEL_HEIGHTS,
+  onRightPanelHeightsChange
+}) => {
   const [filterEntity, setFilterEntity] = useState('ALL');
   const [periodFilter, setPeriodFilter] = useState('1M');
   const [noteModal, setNoteModal] = useState({ isOpen: false, transaction: null });
   const [sortColumn, setSortColumn] = useState('date');
   const [sortDirection, setSortDirection] = useState('desc'); // 'asc' or 'desc'
-  const [leftPanelWidth, setLeftPanelWidth] = useState(50); // Percentage
   const [isResizing, setIsResizing] = useState(false);
   const containerRef = useRef(null);
+  const [rightDragState, setRightDragState] = useState(null);
+  const rightContainerRef = useRef(null);
+  const [internalLeftWidth, setInternalLeftWidth] = useState(leftPanelWidth);
+  const [internalRightHeights, setInternalRightHeights] = useState(rightPanelHeights);
   const periodMonthsMap = getPeriodMonthsMap();
   const monthsInScope = periodMonthsMap[periodFilter] || 1;
   const latestTransactionDate = useMemo(() => getLatestTransactionDate(transactions), [transactions]);
+  const sortedCategories = useMemo(() => {
+    const list = data.categories || [];
+    return [...list].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+  }, [data.categories]);
+  const [focusedCategory, setFocusedCategory] = useState(null);
+  const currentLeftPanelWidth = onLeftPanelWidthChange ? leftPanelWidth : internalLeftWidth;
+  const currentRightPanelHeights = onRightPanelHeightsChange ? rightPanelHeights : internalRightHeights;
+
+  useEffect(() => {
+    setInternalLeftWidth(leftPanelWidth);
+  }, [leftPanelWidth]);
+
+  useEffect(() => {
+    setInternalRightHeights(rightPanelHeights);
+  }, [rightPanelHeights]);
 
   const handleSort = (column) => {
     if (sortColumn === column) {
@@ -72,10 +127,23 @@ const WorkbenchView = ({ data, transactions, setTransactions, claims, setClaims,
     
     return sorted;
   }, [transactions, filterEntity, periodFilter, data.accounts, latestTransactionDate, sortColumn, sortDirection]);
+  const normalizedFocusedCategory = focusedCategory ? focusedCategory.toLowerCase() : null;
+  const displayedTx = useMemo(() => {
+    if (!normalizedFocusedCategory) return filteredTx;
+    return filteredTx.filter(tx => (tx.cat || '').toLowerCase() === normalizedFocusedCategory);
+  }, [filteredTx, normalizedFocusedCategory]);
 
   const handleCategoryChange = (id, newCat) => {
     setTransactions(prev => prev.map(t => t.id === id ? { ...t, cat: newCat } : t));
   };
+
+  const handleFocusClaim = (category) => {
+    const normalized = (category || '').trim();
+    if (!normalized) return;
+    setFocusedCategory(prev => prev && prev.toLowerCase() === normalized.toLowerCase() ? null : normalized);
+  };
+
+  const handleClearFocus = () => setFocusedCategory(null);
 
   const handleNoteClick = (tx) => {
     setNoteModal({ isOpen: true, transaction: tx });
@@ -93,9 +161,18 @@ const WorkbenchView = ({ data, transactions, setTransactions, claims, setClaims,
     });
   };
 
+  const normalizeStatusValue = (value) => {
+    const normalized = (value || '').toLowerCase();
+    if (normalized === 'proven') return 'confirmed';
+    if (normalized === 'flagged') return 'rejected';
+    if (normalized === 'confirmed' || normalized === 'rejected') return normalized;
+    return 'pending';
+  };
+
   const evidenceBadge = (status) => {
-    if (status === 'proven') return 'bg-emerald-50 text-emerald-700 border border-emerald-100';
-    if (status === 'flagged') return 'bg-amber-50 text-amber-700 border border-amber-100';
+    const normalized = normalizeStatusValue(status);
+    if (normalized === 'confirmed') return 'bg-emerald-50 text-emerald-700 border border-emerald-100';
+    if (normalized === 'rejected') return 'bg-rose-50 text-rose-700 border border-rose-200';
     return 'bg-slate-100 text-slate-600 border border-slate-200';
   };
 
@@ -110,7 +187,11 @@ const WorkbenchView = ({ data, transactions, setTransactions, claims, setClaims,
       
       // Constrain between 20% and 80%
       const constrainedPercent = Math.max(20, Math.min(80, newLeftPercent));
-      setLeftPanelWidth(constrainedPercent);
+      if (onLeftPanelWidthChange) {
+        onLeftPanelWidthChange(constrainedPercent);
+      } else {
+        setInternalLeftWidth(constrainedPercent);
+      }
     };
 
     const handleMouseUp = () => {
@@ -130,13 +211,105 @@ const WorkbenchView = ({ data, transactions, setTransactions, claims, setClaims,
         document.body.style.userSelect = '';
       };
     }
-  }, [isResizing]);
+  }, [isResizing, onLeftPanelWidthChange]);
+
+  const handleRightDragStart = (type, event) => {
+    event.preventDefault();
+    setRightDragState({
+      type,
+      startY: event.clientY,
+      initial: rightPanelHeights
+    });
+  };
+
+  useEffect(() => {
+    if (!rightDragState) return;
+
+    const handleMouseMove = (event) => {
+      const container = rightContainerRef.current;
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
+      if (!rect.height) return;
+
+      const deltaPercent = ((event.clientY - rightDragState.startY) / rect.height) * 100;
+      const MIN_SECTION = 10;
+
+      if (rightDragState.type === 'filters-table') {
+        const remaining = 100 - rightDragState.initial.footer;
+        let newFilters = rightDragState.initial.filters + deltaPercent;
+        newFilters = Math.max(MIN_SECTION, Math.min(newFilters, remaining - MIN_SECTION));
+        const newTable = remaining - newFilters;
+        const next = {
+          filters: newFilters,
+          table: newTable,
+          footer: currentRightPanelHeights.footer
+        };
+        if (onRightPanelHeightsChange) {
+          onRightPanelHeightsChange(next);
+        } else {
+          setInternalRightHeights(next);
+        }
+      } else if (rightDragState.type === 'table-footer') {
+        const remaining = 100 - rightDragState.initial.filters;
+        let newTable = rightDragState.initial.table + deltaPercent;
+        newTable = Math.max(MIN_SECTION, Math.min(newTable, remaining - MIN_SECTION));
+        const newFooter = remaining - newTable;
+        const next = {
+          filters: currentRightPanelHeights.filters,
+          table: newTable,
+          footer: newFooter
+        };
+        if (onRightPanelHeightsChange) {
+          onRightPanelHeightsChange(next);
+        } else {
+          setInternalRightHeights(next);
+        }
+      }
+    };
+
+    const handleMouseUp = () => setRightDragState(null);
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.body.style.cursor = 'row-resize';
+    document.body.style.userSelect = 'none';
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [rightDragState, rightPanelHeights, onRightPanelHeightsChange]);
 
   return (
     <div ref={containerRef} className="flex flex-1 h-full overflow-hidden relative">
-      <div className="flex flex-col" style={{ width: `${leftPanelWidth}%` }}>
+      <div className="flex flex-col" style={{ width: `${currentLeftPanelWidth}%` }}>
         {filterEntity === 'ALL'
-          ? <DocumentInventory transactions={filteredTx} periodFilter={periodFilter} monthsInScope={monthsInScope} files={data.files} claims={claims} onImport={createClaimsImportHandler(setClaims, onError)} setClaims={setClaims} onDeleteFile={onDeleteFile} />
+          ? (
+            <DocumentInventory
+              transactions={filteredTx}
+              periodFilter={periodFilter}
+              monthsInScope={monthsInScope}
+              files={data.files}
+              claims={claims}
+              categories={sortedCategories}
+              onImport={createClaimsImportHandler(setClaims, onError)}
+              onAddClaim={onAddClaim}
+              onDeleteClaim={onDeleteClaim}
+              onUpdateClaim={onUpdateClaim}
+              onReorderClaim={onReorderClaim}
+              onCreateCategory={onCreateCategory}
+              onDeleteFile={onDeleteFile}
+              panelHeights={inventoryPanelHeights}
+              onPanelHeightsChange={onInventoryPanelHeightsChange}
+              focusedCategory={focusedCategory}
+              onFocusClaim={handleFocusClaim}
+              showFilesPanel={false}
+              showHeader={false}
+              showManualEntry={false}
+            />
+          )
           : <PDFViewer entity={filterEntity} transactions={transactions} activeTxId={null} files={data.files} accounts={data.accounts} setClaims={setClaims} />
         }
       </div>
@@ -151,139 +324,189 @@ const WorkbenchView = ({ data, transactions, setTransactions, claims, setClaims,
           <div className="w-1 h-8 bg-slate-400 group-hover:bg-amber-500 rounded-full transition-colors"></div>
         </div>
       </div>
-      <div className="bg-white flex flex-col h-full shadow-xl z-20" style={{ width: `${100 - leftPanelWidth}%` }}>
-        <div className="h-12 border-b border-slate-200 flex items-center justify-between px-4 shrink-0 bg-slate-50">
-          <div className="flex bg-slate-200 p-0.5 rounded-lg">
-            {ENTITY_FILTERS.map(f => (
-              <button 
-                key={f} 
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setFilterEntity(f);
-                }} 
-                className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${filterEntity === f ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-              >
-                {f}
-              </button>
-            ))}
-          </div>
-          <div className="flex bg-slate-200 p-0.5 rounded-lg ml-2">
-            {['1M', '3M', '6M'].map(p => (
-              <button key={p} onClick={() => setPeriodFilter(p)} className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${periodFilter === p ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{p}</button>
-            ))}
-          </div>
-        </div>
-        <div className="flex-1 overflow-auto custom-scroll">
-          <div className="grid grid-cols-[80px_1fr_120px_110px_110px_30px] bg-slate-50 border-y border-slate-200 text-[9px] font-bold text-slate-500 uppercase py-2 px-3 sticky top-0 z-10">
-            <button
-              onClick={() => handleSort('date')}
-              className="flex items-center gap-1 hover:text-slate-700 transition-colors text-left"
-            >
-              Date
-              {sortColumn === 'date' ? (
-                sortDirection === 'asc' ? <ArrowUp size={10} /> : <ArrowDown size={10} />
-              ) : (
-                <ArrowUpDown size={10} className="opacity-30" />
-              )}
-            </button>
-            <button
-              onClick={() => handleSort('description')}
-              className="flex items-center gap-1 hover:text-slate-700 transition-colors text-left"
-            >
-              Description
-              {sortColumn === 'description' ? (
-                sortDirection === 'asc' ? <ArrowUp size={10} /> : <ArrowDown size={10} />
-              ) : (
-                <ArrowUpDown size={10} className="opacity-30" />
-              )}
-            </button>
-            <button
-              onClick={() => handleSort('category')}
-              className="flex items-center gap-1 hover:text-slate-700 transition-colors text-left"
-            >
-              Category
-              {sortColumn === 'category' ? (
-                sortDirection === 'asc' ? <ArrowUp size={10} /> : <ArrowDown size={10} />
-              ) : (
-                <ArrowUpDown size={10} className="opacity-30" />
-              )}
-            </button>
-            <button
-              onClick={() => handleSort('amount')}
-              className="flex items-center gap-1 hover:text-slate-700 transition-colors text-right justify-end"
-            >
-              Amount
-              {sortColumn === 'amount' ? (
-                sortDirection === 'asc' ? <ArrowUp size={10} /> : <ArrowDown size={10} />
-              ) : (
-                <ArrowUpDown size={10} className="opacity-30" />
-              )}
-            </button>
-            <button
-              onClick={() => handleSort('evidence')}
-              className="flex items-center gap-1 hover:text-slate-700 transition-colors text-center justify-center"
-            >
-              Evidence
-              {sortColumn === 'evidence' ? (
-                sortDirection === 'asc' ? <ArrowUp size={10} /> : <ArrowDown size={10} />
-              ) : (
-                <ArrowUpDown size={10} className="opacity-30" />
-              )}
-            </button>
-            <div></div>
-          </div>
-          {filteredTx.length === 0 ? (
-            <div className="flex items-center justify-center h-full text-slate-400 text-sm p-8">
-              <div className="text-center">
-                <p className="font-semibold">No transactions found</p>
-                <p className="text-xs mt-2">Try selecting a different entity filter or time period</p>
+      <div className="bg-white flex flex-col h-full shadow-xl z-20" style={{ width: `${100 - currentLeftPanelWidth}%` }}>
+        <div ref={rightContainerRef} className="flex flex-col h-full">
+          <div className="border-b border-slate-200 bg-slate-50" style={{ height: `${currentRightPanelHeights.filters}%` }}>
+            <div className="h-full px-2 py-0.5 flex flex-col gap-1.5 overflow-auto">
+              <div className="flex flex-wrap gap-1 bg-slate-200 p-0.5 rounded-md w-fit">
+                {ENTITY_FILTERS.map(f => (
+                  <button 
+                    key={f} 
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setFilterEntity(f);
+                    }} 
+                    className={`px-2 py-0.5 text-[10px] font-bold rounded-md transition-all ${filterEntity === f ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+              <div className="flex bg-slate-200 p-0.5 rounded-md w-fit">
+                {['1M', '3M', '6M'].map(p => (
+                  <button key={p} onClick={() => setPeriodFilter(p)} className={`px-2 py-0.5 text-[10px] font-bold rounded-md transition-all ${periodFilter === p ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{p}</button>
+                ))}
               </div>
             </div>
-          ) : (
-            filteredTx.map(tx => {
-              if (!tx || !tx.id) return null;
-              const safeClean = tx.clean ? String(tx.clean).replace(/[<>\"'&]/g, '') : '';
-              return (
-                <div key={tx.id} className="grid grid-cols-[80px_1fr_120px_110px_110px_30px] border-b border-slate-100 py-2.5 px-3 text-xs items-center hover:bg-amber-50 group transition-colors">
-                  <div className="font-mono text-slate-500 text-[10px]">{tx.date || ''}</div>
-                  <div className="pr-2">
-                    <div className="font-bold text-slate-700 truncate">{safeClean}</div>
-                  </div>
-                <div>
-                  <select className={`text-[10px] px-1 py-1 rounded border border-slate-200 w-full outline-none focus:border-amber-400 ${tx.cat === 'Uncategorized' ? 'bg-slate-100 text-slate-500' : 'bg-white text-slate-700 font-medium'}`} value={tx.cat || 'Uncategorized'} onChange={(e) => handleCategoryChange(tx.id, e.target.value)}>
-                    {(data.categories || []).map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
+          </div>
+          <div
+            className="h-1 bg-slate-300 hover:bg-amber-400 cursor-row-resize transition-colors"
+            onMouseDown={(e) => handleRightDragStart('filters-table', e)}
+          />
+          <div className="flex flex-col overflow-hidden" style={{ height: `${currentRightPanelHeights.table}%` }}>
+            <div className="flex-1 overflow-auto custom-scroll">
+              {focusedCategory && (
+                <div className="px-2 py-1 text-[10px] bg-amber-50 border-b border-amber-100 flex items-center justify-between text-amber-800">
+                  <span>
+                    Showing bank lines linked to <span className="font-semibold">{focusedCategory}</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleClearFocus}
+                    className="text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-amber-200 hover:bg-amber-100 transition-colors"
+                  >
+                    Clear
+                  </button>
                 </div>
-                  <div className={`font-mono font-bold text-right ${tx.type === 'income' ? 'text-emerald-600' : 'text-slate-700'}`}>
-                    {tx.type === 'income' ? '+' : ''}{tx.amount ? Math.abs(tx.amount).toFixed(2) : '0.00'}
-                  </div>
-                  <div className="flex justify-center">
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold capitalize ${evidenceBadge(tx.status)}`}>
-                      {tx.status || 'pending'}
-                    </span>
-                  </div>
-                  <div className="text-center opacity-0 group-hover:opacity-100 transition-opacity relative">
-                    <button
-                      onClick={() => handleNoteClick(tx)}
-                      className={`text-slate-400 hover:text-amber-500 ${notes[tx.id] ? 'text-amber-500 opacity-100' : ''}`}
-                      title={notes[tx.id] ? 'Edit note' : 'Add note'}
-                    >
-                      <StickyNote size={14} />
-                    </button>
-                    {notes[tx.id] && (
-                      <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-500 rounded-full"></span>
-                    )}
+              )}
+              <div className="grid grid-cols-[80px_1fr_120px_110px_110px_30px] bg-slate-50 border-y border-slate-200 text-[8px] font-bold text-slate-500 uppercase tracking-wide py-0.5 px-1.5 sticky top-0 z-10">
+                <button
+                  onClick={() => handleSort('date')}
+                  className="flex items-center gap-1 hover:text-slate-700 transition-colors text-left"
+                >
+                  Date
+                  {sortColumn === 'date' ? (
+                    sortDirection === 'asc' ? <ArrowUp size={10} /> : <ArrowDown size={10} />
+                  ) : (
+                    <ArrowUpDown size={10} className="opacity-30" />
+                  )}
+                </button>
+                <button
+                  onClick={() => handleSort('description')}
+                  className="flex items-center gap-1 hover:text-slate-700 transition-colors text-left"
+                >
+                  Description
+                  {sortColumn === 'description' ? (
+                    sortDirection === 'asc' ? <ArrowUp size={10} /> : <ArrowDown size={10} />
+                  ) : (
+                    <ArrowUpDown size={10} className="opacity-30" />
+                  )}
+                </button>
+                <button
+                  onClick={() => handleSort('category')}
+                  className="flex items-center gap-1 hover:text-slate-700 transition-colors text-left"
+                >
+                  Category
+                  {sortColumn === 'category' ? (
+                    sortDirection === 'asc' ? <ArrowUp size={10} /> : <ArrowDown size={10} />
+                  ) : (
+                    <ArrowUpDown size={10} className="opacity-30" />
+                  )}
+                </button>
+                <button
+                  onClick={() => handleSort('amount')}
+                  className="flex items-center gap-1 hover:text-slate-700 transition-colors text-right justify-end"
+                >
+                  Amount
+                  {sortColumn === 'amount' ? (
+                    sortDirection === 'asc' ? <ArrowUp size={10} /> : <ArrowDown size={10} />
+                  ) : (
+                    <ArrowUpDown size={10} className="opacity-30" />
+                  )}
+                </button>
+                <button
+                  onClick={() => handleSort('evidence')}
+                  className="flex items-center gap-1 hover:text-slate-700 transition-colors text-center justify-center"
+                >
+                  Evidence
+                  {sortColumn === 'evidence' ? (
+                    sortDirection === 'asc' ? <ArrowUp size={10} /> : <ArrowDown size={10} />
+                  ) : (
+                    <ArrowUpDown size={10} className="opacity-30" />
+                  )}
+                </button>
+                <div></div>
+              </div>
+              {displayedTx.length === 0 ? (
+                <div className="flex items-center justify-center h-full text-slate-400 text-sm p-4">
+                  <div className="text-center">
+                    <p className="font-semibold">No transactions found</p>
+                    <p className="text-[11px] mt-1.5">
+                      {focusedCategory
+                        ? `No bank lines linked to ${focusedCategory}. Double-click another claim or clear the focus filter.`
+                        : 'Try selecting a different entity filter or time period'}
+                    </p>
                   </div>
                 </div>
-              );
-            })
-          )}
-        </div>
-        <div className="h-10 bg-slate-50 border-t border-slate-200 flex items-center justify-between px-4 text-xs font-bold text-slate-600 shrink-0">
-          <span>Total Visible:</span>
-          <span className="font-mono">{filteredTx.length > 0 ? filteredTx.reduce((sum, t) => sum + (t.amount || 0), 0).toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR' }) : 'R 0.00'}</span>
+              ) : (
+                displayedTx.map(tx => {
+                  if (!tx || !tx.id) return null;
+                  const safeClean = tx.clean ? String(tx.clean).replace(/[<>\"'&]/g, '') : '';
+                  const normalizedStatus = normalizeStatusValue(tx.status);
+                  const statusLabel = EVIDENCE_STATUS_OPTIONS.find(opt => opt.value === normalizedStatus)?.label || 'Pending';
+                  return (
+                    <div key={tx.id} className="grid grid-cols-[80px_1fr_120px_110px_110px_30px] border-b border-slate-100 py-1 px-1.5 text-[10px] items-center hover:bg-amber-50 group transition-colors">
+                      <div className="font-mono text-slate-500 text-[9px]">{tx.date || ''}</div>
+                      <div className="pr-2">
+                        <div className="font-bold text-slate-700 truncate">{safeClean}</div>
+                      </div>
+                      <div>
+                        <select className={`text-[9px] px-1 py-0.5 rounded border border-slate-200 w-full outline-none focus:border-amber-400 ${tx.cat === 'Uncategorized' ? 'bg-slate-100 text-slate-500' : 'bg-white text-slate-700 font-medium'}`} value={tx.cat || 'Uncategorized'} onChange={(e) => handleCategoryChange(tx.id, e.target.value)}>
+                          {sortedCategories.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                      </div>
+                      <div className={`font-mono font-bold text-right text-[10px] ${tx.type === 'income' ? 'text-emerald-600' : 'text-slate-700'}`}>
+                        {tx.type === 'income' ? '+' : ''}{tx.amount ? Math.abs(tx.amount).toFixed(2) : '0.00'}
+                      </div>
+                      <div className="flex flex-col items-center gap-0.5">
+                        <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold capitalize ${evidenceBadge(normalizedStatus)}`}>
+                          {statusLabel}
+                        </span>
+                        {onUpdateTransactionStatus && (
+                          <select
+                            value={normalizedStatus}
+                            onChange={(e) => onUpdateTransactionStatus(tx.id, e.target.value)}
+                            className="text-[9px] px-1 py-0.5 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
+                          >
+                            {EVIDENCE_STATUS_OPTIONS.map(opt => (
+                              <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            ))}
+                          </select>
+                        )}
+                      </div>
+                      <div className="text-center opacity-0 group-hover:opacity-100 transition-opacity relative">
+                        <button
+                          onClick={() => handleNoteClick(tx)}
+                          className={`text-slate-400 hover:text-amber-500 ${notes[tx.id] ? 'text-amber-500 opacity-100' : ''}`}
+                          title={notes[tx.id] ? 'Edit note' : 'Add note'}
+                        >
+                          <StickyNote size={14} />
+                        </button>
+                        {notes[tx.id] && (
+                          <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-500 rounded-full"></span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+          <div
+            className="h-1 bg-slate-300 hover:bg-amber-400 cursor-row-resize transition-colors"
+            onMouseDown={(e) => handleRightDragStart('table-footer', e)}
+          />
+          <div
+            className="bg-slate-50 border-t border-slate-200 flex items-center justify-between px-2 text-xs font-bold text-slate-600"
+            style={{ height: `${currentRightPanelHeights.footer}%` }}
+          >
+            <span>Total Visible:</span>
+            <span className="font-mono">
+              {displayedTx.length > 0 ? displayedTx.reduce((sum, t) => sum + (t.amount || 0), 0).toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR' }) : 'R 0.00'}
+            </span>
+          </div>
         </div>
       </div>
       <NoteModal

@@ -3,7 +3,7 @@ import { useToast } from './contexts/ToastContext';
 import { processBankStatement, processFinancialAffidavit } from './utils/fileProcessors';
 import { mapCategory } from './utils/categoryMapper';
 import { exportProject, loadProject } from './utils/projectUtils';
-import { TOAST_DELAY_MS, AUTO_SAVE_DEBOUNCE_MS, SAVED_INDICATOR_DURATION_MS } from './utils/constants';
+import { TOAST_DELAY_MS, AUTO_SAVE_DEBOUNCE_MS, SAVED_INDICATOR_DURATION_MS, generateId } from './utils/constants';
 import { ensureTransactionEntities } from './utils/transactionUtils';
 import { defaultCategories } from './config/categories';
 import NavSidebar from './components/NavSidebar';
@@ -12,6 +12,29 @@ import FileUploadModal from './components/FileUploadModal';
 import DashboardView from './views/DashboardView';
 import WorkbenchView from './views/WorkbenchView';
 import EvidenceLockerView from './views/EvidenceLockerView';
+
+const DEFAULT_LAYOUT = {
+  leftPanelWidth: 42,
+  filePanelHeight: 34,
+  manualPanelHeight: 26,
+  tablePanelHeight: 40,
+  rightFiltersHeight: 12,
+  rightTableHeight: 78,
+  rightFooterHeight: 10
+};
+
+const normalizeLayout = (layout) => {
+  const normalized = { ...DEFAULT_LAYOUT };
+  if (layout && typeof layout === 'object') {
+    Object.keys(DEFAULT_LAYOUT).forEach((key) => {
+      const value = layout[key];
+      if (typeof value === 'number' && Number.isFinite(value)) {
+        normalized[key] = value;
+      }
+    });
+  }
+  return normalized;
+};
 
 const App = () => {
 
@@ -29,6 +52,7 @@ const App = () => {
   const [caseName, setCaseName] = useState('New Case');
   const [fileUploadModal, setFileUploadModal] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [layoutSettings, setLayoutSettings] = useState(DEFAULT_LAYOUT);
   const { showToast } = useToast();
   const saveTimeoutRef = useRef(null);
   const savedTimeoutRef = useRef(null);
@@ -42,11 +66,13 @@ const App = () => {
       try {
         const projectData = JSON.parse(savedProject);
         if (projectData.accounts && projectData.transactions && projectData.claims) {
+          const loadedCategories = projectData.categories && projectData.categories.length > 0 
+            ? projectData.categories 
+            : defaultCategories;
+          const sortedLoadedCategories = [...loadedCategories].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
           setAppData({
             accounts: projectData.accounts,
-            categories: projectData.categories && projectData.categories.length > 0 
-              ? projectData.categories 
-              : defaultCategories,
+            categories: sortedLoadedCategories,
             files: projectData.files || [],
             charts: projectData.charts || [],
             alerts: projectData.alerts || []
@@ -59,6 +85,9 @@ const App = () => {
           }
           if (projectData.notes) {
             setNotes(projectData.notes || {});
+          }
+          if (projectData.layout) {
+            setLayoutSettings(normalizeLayout(projectData.layout));
           }
         }
       } catch (error) {
@@ -90,7 +119,8 @@ const App = () => {
         claims: claims,
         notes: notes,
         charts: appData.charts,
-        alerts: appData.alerts
+        alerts: appData.alerts,
+        layout: layoutSettings
       };
       try {
         localStorage.setItem('r43_project', JSON.stringify(projectData));
@@ -115,12 +145,12 @@ const App = () => {
         savedTimeoutRef.current = null;
       }
     };
-  }, [appData, transactions, claims, notes, caseName]);
+  }, [appData, transactions, claims, notes, caseName, layoutSettings]);
 
   const handleSave = () => {
     if (appData) {
       try {
-        exportProject(appData, transactions, claims, caseName, notes);
+        exportProject(appData, transactions, claims, caseName, notes, layoutSettings);
         showToast('Project saved successfully', 'success');
       } catch (error) {
         showToast('Failed to save project', 'error');
@@ -158,6 +188,7 @@ const App = () => {
     setClaims([]);
     setNotes({});
     setCaseName('New Case');
+    setLayoutSettings(DEFAULT_LAYOUT);
 
     // Clear localStorage immediately so auto-save doesn't restore old data
     try {
@@ -184,7 +215,22 @@ const App = () => {
       loadProjectCleanupRef.current = null;
     }
     
-    const cleanup = loadProject(file, setAppData, setTransactions, setClaims, setCaseName, setNotes, showToast);
+    const cleanup = loadProject(
+      file,
+      setAppData,
+      setTransactions,
+      setClaims,
+      setCaseName,
+      setNotes,
+      (layout) => {
+        if (layout) {
+          setLayoutSettings(normalizeLayout(layout));
+        } else {
+          setLayoutSettings(DEFAULT_LAYOUT);
+        }
+      },
+      showToast
+    );
     if (cleanup) {
       loadProjectCleanupRef.current = cleanup;
     }
@@ -358,6 +404,130 @@ const App = () => {
     }
   };
 
+  const handleAddManualClaim = ({ category, desc = '', claimed, reference }) => {
+    const sanitizedCategory = (category || '').trim();
+    if (!sanitizedCategory) {
+      showToast('Category is required to add a claim.', 'error');
+      return;
+    }
+
+    if (!Number.isFinite(claimed) || claimed <= 0) {
+      showToast('Amount must be a positive number.', 'error');
+      return;
+    }
+
+    const newClaim = {
+      id: generateId(),
+      category: sanitizedCategory,
+      desc: (desc || '').trim(),
+      claimed,
+      reference: reference && reference.trim() ? reference.trim() : undefined,
+      source: 'manual'
+    };
+
+    setClaims(prev => [...prev, newClaim]);
+    showToast('Claim added to schedule.', 'success');
+  };
+
+  const handleDeleteClaim = (claimId) => {
+    if (!claimId) return;
+    setClaims(prev => prev.filter(claim => claim.id !== claimId));
+    showToast('Claim removed.', 'info');
+  };
+
+  const handleUpdateClaim = (claimId, updates) => {
+    if (!claimId) return;
+    setClaims(prev => prev.map(claim => {
+      if (claim.id !== claimId) return claim;
+      return {
+        ...claim,
+        ...updates
+      };
+    }));
+    showToast('Claim updated.', 'success');
+  };
+
+  const handleReorderClaim = (claimId, direction) => {
+    if (!claimId || !direction) return;
+    setClaims(prev => {
+      const index = prev.findIndex(claim => claim.id === claimId);
+      if (index === -1) return prev;
+      const newIndex = direction === 'up'
+        ? Math.max(0, index - 1)
+        : Math.min(prev.length - 1, index + 1);
+      if (index === newIndex) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(index, 1);
+      next.splice(newIndex, 0, moved);
+      return next;
+    });
+  };
+
+  const handleCreateCategory = (name) => {
+    const sanitized = (name || '').trim();
+    if (!sanitized) return false;
+    const normalized = sanitized.replace(/\s+/g, ' ');
+    let added = false;
+    setAppData(prev => {
+      const existing = prev.categories || [];
+      if (existing.some(cat => cat.toLowerCase() === normalized.toLowerCase())) {
+        return prev;
+      }
+      added = true;
+      const updated = [...existing, normalized].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+      return {
+        ...prev,
+        categories: updated
+      };
+    });
+    if (added) {
+      showToast(`Category "${normalized}" added.`, 'success');
+      return true;
+    }
+    return false;
+  };
+
+  const handleUpdateTransactionStatus = (txId, status) => {
+    if (!txId) return;
+    setTransactions(prev => prev.map(tx => tx.id === txId ? { ...tx, status } : tx));
+  };
+  const inventoryPanelHeights = {
+    files: layoutSettings.filePanelHeight,
+    manual: layoutSettings.manualPanelHeight,
+    table: layoutSettings.tablePanelHeight
+  };
+
+  const rightPanelHeights = {
+    filters: layoutSettings.rightFiltersHeight,
+    table: layoutSettings.rightTableHeight,
+    footer: layoutSettings.rightFooterHeight
+  };
+
+  const handleLeftPanelWidthChange = (width) => {
+    const clamped = Math.max(20, Math.min(80, width));
+    setLayoutSettings(prev => ({ ...prev, leftPanelWidth: clamped }));
+  };
+
+  const handleInventoryPanelHeightsChange = (next) => {
+    if (!next) return;
+    setLayoutSettings(prev => ({
+      ...prev,
+      filePanelHeight: next.files,
+      manualPanelHeight: next.manual,
+      tablePanelHeight: next.table
+    }));
+  };
+
+  const handleRightPanelHeightsChange = (next) => {
+    if (!next) return;
+    setLayoutSettings(prev => ({
+      ...prev,
+      rightFiltersHeight: next.filters,
+      rightTableHeight: next.table,
+      rightFooterHeight: next.footer
+    }));
+  };
+
   return (
     <div className="flex h-screen w-screen bg-slate-100 font-sans text-slate-900">
       <NavSidebar view={view} setView={setView} onAddEvidence={() => setFileUploadModal(true)} />
@@ -385,6 +555,18 @@ const App = () => {
               setNotes={setNotes}
               onError={(err) => showToast(err.message, err.type || 'error')}
               onDeleteFile={handleDeleteFile}
+              onAddClaim={handleAddManualClaim}
+              onDeleteClaim={handleDeleteClaim}
+              onUpdateClaim={handleUpdateClaim}
+              onReorderClaim={handleReorderClaim}
+              onCreateCategory={handleCreateCategory}
+              onUpdateTransactionStatus={handleUpdateTransactionStatus}
+              inventoryPanelHeights={inventoryPanelHeights}
+              onInventoryPanelHeightsChange={handleInventoryPanelHeightsChange}
+              leftPanelWidth={layoutSettings.leftPanelWidth}
+              onLeftPanelWidthChange={handleLeftPanelWidthChange}
+              rightPanelHeights={rightPanelHeights}
+              onRightPanelHeightsChange={handleRightPanelHeightsChange}
             />
           )}
           {view === 'evidence' && (
@@ -396,6 +578,14 @@ const App = () => {
               onError={(err) => showToast(err.message, err.type || 'error')}
               setClaims={setClaims}
               onDeleteFile={handleDeleteFile}
+              onAddClaim={handleAddManualClaim}
+              onDeleteClaim={handleDeleteClaim}
+              onUpdateClaim={handleUpdateClaim}
+              onReorderClaim={handleReorderClaim}
+              onCreateCategory={handleCreateCategory}
+              categories={appData.categories || []}
+              inventoryPanelHeights={inventoryPanelHeights}
+              onInventoryPanelHeightsChange={handleInventoryPanelHeightsChange}
             />
           )}
         </div>

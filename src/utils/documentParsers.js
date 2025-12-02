@@ -129,6 +129,7 @@ export const parsePDFClaims = async (file) => {
     logger.log('[PDF Claims Parser] Normalized text:', text);
     logger.log('[PDF Claims Parser] Starting pattern matching...');
     const claims = [];
+    let match;
     
     // NEW: Pattern 0: Multi-line concatenated format that works on full text
     // Handles cases where entries are concatenated: "Category: Description Amount Reference Category2: ..."
