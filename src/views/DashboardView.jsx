@@ -430,7 +430,24 @@ const DashboardView = ({ data, transactions, claims, proofPeriod = '6M' }) => {
         });
       }
     });
-    
+
+    // 7. Transaction confirmation status
+    const totalTransactions = transactions.length;
+    if (totalTransactions > 0) {
+      const confirmedCount = transactions.filter(tx => (tx.status || 'pending') === 'confirmed').length;
+      const pendingCount = transactions.filter(tx => (tx.status || 'pending') === 'pending').length;
+      const confirmedPercentage = Math.round((confirmedCount / totalTransactions) * 100);
+
+      alerts.push({
+        id: 'confirmation-status',
+        type: 'warning',
+        icon: CheckCircle2,
+        title: 'Transaction Confirmation Status',
+        msg: `${confirmedCount} of ${totalTransactions} transactions confirmed (${confirmedPercentage}%)`,
+        value: confirmedPercentage
+      });
+    }
+
     return alerts;
   }, [transactions, claims, proofPeriod]);
 
