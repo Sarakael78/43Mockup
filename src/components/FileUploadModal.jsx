@@ -170,17 +170,17 @@ const FileUploadModal = ({ isOpen, onClose, onUpload, showToast }) => {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-auto custom-scroll" onClick={(e) => e.stopPropagation()}>
-        <div className="p-6 border-b border-slate-200 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-slate-800">Add Evidence</h2>
+      <div className="bg-white rounded-lg shadow-2xl w-full max-w-xl max-h-[85vh] overflow-auto custom-scroll" onClick={(e) => e.stopPropagation()}>
+        <div className="px-3 py-2 border-b border-slate-200 flex items-center justify-between">
+          <h2 className="text-sm font-bold text-slate-800">Add Evidence</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
-            <X size={20} />
+            <X size={16} />
           </button>
         </div>
         
-        <div className="p-6">
+        <div className="p-3">
           <div
-            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+            className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
               dragActive ? 'border-blue-500 bg-blue-50' : 'border-slate-300 bg-slate-50'
             }`}
             onDragEnter={handleDrag}
@@ -188,14 +188,14 @@ const FileUploadModal = ({ isOpen, onClose, onUpload, showToast }) => {
             onDragOver={handleDrag}
             onDrop={handleDrop}
           >
-            <UploadCloud className="mx-auto mb-4 text-slate-400" size={48} />
-            <p className="text-sm font-semibold text-slate-700 mb-2">Drop files here or click to browse</p>
-            <p className="text-xs text-slate-500 mb-4">
-              Supported: {formatList.replace(/,/g, ', ')} • Max {(FILE_SIZE_LIMIT_BYTES / 1024 / 1024)}MB per file
+            <UploadCloud className="mx-auto mb-2 text-slate-400" size={32} />
+            <p className="text-xs font-semibold text-slate-700 mb-1">Drop files here or click to browse</p>
+            <p className="text-[10px] text-slate-500 mb-2">
+              {formatList.replace(/,/g, ', ')} • Max {(FILE_SIZE_LIMIT_BYTES / 1024 / 1024)}MB
             </p>
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="px-4 py-2 bg-blue-600 text-white text-sm font-bold rounded-md hover:bg-blue-500 transition-colors"
+              className="px-3 py-1 bg-blue-600 text-white text-[11px] font-bold rounded hover:bg-blue-500 transition-colors"
             >
               Select Files
             </button>
@@ -210,8 +210,8 @@ const FileUploadModal = ({ isOpen, onClose, onUpload, showToast }) => {
           </div>
 
           {files.length > 0 && (
-            <div className="mt-6 space-y-4">
-              <h3 className="text-sm font-bold text-slate-700">Files to Process ({files.length})</h3>
+            <div className="mt-3 space-y-2">
+              <h3 className="text-xs font-bold text-slate-700">Files ({files.length})</h3>
               {files.map((file, index) => {
                 // Safely extract file properties to avoid getter issues
                 let fileName, fileSize;
@@ -233,17 +233,17 @@ const FileUploadModal = ({ isOpen, onClose, onUpload, showToast }) => {
                   />
                 );
               })}
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
                 <button
                   onClick={onClose}
-                  className="px-4 py-2 text-sm font-bold text-slate-600 hover:text-slate-800"
+                  className="px-2 py-1 text-[11px] font-bold text-slate-600 hover:text-slate-800"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleUpload}
                   disabled={uploading || files.some(f => !f.triage)}
-                  className="px-4 py-2 bg-blue-600 text-white text-sm font-bold rounded-md hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-3 py-1 bg-blue-600 text-white text-[11px] font-bold rounded hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {uploading ? 'Uploading...' : 'Upload & Process'}
                 </button>

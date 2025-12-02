@@ -27,9 +27,9 @@ const TopBar = ({ title, subtitle, caseName, onCaseNameChange, onSave, onNewCase
   };
 
   return (
-    <div className="h-12 bg-white border-b border-slate-200 flex items-center justify-between px-2 shrink-0 z-10">
-      <div>
-        <h1 className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+    <div className="h-8 bg-white border-b border-slate-200 flex items-center justify-between px-1.5 shrink-0 z-10">
+      <div className="flex items-center gap-2">
+        <h1 className="text-xs font-bold text-slate-800 flex items-center gap-1">
           {title}
           {isEditing ? (
             <input
@@ -54,49 +54,50 @@ const TopBar = ({ title, subtitle, caseName, onCaseNameChange, onSave, onNewCase
               onBlur={handleSave}
               onKeyDown={handleKeyDown}
               maxLength={CASE_NAME_MAX_LENGTH}
-              className="px-2 py-0.5 bg-white text-amber-700 text-[10px] font-bold uppercase rounded-full tracking-wider border-2 border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-400"
+              className="px-1.5 py-0 bg-white text-amber-700 text-[9px] font-bold uppercase rounded-full tracking-wider border-2 border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-400"
               autoFocus
             />
           ) : (
             <span
               onClick={() => setIsEditing(true)}
-              className="px-1.5 py-0.5 bg-amber-50 text-amber-700 text-[10px] font-bold uppercase rounded-full tracking-wider border border-amber-100 cursor-pointer hover:bg-amber-100 transition-colors"
+              className="px-1.5 py-0 bg-amber-50 text-amber-700 text-[9px] font-bold uppercase rounded-full tracking-wider border border-amber-100 cursor-pointer hover:bg-amber-100 transition-colors"
               title="Click to edit case name"
             >
               {caseName}
             </span>
           )}
           {saved && (
-            <span className="text-emerald-600 flex items-center gap-1 text-[10px] animate-fade-in">
-              <Check size={12} />
+            <span className="text-emerald-600 flex items-center gap-0.5 text-[9px] animate-fade-in">
+              <Check size={10} />
               Saved
             </span>
           )}
         </h1>
-        <p className="text-[11px] text-slate-500 font-medium">{subtitle}</p>
+        <span className="text-[10px] text-slate-400">|</span>
+        <p className="text-[10px] text-slate-500">{subtitle}</p>
       </div>
-      <div className="flex items-center gap-1.5">
-        <div className="flex bg-slate-100 p-0.5 rounded-md">
-          <button className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-white text-slate-800 shadow-sm border border-slate-200">Rule 43</button>
-          <button className="px-2 py-0.5 text-[10px] font-bold rounded-md text-slate-500 hover:text-slate-700">Divorce</button>
+      <div className="flex items-center gap-1">
+        <div className="flex bg-slate-100 p-0.5 rounded">
+          <button className="px-1.5 py-0 text-[9px] font-bold rounded bg-white text-slate-800 shadow-sm border border-slate-200">Rule 43</button>
+          <button className="px-1.5 py-0 text-[9px] font-bold rounded text-slate-500 hover:text-slate-700">Divorce</button>
         </div>
         {onNewCase && (
           <button
             onClick={onNewCase}
-            className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-bold rounded-md bg-blue-600 text-white shadow-sm hover:bg-blue-500 transition-colors"
+            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] font-bold rounded bg-blue-600 text-white shadow-sm hover:bg-blue-500 transition-colors"
             title="Start a new case (clears all current data)"
           >
-            <Plus size={14} />
-            New Case
+            <Plus size={12} />
+            New
           </button>
         )}
         <button
           onClick={onSave}
-          className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-bold rounded-md bg-emerald-600 text-white shadow-sm hover:bg-emerald-500 transition-colors"
+          className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] font-bold rounded bg-emerald-600 text-white shadow-sm hover:bg-emerald-500 transition-colors"
           title="Export Analysis (Save Project)"
         >
-          <Save size={14} />
-          Export Analysis
+          <Save size={12} />
+          Export
         </button>
       </div>
     </div>

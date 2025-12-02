@@ -327,8 +327,8 @@ const WorkbenchView = ({
       <div className="bg-white flex flex-col h-full shadow-xl z-20" style={{ width: `${100 - currentLeftPanelWidth}%` }}>
         <div ref={rightContainerRef} className="flex flex-col h-full">
           <div className="border-b border-slate-200 bg-slate-50" style={{ height: `${currentRightPanelHeights.filters}%` }}>
-            <div className="h-full px-2 py-0.5 flex flex-col gap-1.5 overflow-auto">
-              <div className="flex flex-wrap gap-1 bg-slate-200 p-0.5 rounded-md w-fit">
+            <div className="h-full px-1 py-0.5 flex flex-col gap-0.5 overflow-auto">
+              <div className="flex flex-wrap gap-0.5 bg-slate-200 p-0.5 rounded w-fit">
                 {ENTITY_FILTERS.map(f => (
                   <button 
                     key={f} 
@@ -338,15 +338,15 @@ const WorkbenchView = ({
                       e.stopPropagation();
                       setFilterEntity(f);
                     }} 
-                    className={`px-2 py-0.5 text-[10px] font-bold rounded-md transition-all ${filterEntity === f ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                    className={`px-1.5 py-0 text-[9px] font-bold rounded transition-all ${filterEntity === f ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                   >
                     {f}
                   </button>
                 ))}
               </div>
-              <div className="flex bg-slate-200 p-0.5 rounded-md w-fit">
+              <div className="flex bg-slate-200 p-0.5 rounded w-fit">
                 {['1M', '3M', '6M'].map(p => (
-                  <button key={p} onClick={() => setPeriodFilter(p)} className={`px-2 py-0.5 text-[10px] font-bold rounded-md transition-all ${periodFilter === p ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{p}</button>
+                  <button key={p} onClick={() => setPeriodFilter(p)} className={`px-1.5 py-0 text-[9px] font-bold rounded transition-all ${periodFilter === p ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{p}</button>
                 ))}
               </div>
             </div>
@@ -358,20 +358,20 @@ const WorkbenchView = ({
           <div className="flex flex-col overflow-hidden" style={{ height: `${currentRightPanelHeights.table}%` }}>
             <div className="flex-1 overflow-auto custom-scroll">
               {focusedCategory && (
-                <div className="px-2 py-1 text-[10px] bg-amber-50 border-b border-amber-100 flex items-center justify-between text-amber-800">
+                <div className="px-1 py-0.5 text-[9px] bg-amber-50 border-b border-amber-100 flex items-center justify-between text-amber-800">
                   <span>
-                    Showing bank lines linked to <span className="font-semibold">{focusedCategory}</span>
+                    Linked to <span className="font-semibold">{focusedCategory}</span>
                   </span>
                   <button
                     type="button"
                     onClick={handleClearFocus}
-                    className="text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-amber-200 hover:bg-amber-100 transition-colors"
+                    className="text-[9px] font-bold px-1 py-0 rounded border border-amber-200 hover:bg-amber-100 transition-colors"
                   >
-                    Clear
+                    ×
                   </button>
                 </div>
               )}
-              <div className="grid grid-cols-[80px_1fr_120px_110px_110px_30px] bg-slate-50 border-y border-slate-200 text-[8px] font-bold text-slate-500 uppercase tracking-wide py-0.5 px-1.5 sticky top-0 z-10">
+              <div className="grid grid-cols-[70px_1fr_100px_90px_90px_24px] bg-slate-50 border-y border-slate-200 text-[7px] font-bold text-slate-500 uppercase tracking-wide py-0.5 px-1 sticky top-0 z-10">
                 <button
                   onClick={() => handleSort('date')}
                   className="flex items-center gap-1 hover:text-slate-700 transition-colors text-left"
@@ -430,13 +430,13 @@ const WorkbenchView = ({
                 <div></div>
               </div>
               {displayedTx.length === 0 ? (
-                <div className="flex items-center justify-center h-full text-slate-400 text-sm p-4">
+                <div className="flex items-center justify-center h-full text-slate-400 text-xs p-2">
                   <div className="text-center">
-                    <p className="font-semibold">No transactions found</p>
-                    <p className="text-[11px] mt-1.5">
+                    <p className="font-semibold text-[11px]">No transactions</p>
+                    <p className="text-[9px] mt-0.5">
                       {focusedCategory
-                        ? `No bank lines linked to ${focusedCategory}. Double-click another claim or clear the focus filter.`
-                        : 'Try selecting a different entity filter or time period'}
+                        ? `No lines for ${focusedCategory}`
+                        : 'Try different filters'}
                     </p>
                   </div>
                 </div>
@@ -447,28 +447,28 @@ const WorkbenchView = ({
                   const normalizedStatus = normalizeStatusValue(tx.status);
                   const statusLabel = EVIDENCE_STATUS_OPTIONS.find(opt => opt.value === normalizedStatus)?.label || 'Pending';
                   return (
-                    <div key={tx.id} className="grid grid-cols-[80px_1fr_120px_110px_110px_30px] border-b border-slate-100 py-1 px-1.5 text-[10px] items-center hover:bg-amber-50 group transition-colors">
-                      <div className="font-mono text-slate-500 text-[9px]">{tx.date || ''}</div>
-                      <div className="pr-2">
-                        <div className="font-bold text-slate-700 truncate">{safeClean}</div>
+                    <div key={tx.id} className="grid grid-cols-[70px_1fr_100px_90px_90px_24px] border-b border-slate-100 py-0.5 px-1 text-[9px] items-center hover:bg-amber-50 group transition-colors">
+                      <div className="font-mono text-slate-500 text-[8px]">{tx.date || ''}</div>
+                      <div className="pr-1">
+                        <div className="font-bold text-slate-700 truncate text-[9px]">{safeClean}</div>
                       </div>
                       <div>
-                        <select className={`text-[9px] px-1 py-0.5 rounded border border-slate-200 w-full outline-none focus:border-amber-400 ${tx.cat === 'Uncategorized' ? 'bg-slate-100 text-slate-500' : 'bg-white text-slate-700 font-medium'}`} value={tx.cat || 'Uncategorized'} onChange={(e) => handleCategoryChange(tx.id, e.target.value)}>
+                        <select className={`text-[8px] px-0.5 py-0 rounded border border-slate-200 w-full outline-none focus:border-amber-400 ${tx.cat === 'Uncategorized' ? 'bg-slate-100 text-slate-500' : 'bg-white text-slate-700 font-medium'}`} value={tx.cat || 'Uncategorized'} onChange={(e) => handleCategoryChange(tx.id, e.target.value)}>
                           {sortedCategories.map(c => <option key={c} value={c}>{c}</option>)}
                         </select>
                       </div>
-                      <div className={`font-mono font-bold text-right text-[10px] ${tx.type === 'income' ? 'text-emerald-600' : 'text-slate-700'}`}>
+                      <div className={`font-mono font-bold text-right text-[9px] ${tx.type === 'income' ? 'text-emerald-600' : 'text-slate-700'}`}>
                         {tx.type === 'income' ? '+' : ''}{tx.amount ? Math.abs(tx.amount).toFixed(2) : '0.00'}
                       </div>
-                      <div className="flex flex-col items-center gap-0.5">
-                        <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold capitalize ${evidenceBadge(normalizedStatus)}`}>
+                      <div className="flex items-center justify-center gap-0.5">
+                        <span className={`px-1 py-0 rounded-full text-[8px] font-bold capitalize ${evidenceBadge(normalizedStatus)}`}>
                           {statusLabel}
                         </span>
                         {onUpdateTransactionStatus && (
                           <select
                             value={normalizedStatus}
                             onChange={(e) => onUpdateTransactionStatus(tx.id, e.target.value)}
-                            className="text-[9px] px-1 py-0.5 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white"
+                            className="text-[8px] px-0.5 py-0 border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-amber-400 bg-white"
                           >
                             {EVIDENCE_STATUS_OPTIONS.map(opt => (
                               <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -482,10 +482,10 @@ const WorkbenchView = ({
                           className={`text-slate-400 hover:text-amber-500 ${notes[tx.id] ? 'text-amber-500 opacity-100' : ''}`}
                           title={notes[tx.id] ? 'Edit note' : 'Add note'}
                         >
-                          <StickyNote size={14} />
+                          <StickyNote size={12} />
                         </button>
                         {notes[tx.id] && (
-                          <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-500 rounded-full"></span>
+                          <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
                         )}
                       </div>
                     </div>
@@ -499,10 +499,10 @@ const WorkbenchView = ({
             onMouseDown={(e) => handleRightDragStart('table-footer', e)}
           />
           <div
-            className="bg-slate-50 border-t border-slate-200 flex items-center justify-between px-2 text-xs font-bold text-slate-600"
+            className="bg-slate-50 border-t border-slate-200 flex items-center justify-between px-1.5 text-[10px] font-bold text-slate-600"
             style={{ height: `${currentRightPanelHeights.footer}%` }}
           >
-            <span>Total Visible:</span>
+            <span>Total:</span>
             <span className="font-mono">
               {displayedTx.length > 0 ? displayedTx.reduce((sum, t) => sum + (t.amount || 0), 0).toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR' }) : 'R 0.00'}
             </span>

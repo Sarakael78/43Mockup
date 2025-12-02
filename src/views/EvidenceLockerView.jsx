@@ -44,13 +44,14 @@ const EvidenceLockerView = ({
 
   return (
     <div className="flex flex-col h-full bg-slate-50">
-      <div className="h-9 border-b border-slate-200 flex items-center justify-between px-2 bg-white">
-        <div>
-          <div className="text-[12px] font-bold text-slate-700">Evidence Locker</div>
-          <div className="text-[10px] text-slate-500">Golden thread from source to schedule.</div>
-        </div>
+      <div className="h-7 border-b border-slate-200 flex items-center justify-between px-1.5 bg-white">
         <div className="flex items-center gap-1.5">
-          <div className="flex bg-slate-200 p-0.5 rounded-md">
+          <div className="text-[10px] font-bold text-slate-700">Evidence Locker</div>
+          <span className="text-[9px] text-slate-400">|</span>
+          <div className="text-[9px] text-slate-500">Source to schedule</div>
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="flex bg-slate-200 p-0.5 rounded">
             {ENTITY_FILTERS.map((f) => (
               <button 
                 key={f} 
@@ -60,15 +61,15 @@ const EvidenceLockerView = ({
                   e.stopPropagation();
                   setFilterEntity(f);
                 }} 
-                className={`px-2.5 py-0.5 text-[10px] font-bold rounded-md transition-all ${filterEntity === f ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                className={`px-1.5 py-0 text-[9px] font-bold rounded transition-all ${filterEntity === f ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
               >
                 {f}
               </button>
             ))}
           </div>
-          <div className="flex bg-slate-200 p-0.5 rounded-md">
+          <div className="flex bg-slate-200 p-0.5 rounded">
             {['1M', '3M', '6M'].map((p) => (
-              <button key={p} onClick={() => setPeriodFilter(p)} className={`px-2.5 py-0.5 text-[10px] font-bold rounded-md transition-all ${periodFilter === p ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{p}</button>
+              <button key={p} onClick={() => setPeriodFilter(p)} className={`px-1.5 py-0 text-[9px] font-bold rounded transition-all ${periodFilter === p ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{p}</button>
             ))}
           </div>
         </div>
