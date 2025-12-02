@@ -781,7 +781,7 @@ const DocumentInventory = ({
                 const proven3m = getProvenAvg3M(claim.category);
                 const proven6m = getProvenAvg6M(claim.category);
                 const total = getProvenTotal(claim.category);
-                const traffic = getTrafficLight(proven, claim.claimed);
+                const traffic = getTrafficLight(proven6m, claim.claimed); // Use 6M average for status
                 const isEditing = editingClaimId === claim.id;
                 const canEdit = claim.source === 'manual' && Boolean(onUpdateClaim);
                 const canMoveUp = Boolean(onReorderClaim) && index > 0;
