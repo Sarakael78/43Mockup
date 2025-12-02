@@ -794,7 +794,11 @@ const DocumentInventory = ({
                 const hue = (pct / 100) * 90; // 100 distinct hues: 0, 0.9, 1.8, ... 90
                 const saturation = 75; // Vibrant saturation
                 const lightness = 50; // Good visibility
-                const barColor = `hsla(${hue}, ${saturation}%, ${lightness}%, 0.2)`;
+                
+                // Special handling for 0% - full red background to stand out
+                const barColor = pct === 0 
+                  ? 'rgba(244, 63, 94, 0.25)' // Light red background for unproven
+                  : `hsla(${hue}, ${saturation}%, ${lightness}%, 0.2)`;
 
                 return (
                   <div
@@ -802,7 +806,9 @@ const DocumentInventory = ({
                     className={`grid border-b border-slate-100 hover:brightness-95 text-[9px] group transition-all items-center relative ${isFocused ? 'ring-1 ring-amber-400' : ''}`}
                     style={{ 
                       gridTemplateColumns: claimGridTemplate,
-                      background: `linear-gradient(to right, ${barColor} ${Math.min(pct, 100)}%, transparent ${Math.min(pct, 100)}%)`
+                      background: pct === 0 
+                        ? barColor // Full red background for 0% (nothing proven)
+                        : `linear-gradient(to right, ${barColor} ${Math.min(pct, 100)}%, transparent ${Math.min(pct, 100)}%)`
                     }}
                     onDoubleClick={() => onFocusClaim && onFocusClaim(claim.category)}
                   >
