@@ -17,8 +17,7 @@ import EvidenceLockerView from './views/EvidenceLockerView';
 
 const DEFAULT_DISPLAY_SETTINGS = {
   fontSize: 'md',
-  density: 'compact',
-  proofPeriod: '6M'
+  density: 'compact'
 };
 
 const DEFAULT_LAYOUT = {
@@ -63,6 +62,7 @@ const App = () => {
   const [saved, setSaved] = useState(false);
   const [layoutSettings, setLayoutSettings] = useState(DEFAULT_LAYOUT);
   const [displaySettings, setDisplaySettings] = useState(DEFAULT_DISPLAY_SETTINGS);
+  const [proofPeriod, setProofPeriod] = useState('6M');
   const { showToast } = useToast();
   const saveTimeoutRef = useRef(null);
   const savedTimeoutRef = useRef(null);
@@ -80,6 +80,12 @@ const App = () => {
       } catch (e) {
         // Use defaults
       }
+    }
+
+    // Load proof period
+    const savedProofPeriod = localStorage.getItem('r43_proof_period');
+    if (savedProofPeriod && (savedProofPeriod === '3M' || savedProofPeriod === '6M')) {
+      setProofPeriod(savedProofPeriod);
     }
 
     const savedProject = localStorage.getItem('r43_project');
@@ -136,6 +142,23 @@ const App = () => {
       // localStorage may be disabled
     }
   }, [displaySettings]);
+
+  // Save proof period to localStorage when it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('r43_proof_period', proofPeriod);
+    } catch (e) {
+      // localStorage may be disabled
+    }
+  }, [proofPeriod]);
+
+  // Handle proof period changes
+  const handleProofPeriodChange = (newPeriod) => {
+    if (newPeriod === '3M' || newPeriod === '6M') {
+      setProofPeriod(newPeriod);
+      showToast(`Proof period changed to ${newPeriod}`, 'info');
+    }
+  };
 
   // Calculate effective scales for inline styles
   const fontScale = FONT_SIZES.find(f => f.value === displaySettings.fontSize)?.scale || 1;
@@ -670,9 +693,11 @@ const App = () => {
           saved={saved}
           onError={(err) => showToast(err.message, err.type || 'error')}
           onOpenSettings={() => setSettingsModal(true)}
+          proofPeriod={proofPeriod}
+          onProofPeriodChange={handleProofPeriodChange}
         />
         <div className="flex-1 min-h-0 relative">
-          {view === 'dashboard' && <DashboardView data={appData} transactions={transactions} claims={claims} proofPeriod={displaySettings.proofPeriod || '6M'} />}
+          {view === 'dashboard' && <DashboardView data={appData} transactions={transactions} claims={claims} proofPeriod={proofPeriod} />}
           {view === 'workbench' && (
             <WorkbenchView
               data={appData}
@@ -697,7 +722,7 @@ const App = () => {
               onLeftPanelWidthChange={handleLeftPanelWidthChange}
               rightPanelHeights={rightPanelHeights}
               onRightPanelHeightsChange={handleRightPanelHeightsChange}
-              proofPeriod={displaySettings.proofPeriod || '6M'}
+              proofPeriod={proofPeriod}
             />
           )}
           {view === 'evidence' && (
@@ -718,7 +743,7 @@ const App = () => {
               categories={appData.categories || []}
               inventoryPanelHeights={inventoryPanelHeights}
               onInventoryPanelHeightsChange={handleInventoryPanelHeightsChange}
-              proofPeriod={displaySettings.proofPeriod || '6M'}
+              proofPeriod={proofPeriod}
             />
           )}
         </div>

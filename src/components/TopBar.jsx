@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { Save, Plus, Check, Settings, FolderOpen } from 'lucide-react';
+import { Save, Plus, Check, Settings, FolderOpen, Calendar } from 'lucide-react';
 import { CASE_NAME_MAX_LENGTH } from '../utils/constants';
 
-const TopBar = ({ title, subtitle, caseName, onCaseNameChange, onSave, onNewCase, onLoadProject, saved, onError, onOpenSettings }) => {
+const TopBar = ({ title, subtitle, caseName, onCaseNameChange, onSave, onNewCase, onLoadProject, saved, onError, onOpenSettings, proofPeriod, onProofPeriodChange }) => {
   const fileInputRef = useRef(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(caseName);
@@ -82,6 +82,32 @@ const TopBar = ({ title, subtitle, caseName, onCaseNameChange, onSave, onNewCase
           <button className="px-1.5 py-0 text-[9px] font-bold rounded bg-white text-slate-800 shadow-sm border border-slate-200">Rule 43</button>
           <button className="px-1.5 py-0 text-[9px] font-bold rounded text-slate-500 hover:text-slate-700">Divorce</button>
         </div>
+        {onProofPeriodChange && (
+          <div className="flex bg-slate-100 p-0.5 rounded">
+            <button
+              onClick={() => onProofPeriodChange('3M')}
+              className={`px-2 py-0.5 text-[8px] font-bold rounded transition-all ${
+                proofPeriod === '3M'
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+              title="Use 3-month average to determine if claims are proven"
+            >
+              3M
+            </button>
+            <button
+              onClick={() => onProofPeriodChange('6M')}
+              className={`px-2 py-0.5 text-[8px] font-bold rounded transition-all ${
+                proofPeriod === '6M'
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+              title="Use 6-month average to determine if claims are proven"
+            >
+              6M
+            </button>
+          </div>
+        )}
         {onOpenSettings && (
           <button
             onClick={onOpenSettings}
