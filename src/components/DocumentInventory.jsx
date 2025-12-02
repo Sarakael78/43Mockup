@@ -449,31 +449,52 @@ const DocumentInventory = ({
     return transactions.reduce((latest, tx) => (tx?.date && tx.date > latest ? tx.date : latest), transactions[0]?.date || null);
   }, [transactions]);
 
-  // Calculate proven average for a specific number of months
-  const getProvenAvgForMonths = (category, months) => {
-    if (!latestTxDate) return 0;
-    
-    const startDate = new Date(latestTxDate);
-    startDate.setDate(1);
-    startDate.setHours(0, 0, 0, 0);
-    startDate.setMonth(startDate.getMonth() - (months - 1));
-    
-    const periodTotal = transactions
-      .filter(t => {
-        if (t.cat !== category || t.amount >= 0) return false;
-        const txDate = new Date(t.date);
-        txDate.setHours(0, 0, 0, 0);
-        return txDate >= startDate;
-      })
-      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
-    
-    return periodTotal / months;
-  };
+  // Memoize proven calculations to prevent unnecessary recalculation when proofPeriod changes
+  const provenCalculations = useMemo(() => {
+    const calculations = {};
 
-  // Use the same date-filtered calculation for the main Avg column
-  const getProvenAvg = (category) => getProvenAvgForMonths(category, monthsInScope);
-  const getProvenAvg3M = (category) => getProvenAvgForMonths(category, 3);
-  const getProvenAvg6M = (category) => getProvenAvgForMonths(category, 6);
+    claims.forEach(claim => {
+      const category = claim.category;
+
+      // Calculate totals for each category (independent of proof period)
+      const total = transactions
+        .filter(t => t.cat === category && t.amount < 0)
+        .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+      calculations[`${category}_total`] = total;
+
+      // Calculate averages for different periods
+      [3, 6, monthsInScope].forEach(months => {
+        if (!latestTxDate) {
+          calculations[`${category}_${months}m`] = 0;
+          return;
+        }
+
+        const startDate = new Date(latestTxDate);
+        startDate.setDate(1);
+        startDate.setHours(0, 0, 0, 0);
+        startDate.setMonth(startDate.getMonth() - (months - 1));
+
+        const periodTotal = transactions
+          .filter(t => {
+            if (t.cat !== category || t.amount >= 0) return false;
+            const txDate = new Date(t.date);
+            txDate.setHours(0, 0, 0, 0);
+            return txDate >= startDate;
+          })
+          .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+        calculations[`${category}_${months}m`] = periodTotal / months;
+      });
+    });
+
+    return calculations;
+  }, [claims, transactions, monthsInScope, latestTxDate]);
+
+  // Helper functions to get memoized values
+  const getProvenTotal = (category) => provenCalculations[`${category}_total`] || 0;
+  const getProvenAvg = (category) => provenCalculations[`${category}_${monthsInScope}m`] || 0;
+  const getProvenAvg3M = (category) => provenCalculations[`${category}_3m`] || 0;
+  const getProvenAvg6M = (category) => provenCalculations[`${category}_6m`] || 0;
 
   const getTrafficLight = (proven, claimed) => {
     if (!claimed) {
