@@ -788,13 +788,13 @@ const DocumentInventory = ({
                 const canMoveDown = Boolean(onReorderClaim) && index < claims.length - 1;
                 const isFocused = focusedCategory && claim.category && focusedCategory.toLowerCase() === claim.category.toLowerCase();
 
-                // Calculate progress bar color - smooth gradient from red (0%) to yellow-green (100%)
-                // Using HSL: red = 0°, yellow = 60°, yellow-green = 90°
-                const pct = Math.max(0, Math.min(traffic.ratio * 100, 100));
-                const hue = (pct / 100) * 90; // 0 = red, 45 = orange, 60 = yellow, 90 = yellow-green
-                const saturation = 70; // Consistent saturation
-                const lightness = 45; // Consistent lightness for visibility
-                const barColor = `hsla(${hue}, ${saturation}%, ${lightness}%, 0.18)`;
+                // Calculate progress bar color - 100 distinct shades from red (0%) to yellow-green (100%)
+                // Using HSL: red = 0°, orange = 30°, yellow = 60°, yellow-green = 90°
+                const pct = Math.round(Math.max(0, Math.min(traffic.ratio * 100, 100))); // 0-100 integer
+                const hue = (pct / 100) * 90; // 100 distinct hues: 0, 0.9, 1.8, ... 90
+                const saturation = 75; // Vibrant saturation
+                const lightness = 50; // Good visibility
+                const barColor = `hsla(${hue}, ${saturation}%, ${lightness}%, 0.2)`;
 
                 return (
                   <div
