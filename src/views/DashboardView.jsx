@@ -584,7 +584,7 @@ const DashboardView = ({ data, transactions, claims, proofPeriod = '6M' }) => {
           <div className="col-span-2 bg-white p-2 rounded-lg border border-slate-200 shadow-sm flex flex-col">
             <div className="flex justify-between items-center mb-1">
               <h3 className="text-xs font-bold text-slate-700 flex items-center gap-1">
-                <Scale size={12} className="text-amber-500" />
+                <Scale size={12} className="text-blue-500" />
                 Claims Verification Status
               </h3>
             </div>

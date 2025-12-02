@@ -651,7 +651,7 @@ const DocumentInventory = ({
           >
             <div className="h-6 bg-slate-50 border-b flex items-center justify-between px-1 shrink-0">
               <span className="text-[10px] font-bold text-slate-700 flex items-center gap-1">
-                <Scale className="text-amber-600" size={11} />
+                <Scale className="text-blue-500" size={11} />
                 Schedule
               </span>
               <div className="flex items-center gap-1 text-[8px] font-semibold text-slate-500">
