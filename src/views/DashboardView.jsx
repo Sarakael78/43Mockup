@@ -584,11 +584,16 @@ const DashboardView = ({ data, transactions, claims, proofPeriod = '6M' }) => {
 
   const handleGenerateReport = () => {
     const reportProofMonths = proofPeriod === '3M' ? 3 : 6;
+    const unconfirmedTransactions = transactions.filter(tx => tx.status !== 'proven' && tx.status !== 'confirmed');
+    const confirmedTransactions = transactions.filter(tx => tx.status === 'proven' || tx.status === 'confirmed');
+    
     generateClientReport({
       caseName: 'Financial Analysis',
       missingStatements: getMissingStatements(transactions, latestTxDate),
       unprovenClaims: getUnprovenClaims(claims, transactions, proofPeriod, latestTxDate),
-      transactions: transactions.filter(tx => tx.status !== 'proven'), // Only pending items
+      transactions: unconfirmedTransactions, // Only unconfirmed items
+      totalTransactions: transactions.length,
+      confirmedCount: confirmedTransactions.length,
       period: `Last ${reportProofMonths} Months`
     });
   };

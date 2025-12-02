@@ -252,7 +252,7 @@ export const generateReviewPDF = (transactions, caseName = 'Client Review', peri
     didParseCell: (data) => {
       if (data.section === 'body') {
         const tx = transactions[data.row.index];
-        if (tx && tx.status === 'flagged') {
+        if (tx && (tx.flagged === true || tx.status === 'flagged')) {
           // Apply Highlight Color (Amber 50)
           data.cell.styles.fillColor = COLORS.warningBg;
         }
@@ -261,11 +261,14 @@ export const generateReviewPDF = (transactions, caseName = 'Client Review', peri
     willDrawCell: (data) => {
       // Colorize Amounts
       if (data.section === 'body' && data.column.index === 2) {
-        const rawAmount = transactions[data.row.index].amount;
-        if (rawAmount >= 0) {
-          doc.setTextColor(...COLORS.success);
-        } else {
-          doc.setTextColor(...COLORS.primary);
+        const tx = transactions[data.row.index];
+        if (tx) {
+          const rawAmount = tx.amount;
+          if (rawAmount >= 0) {
+            doc.setTextColor(...COLORS.success);
+          } else {
+            doc.setTextColor(...COLORS.primary);
+          }
         }
       }
     },
@@ -317,8 +320,10 @@ export const generateReviewPDF = (transactions, caseName = 'Client Review', peri
 export const generateClientReport = ({
   caseName = 'Client Review',
   missingStatements = [],
-  unprovenClaims = [],
+  unprovenClaims = [], // Kept for signature compatibility, but unused
   transactions = [],
+  totalTransactions = null, // Optional: total number of transactions for "X out of Y" display
+  confirmedCount = null, // Optional: number of automatically confirmed transactions
   period = 'Last 6 Months'
 }) => {
   const doc = new jsPDF();
@@ -373,68 +378,61 @@ export const generateClientReport = ({
     currentY += 10;
   }
 
-  // SECTION 2: UNPROVEN EXPENSES
-  if (unprovenClaims.length > 0) {
-    if (currentY > pageHeight - 80) {
-      doc.addPage();
-      currentY = 20;
-    }
-
-    doc.setFontSize(14);
-    doc.setFont(undefined, 'bold');
-    doc.setTextColor(...COLORS.primary);
-    doc.text('2. Unproven Expenses', margin, currentY);
-    currentY += 8;
-
-    doc.setFontSize(10);
-    doc.setFont(undefined, 'normal');
-    doc.setTextColor(...COLORS.secondary);
-    doc.text('The following categories lack supporting documentation in the provided statements.', margin, currentY);
-    currentY += 8;
-
-    const claimRows = unprovenClaims.slice(0, 15).map(c => [
-      c.category,
-      `R ${c.claimed.toLocaleString()}`,
-      `R ${Math.round(c.proven).toLocaleString()}`,
-      `R ${Math.round(c.shortfall).toLocaleString()}`
-    ]);
-
-    autoTable(doc, {
-      startY: currentY,
-      head: [['Category', 'Claimed', 'Proven (Avg)', 'Shortfall']],
-      body: claimRows,
-      theme: 'grid',
-      styles: { fontSize: 9, cellPadding: 3, textColor: COLORS.text },
-      headStyles: { 
-        fillColor: [245, 158, 11], // Amber 500
-        textColor: [255, 255, 255],
-        fontStyle: 'bold'
-      },
-      columnStyles: {
-        1: { halign: 'right' },
-        2: { halign: 'right' },
-        3: { halign: 'right', fontStyle: 'bold', textColor: [180, 83, 9] } // Amber 700
-      },
-      margin: { left: margin, right: margin }
-    });
-
-    currentY = doc.lastAutoTable.finalY + 15;
-  }
-
-  // SECTION 3: TRANSACTION REVIEW INTRO
-  if (currentY > pageHeight - 60) {
+  // SECTION 2: TRANSACTION REVIEW (Previously Section 3)
+  if (currentY > pageHeight - 80) {
     doc.addPage();
     currentY = 20;
   }
 
+  // Header
   doc.setFontSize(14);
   doc.setFont(undefined, 'bold');
   doc.setTextColor(...COLORS.primary);
-  doc.text('3. Detailed Transaction Schedule', margin, currentY);
-  currentY += 10;
+  doc.text('2. Detailed Transaction Schedule', margin, currentY);
+  currentY += 8;
 
-  // Use the same table logic as the Review PDF
-  const tableRows = transactions.map(tx => [
+  // Instructions
+  doc.setFontSize(9);
+  doc.setFont(undefined, 'normal');
+  doc.setTextColor(...COLORS.secondary);
+  
+  // Build transaction count text
+  const unconfirmedCount = transactions.length;
+  const countText = totalTransactions !== null && totalTransactions > 0
+    ? `${unconfirmedCount} out of ${totalTransactions}`
+    : `${unconfirmedCount}`;
+  
+  // Build confirmed count text
+  let confirmedText = '';
+  if (confirmedCount !== null && confirmedCount > 0) {
+    confirmedText = ` ${confirmedCount} transaction${confirmedCount !== 1 ? 's have' : ' has'} been automatically confirmed and ${unconfirmedCount !== 1 ? 'are' : 'is'} not included in this schedule.`;
+  }
+  
+  const instructions = [
+    `The following schedule contains ${countText} transaction${unconfirmedCount !== 1 ? 's' : ''} that have not been automatically confirmed and require your review.${confirmedText}`,
+    '• Please review each transaction listed below.',
+    '• Items highlighted in orange may need additional clarification, but please verify all transactions.',
+    '• If you notice any discrepancies or have additional context, please note them in the "Client Notes" column.'
+  ];
+  
+  instructions.forEach(line => {
+    doc.text(line, margin, currentY);
+    currentY += 5;
+  });
+  
+  currentY += 5;
+
+  // Sort transactions by account first, then date
+  const sortedTransactions = [...transactions].sort((a, b) => {
+    const accountA = a.account || '';
+    const accountB = b.account || '';
+    if (accountA !== accountB) {
+      return accountA.localeCompare(accountB);
+    }
+    return new Date(a.date) - new Date(b.date);
+  });
+
+  const tableRows = sortedTransactions.map(tx => [
     formatDate(tx.date),
     tx.clean || tx.desc || 'No description',
     formatAmount(tx.amount),
@@ -450,7 +448,7 @@ export const generateClientReport = ({
     theme: 'striped',
     styles: {
       fontSize: 8,
-      cellPadding: 4,
+      cellPadding: 2, // Reduced padding to give more room for notes
       textColor: COLORS.text,
       lineColor: COLORS.border,
       lineWidth: 0.1,
@@ -461,26 +459,29 @@ export const generateClientReport = ({
       fontStyle: 'bold',
     },
     columnStyles: {
-      0: { cellWidth: 22 },
-      1: { cellWidth: 60 },
-      2: { cellWidth: 28, halign: 'right', fontStyle: 'bold' },
+      0: { cellWidth: 20 }, // Reduced slightly
+      1: { cellWidth: 55 }, // Reduced slightly
+      2: { cellWidth: 25, halign: 'right', fontStyle: 'bold' }, // Reduced slightly
       3: { cellWidth: 35 },
       4: { cellWidth: 15, halign: 'center' },
-      5: { cellWidth: 'auto' }
+      5: { cellWidth: 'auto' } // Maximize space for notes
     },
-    // Highlight Flagged Rows here as well
+    // Highlight Flagged Rows
     didParseCell: (data) => {
       if (data.section === 'body') {
-        const tx = transactions[data.row.index];
-        if (tx && tx.status === 'flagged') {
+        const tx = sortedTransactions[data.row.index];
+        if (tx && (tx.flagged === true || tx.status === 'flagged')) {
           data.cell.styles.fillColor = COLORS.warningBg;
         }
       }
     },
     willDrawCell: (data) => {
       if (data.section === 'body' && data.column.index === 2) {
-        const rawAmount = transactions[data.row.index].amount;
-        doc.setTextColor(rawAmount >= 0 ? 22 : 15, rawAmount >= 0 ? 163 : 23, rawAmount >= 0 ? 74 : 42);
+        const tx = sortedTransactions[data.row.index];
+        if (tx) {
+          const rawAmount = tx.amount;
+          doc.setTextColor(rawAmount >= 0 ? 22 : 15, rawAmount >= 0 ? 163 : 23, rawAmount >= 0 ? 74 : 42);
+        }
       }
     },
     didDrawCell: (data) => {
