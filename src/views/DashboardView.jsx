@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LabelList } from 'recharts';
 import { FileStack, Bell, AlertCircle, AlertTriangle, Flag, HelpCircle, FileQuestion, TrendingDown, Calendar, ArrowLeftRight, Scale, CheckCircle2, XCircle } from 'lucide-react';
 
 // Helper to calculate proven average using same logic as expense progress bars
@@ -42,10 +42,10 @@ const ClaimsComparisonChart = ({ claims, transactions, proofPeriod = '6M' }) => 
         const provenAvg = getProvenAvgForMonths(transactions, claim.category, proofMonths, latestTxDate);
         const pct = claim.claimed > 0 ? Math.round((provenAvg / claim.claimed) * 100) : 0;
         
-        // Calculate color based on percentage (0-100 maps to hue 0-90)
+        // Calculate color based on percentage (0-100 maps to hue 0-90) with reduced saturation for accessibility
         const cappedPct = Math.min(pct, 100);
         const hue = (cappedPct / 100) * 90;
-        const barColor = `hsl(${hue}, 75%, 50%)`;
+        const barColor = `hsl(${hue}, 60%, 45%)`;
         
         return {
           name: claim.category.length > 20 ? claim.category.substring(0, 18) + '...' : claim.category,
@@ -97,27 +97,59 @@ const ClaimsComparisonChart = ({ claims, transactions, proofPeriod = '6M' }) => 
   };
 
   return (
-    <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 10 }}>
-        <XAxis type="number" fontSize={8} axisLine={false} tickLine={false} tickFormatter={(val) => `R${val/1000}k`} />
-        <YAxis type="category" dataKey="name" fontSize={8} axisLine={false} tickLine={false} width={80} />
-        <Tooltip 
-          cursor={{ fill: '#f1f5f9' }} 
-          content={<CustomTooltip />}
-        />
-        <Bar dataKey="claimed" name="Claimed" fill="hsl(90, 75%, 50%)" radius={[0, 2, 2, 0]} barSize={10} />
-        <Bar 
-          dataKey="proven" 
-          name="Proven" 
-          radius={[0, 2, 2, 0]} 
-          barSize={10}
-        >
-          {chartData.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={entry.barColor} />
-          ))}
-        </Bar>
-      </BarChart>
-    </ResponsiveContainer>
+    <div className="h-full flex flex-col">
+      {/* Legend */}
+      <div className="flex items-center justify-center gap-4 mb-2 text-[9px] text-slate-600">
+        <div className="flex items-center gap-1">
+          <div className="w-3 h-3 rounded" style={{ backgroundColor: 'hsl(90, 75%, 50%)' }}></div>
+          <span>Claimed</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="w-3 h-3 rounded" style={{ backgroundColor: 'hsl(0, 75%, 50%)' }}></div>
+          <span>Proven ({proofPeriod} Avg)</span>
+        </div>
+      </div>
+
+      {/* Chart */}
+      <div className="flex-1">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 30, top: 5, bottom: 5 }}>
+            <XAxis type="number" fontSize={8} axisLine={false} tickLine={false} tickFormatter={(val) => `R${val/1000}k`} />
+            <YAxis type="category" dataKey="name" fontSize={8} axisLine={false} tickLine={false} width={80} />
+            <Tooltip
+              cursor={{ fill: '#f1f5f9' }}
+              content={<CustomTooltip />}
+            />
+            <Bar dataKey="claimed" name="Claimed" fill="hsl(90, 60%, 45%)" radius={[0, 2, 2, 0]} barSize={10}>
+              <LabelList
+                dataKey="claimed"
+                position="right"
+                fontSize={8}
+                formatter={(value) => value > 0 ? `R${(value/1000).toFixed(0)}k` : ''}
+                fill="#64748b"
+              />
+            </Bar>
+            <Bar
+              dataKey="proven"
+              name="Proven"
+              radius={[0, 2, 2, 0]}
+              barSize={10}
+            >
+              {chartData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={entry.barColor} />
+              ))}
+              <LabelList
+                dataKey="proven"
+                position="right"
+                fontSize={8}
+                formatter={(value) => value > 0 ? `R${(value/1000).toFixed(0)}k` : ''}
+                fill="#64748b"
+              />
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
   );
 };
 
@@ -145,9 +177,9 @@ const ProofGauge = ({ claims, transactions, proofPeriod = '6M' }) => {
     return { totalClaimed, totalProven: Math.round(totalProven), percentage: Math.min(percentage, 100) };
   }, [claims, transactions, proofMonths]);
 
-  // Calculate color based on percentage (0-100 maps to hue 0-90)
+  // Calculate color based on percentage (0-100 maps to hue 0-90) with reduced saturation for accessibility
   const hue = (percentage / 100) * 90;
-  const color = `hsl(${hue}, 75%, 45%)`;
+  const color = `hsl(${hue}, 60%, 45%)`;
   
   // SVG arc calculation
   const radius = 38;
@@ -519,8 +551,8 @@ const DashboardView = ({ data, transactions, claims, proofPeriod = '6M' }) => {
               <div className={`text-lg font-mono font-bold ${deficit < 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
                 {deficit.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 })}
               </div>
-              <div className={`text-[9px] ${deficit < 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
-                {deficit < 0 ? 'Negative' : 'Positive'}
+              <div className="text-[9px] text-slate-400">
+                {proofPeriod} period
               </div>
             </div>
             <div className="p-2 rounded-lg border border-slate-100 shadow-sm bg-white border-l-4 border-l-slate-500">
