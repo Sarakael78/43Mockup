@@ -22,11 +22,12 @@ const DEFAULT_PANEL_HEIGHTS = {
 };
 
 const DEFAULT_CLAIM_COLUMN_WIDTHS = {
-  category: 150,
-  claimed: 90,
-  proven: 100,
-  status: 80,
-  actions: 50
+  category: 140,
+  claimed: 80,
+  proven: 80,
+  total: 80,
+  status: 70,
+  actions: 45
 };
 
 const DocumentInventory = ({
@@ -277,7 +278,7 @@ const DocumentInventory = ({
   }, [claimColResizeState]);
 
   // Generate grid template from column widths
-  const claimGridTemplate = `${claimColumnWidths.category}px ${claimColumnWidths.claimed}px ${claimColumnWidths.proven}px ${claimColumnWidths.status}px ${claimColumnWidths.actions}px`;
+  const claimGridTemplate = `${claimColumnWidths.category}px ${claimColumnWidths.claimed}px ${claimColumnWidths.proven}px ${claimColumnWidths.total}px ${claimColumnWidths.status}px ${claimColumnWidths.actions}px`;
 
   const entryModes = [
     { key: 'manual', label: 'Manual' },
@@ -420,11 +421,14 @@ const DocumentInventory = ({
     onReorderClaim(claimId, direction);
   };
 
-  const getProvenAvg = (category) => {
-    const total = transactions
+  const getProvenTotal = (category) => {
+    return transactions
       .filter(t => t.cat === category && t.amount < 0)
       .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+  };
 
+  const getProvenAvg = (category) => {
+    const total = getProvenTotal(category);
     const divisor = monthsInScope > 0 ? monthsInScope : 1;
     return total / divisor;
   };
@@ -714,6 +718,13 @@ const DocumentInventory = ({
                   />
                 </div>
                 <div className="px-1 py-0.5 text-right relative flex items-center justify-end">
+                  <span>Total</span>
+                  <div
+                    className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-amber-400 transition-colors"
+                    onMouseDown={(e) => handleClaimColResizeStart('total', e)}
+                  />
+                </div>
+                <div className="px-1 py-0.5 text-right relative flex items-center justify-end">
                   <span>Status</span>
                   <div
                     className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-amber-400 transition-colors"
@@ -725,6 +736,7 @@ const DocumentInventory = ({
               <div>
                 {claims.map((claim, index) => {
                 const proven = getProvenAvg(claim.category);
+                const total = getProvenTotal(claim.category);
                 const traffic = getTrafficLight(proven, claim.claimed);
                 const isEditing = editingClaimId === claim.id;
                 const canEdit = claim.source === 'manual' && Boolean(onUpdateClaim);
@@ -783,6 +795,9 @@ const DocumentInventory = ({
                     </div>
                     <div className={`px-1 py-0.5 text-right font-mono font-bold text-[9px] ${traffic.colorClass}`}>
                       {proven > 0 ? proven.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 }) : '-'}
+                    </div>
+                    <div className="px-1 py-0.5 text-right font-mono text-[9px] text-slate-500">
+                      {total > 0 ? total.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 }) : '-'}
                     </div>
                     <div className="px-1 py-0.5">
                       <div className="flex flex-col gap-0.5">

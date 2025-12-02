@@ -409,7 +409,15 @@ const WorkbenchView = ({
             onMouseDown={(e) => handleRightDragStart('filters-table', e)}
           />
           <div className="flex flex-col overflow-hidden" style={{ height: `${currentRightPanelHeights.table}%` }}>
-            <div className="flex-1 overflow-auto custom-scroll">
+            <div 
+              className="flex-1 overflow-auto custom-scroll"
+              onClick={(e) => {
+                // Clear focus when clicking on whitespace (not on rows, buttons, or selects)
+                if (!e.target.closest('.transaction-row') && !e.target.closest('button') && !e.target.closest('select') && !e.target.closest('th')) {
+                  handleClearFocus();
+                }
+              }}
+            >
               {focusedCategory && (
                 <div className="px-1 py-0.5 text-[9px] bg-amber-50 border-b border-amber-100 flex items-center justify-between text-amber-800">
                   <span>
@@ -526,7 +534,7 @@ const WorkbenchView = ({
                   const normalizedStatus = normalizeStatusValue(tx.status);
                   const statusLabel = EVIDENCE_STATUS_OPTIONS.find(opt => opt.value === normalizedStatus)?.label || 'Pending';
                   return (
-                    <div key={tx.id} className="grid border-b border-slate-100 py-0.5 px-1 text-[9px] items-center hover:bg-amber-50 group transition-colors" style={{ gridTemplateColumns: txGridTemplate }}>
+                    <div key={tx.id} className="transaction-row grid border-b border-slate-100 py-0.5 px-1 text-[9px] items-center hover:bg-amber-50 group transition-colors" style={{ gridTemplateColumns: txGridTemplate }}>
                       <div className="font-mono text-slate-500 text-[8px]">{tx.date || ''}</div>
                       <div className="pr-1">
                         <div className="font-bold text-slate-700 truncate text-[9px]">{safeClean}</div>
