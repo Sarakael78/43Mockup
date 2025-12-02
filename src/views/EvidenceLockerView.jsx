@@ -68,11 +68,6 @@ const EvidenceLockerView = ({
               </button>
             ))}
           </div>
-          <div className="flex bg-slate-200 p-0.5 rounded">
-            {['1M', '3M', '6M'].map((p) => (
-              <button key={p} onClick={() => setPeriodFilter(p)} className={`px-1.5 py-0 text-[9px] font-bold rounded transition-all ${periodFilter === p ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{p}</button>
-            ))}
-          </div>
         </div>
       </div>
       <div className="flex-1 min-h-0">
