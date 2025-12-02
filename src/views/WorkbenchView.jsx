@@ -80,6 +80,7 @@ const WorkbenchView = ({
   }, [data.categories]);
   const [focusedCategory, setFocusedCategory] = useState(null);
   const [selectedTxIds, setSelectedTxIds] = useState(new Set());
+  const [selectionAnchor, setSelectionAnchor] = useState(null); // For shift+click range selection
   const currentLeftPanelWidth = onLeftPanelWidthChange ? leftPanelWidth : internalLeftWidth;
   const currentRightPanelHeights = onRightPanelHeightsChange ? rightPanelHeights : internalRightHeights;
 
@@ -161,27 +162,24 @@ const WorkbenchView = ({
   };
 
   const handleTxSelect = (id, e) => {
-    if (e.shiftKey && selectedTxIds.size > 0) {
-      // Shift-click: select range
-      const displayedIds = displayedTx.map(tx => tx.id);
-      const lastSelectedId = Array.from(selectedTxIds).pop();
-      const lastIdx = displayedIds.indexOf(lastSelectedId);
+    const displayedIds = displayedTx.map(tx => tx.id);
+    
+    if (e.shiftKey && selectionAnchor !== null) {
+      // Shift-click: select range from anchor to clicked item
+      const anchorIdx = displayedIds.indexOf(selectionAnchor);
       const currentIdx = displayedIds.indexOf(id);
-      if (lastIdx !== -1 && currentIdx !== -1) {
-        const start = Math.min(lastIdx, currentIdx);
-        const end = Math.max(lastIdx, currentIdx);
+      if (anchorIdx !== -1 && currentIdx !== -1) {
+        const start = Math.min(anchorIdx, currentIdx);
+        const end = Math.max(anchorIdx, currentIdx);
         const rangeIds = displayedIds.slice(start, end + 1);
-        setSelectedTxIds(prev => {
-          const newSet = new Set(prev);
-          rangeIds.forEach(rid => newSet.add(rid));
-          return newSet;
-        });
+        setSelectedTxIds(new Set(rangeIds));
+        // Don't change anchor on shift-click
         return;
       }
     }
     
     if (e.ctrlKey || e.metaKey) {
-      // Ctrl/Cmd-click: toggle selection
+      // Ctrl/Cmd-click: toggle selection, update anchor
       setSelectedTxIds(prev => {
         const newSet = new Set(prev);
         if (newSet.has(id)) {
@@ -191,14 +189,17 @@ const WorkbenchView = ({
         }
         return newSet;
       });
+      setSelectionAnchor(id);
     } else {
-      // Regular click: select only this one (or deselect if already only selection)
+      // Regular click: select only this one, set as anchor
       setSelectedTxIds(prev => {
         if (prev.size === 1 && prev.has(id)) {
+          setSelectionAnchor(null);
           return new Set(); // Deselect
         }
         return new Set([id]);
       });
+      setSelectionAnchor(id);
     }
   };
 
@@ -476,6 +477,7 @@ const WorkbenchView = ({
                 if (!e.target.closest('.transaction-row') && !e.target.closest('button') && !e.target.closest('select') && !e.target.closest('th') && !e.target.closest('input')) {
                   handleClearFocus();
                   setSelectedTxIds(new Set());
+                  setSelectionAnchor(null);
                 }
               }}
             >
@@ -501,7 +503,7 @@ const WorkbenchView = ({
                   </span>
                   <button
                     type="button"
-                    onClick={() => setSelectedTxIds(new Set())}
+                    onClick={() => { setSelectedTxIds(new Set()); setSelectionAnchor(null); }}
                     className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-100 hover:bg-blue-200 transition-colors"
                   >
                     Clear selection
