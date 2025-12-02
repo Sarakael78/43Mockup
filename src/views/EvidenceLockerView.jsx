@@ -90,7 +90,6 @@ const EvidenceLockerView = ({
               panelHeights={inventoryPanelHeights}
               onPanelHeightsChange={onInventoryPanelHeightsChange}
               showClaimsTable={false}
-              showManualEntry={false}
             />
           )
           : <PDFViewer entity={filterEntity} transactions={transactions} activeTxId={null} files={files} accounts={accounts} setClaims={setClaims} />
