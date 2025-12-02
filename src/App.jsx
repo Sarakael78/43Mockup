@@ -8,6 +8,7 @@ import { ensureTransactionEntities } from './utils/transactionUtils';
 import { defaultCategories } from './config/categories';
 import NavSidebar from './components/NavSidebar';
 import TopBar from './components/TopBar';
+import Footer from './components/Footer';
 import FileUploadModal from './components/FileUploadModal';
 import SettingsModal, { FONT_SIZES, DENSITY_LEVELS } from './components/SettingsModal';
 import DashboardView from './views/DashboardView';
@@ -715,6 +716,7 @@ const App = () => {
             />
           )}
         </div>
+        <Footer />
       </div>
       <FileUploadModal
         isOpen={fileUploadModal}
