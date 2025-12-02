@@ -1,6 +1,6 @@
-import { useRef, useMemo } from 'react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { FileStack, FolderOpen, Bell, AlertCircle, AlertTriangle, Flag, HelpCircle, FileQuestion, TrendingDown, Calendar, ArrowLeftRight, Scale, CheckCircle2, XCircle } from 'lucide-react';
+import { useMemo } from 'react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { FileStack, Bell, AlertCircle, AlertTriangle, Flag, HelpCircle, FileQuestion, TrendingDown, Calendar, ArrowLeftRight, Scale, CheckCircle2, XCircle } from 'lucide-react';
 
 // Helper to calculate proven average using same logic as expense progress bars
 const getProvenAvgForMonths = (transactions, category, months, latestTxDate) => {
@@ -240,20 +240,7 @@ const CategoryBreakdown = ({ claims, transactions }) => {
   );
 };
 
-const DashboardView = ({ data, transactions, claims, onLoadProject }) => {
-  const fileInputRef = useRef(null);
-
-  const handleLoadClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = (e) => {
-    if (e.target.files && e.target.files.length > 0) {
-      onLoadProject(e.target.files[0]);
-      e.target.value = ''; // Reset input
-    }
-  };
-
+const DashboardView = ({ data, transactions, claims }) => {
   // Calculate KPIs from actual data
   const totalIncome = transactions
     .filter(tx => tx && tx.amount > 0)
@@ -418,29 +405,12 @@ const DashboardView = ({ data, transactions, claims, onLoadProject }) => {
 
   return (
     <div className="p-1.5 overflow-auto h-full custom-scroll bg-slate-50/50">
-      <div className="mb-1.5 flex justify-end">
-        <button
-          onClick={handleLoadClick}
-          className="inline-flex items-center gap-1 px-2 py-1 text-[10px] font-bold rounded bg-white text-slate-700 border border-slate-300 shadow-sm hover:bg-slate-50 transition-colors"
-        >
-          <FolderOpen size={12} />
-          Open Case
-        </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".r43,.json"
-          className="hidden"
-          onChange={handleFileChange}
-        />
-      </div>
-      
       {!hasData && (
         <div className="flex flex-col items-center justify-center h-[60vh] text-center">
           <FileStack size={48} className="text-slate-300 mb-2" />
           <h2 className="text-lg font-bold text-slate-700 mb-1">No Data Yet</h2>
           <p className="text-xs text-slate-500 mb-4 max-w-md">
-            Click <strong>+</strong> to upload bank statements and financial affidavits, or <strong>Open Case</strong> to load a saved project.
+            Click <strong>+</strong> to upload bank statements and financial affidavits, or <strong>Open</strong> to load a saved project.
           </p>
         </div>
       )}

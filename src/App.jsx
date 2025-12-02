@@ -663,12 +663,13 @@ const App = () => {
           onCaseNameChange={setCaseName}
           onSave={handleSave}
           onNewCase={handleNewCase}
+          onLoadProject={handleLoadProject}
           saved={saved}
           onError={(err) => showToast(err.message, err.type || 'error')}
           onOpenSettings={() => setSettingsModal(true)}
         />
         <div className="flex-1 min-h-0 relative">
-          {view === 'dashboard' && <DashboardView data={appData} transactions={transactions} claims={claims} onLoadProject={handleLoadProject} />}
+          {view === 'dashboard' && <DashboardView data={appData} transactions={transactions} claims={claims} />}
           {view === 'workbench' && (
             <WorkbenchView
               data={appData}

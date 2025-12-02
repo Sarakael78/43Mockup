@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
-import { Save, Plus, Check, Settings } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Save, Plus, Check, Settings, FolderOpen } from 'lucide-react';
 import { CASE_NAME_MAX_LENGTH } from '../utils/constants';
 
-const TopBar = ({ title, subtitle, caseName, onCaseNameChange, onSave, onNewCase, saved, onError, onOpenSettings }) => {
+const TopBar = ({ title, subtitle, caseName, onCaseNameChange, onSave, onNewCase, onLoadProject, saved, onError, onOpenSettings }) => {
+  const fileInputRef = useRef(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(caseName);
 
@@ -99,6 +100,30 @@ const TopBar = ({ title, subtitle, caseName, onCaseNameChange, onSave, onNewCase
             <Plus size={12} />
             New
           </button>
+        )}
+        {onLoadProject && (
+          <>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] font-bold rounded bg-white text-slate-700 border border-slate-300 shadow-sm hover:bg-slate-50 transition-colors"
+              title="Open a saved case file"
+            >
+              <FolderOpen size={12} />
+              Open
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".r43,.json"
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files && e.target.files.length > 0) {
+                  onLoadProject(e.target.files[0]);
+                  e.target.value = '';
+                }
+              }}
+            />
+          </>
         )}
         <button
           onClick={onSave}
