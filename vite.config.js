@@ -23,6 +23,7 @@ export default defineConfig({
     // Port can be overridden via CLI: npm run dev -- --port <port>
     // The run.sh script uses dynamic port selection
     port: 5173,
+    host: true, // Allow access from Windows when running in WSL
     open: false,
   },
   preview: {

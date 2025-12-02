@@ -86,8 +86,8 @@ LOG_FILE="$PROJECT_ROOT/scripts/dev_server.log"
 
 # Start Vite dev server in background
 echo "Starting Vite dev server on port $PORT (logs -> $LOG_FILE)..."
-# Use npm script so the user's setup (scripts) is respected; pass --port through
-npm run dev -- --port "$PORT" > "$LOG_FILE" 2>&1 &
+# Use npm script so the user's setup (scripts) is respected; pass --port and --host through
+npm run dev -- --port "$PORT" --host > "$LOG_FILE" 2>&1 &
 VITE_PID=$!
 
 # Wait for server to become available
