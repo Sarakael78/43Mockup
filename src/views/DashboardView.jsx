@@ -261,14 +261,19 @@ const DashboardView = ({ data, transactions, claims }) => {
     const alerts = [];
     
     // 1. Expenses not fully proven (claimed > proven) - TOP PRIORITY (RED)
+    // Find latest transaction date for proper 6-month calculation
+    const latestTxDate = transactions.length > 0
+      ? transactions.reduce((latest, tx) => {
+          if (!tx.date) return latest;
+          const txDate = new Date(tx.date);
+          return !latest || txDate > latest ? txDate : latest;
+        }, null)
+      : null;
+    
     const unprovenExpenses = claims.filter(claim => {
-      const provenTotal = transactions
-        .filter(tx => tx.cat === claim.category && tx.amount < 0)
-        .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
-      // Calculate monthly average (assume 3 months if no date info)
-      const monthsInData = 3;
-      const provenAvg = provenTotal / monthsInData;
-      return claim.claimed > 0 && provenAvg < claim.claimed * 0.95; // Less than 95% proven
+      if (!claim.claimed || claim.claimed <= 0) return false;
+      const provenAvg = getProvenAvgForMonths(transactions, claim.category, 6, latestTxDate);
+      return provenAvg < claim.claimed * 0.95; // Less than 95% proven
     });
     if (unprovenExpenses.length > 0) {
       alerts.push({
