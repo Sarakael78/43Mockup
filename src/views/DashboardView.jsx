@@ -56,8 +56,7 @@ const ClaimsComparisonChart = ({ claims, transactions }) => {
         };
       })
       .filter(d => d.claimed > 0)
-      .sort((a, b) => b.claimed - a.claimed)
-      .slice(0, 8); // Top 8 categories
+      .sort((a, b) => b.claimed - a.claimed);
   }, [claims, transactions]);
 
   if (chartData.length === 0) {
