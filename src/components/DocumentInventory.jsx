@@ -746,14 +746,14 @@ const DocumentInventory = ({
                   />
                 </div>
                 <div className="px-1 py-0.5 text-right relative flex items-center justify-end">
-                  <span>3M</span>
+                  <span>Avg 3M</span>
                   <div
                     className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-amber-400 transition-colors"
                     onMouseDown={(e) => handleClaimColResizeStart('proven3m', e)}
                   />
                 </div>
                 <div className="px-1 py-0.5 text-right relative flex items-center justify-end">
-                  <span>6M</span>
+                  <span>Avg 6M</span>
                   <div
                     className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-amber-400 transition-colors"
                     onMouseDown={(e) => handleClaimColResizeStart('proven6m', e)}
@@ -837,13 +837,13 @@ const DocumentInventory = ({
                         claim.claimed.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 })
                       )}
                     </div>
-                    <div className={`px-1 py-0.5 text-right font-mono font-bold text-[9px] ${traffic.colorClass}`}>
+                    <div className={`px-1 py-0.5 text-right font-mono font-bold text-[9px] ${claim.claimed > 0 && proven >= claim.claimed * 0.95 ? 'text-emerald-600' : 'text-rose-500'}`}>
                       {proven > 0 ? proven.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 }) : '-'}
                     </div>
-                    <div className="px-1 py-0.5 text-right font-mono text-[9px] text-slate-600">
+                    <div className={`px-1 py-0.5 text-right font-mono font-bold text-[9px] ${claim.claimed > 0 && proven3m >= claim.claimed * 0.95 ? 'text-emerald-600' : 'text-rose-500'}`}>
                       {proven3m > 0 ? proven3m.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 }) : '-'}
                     </div>
-                    <div className="px-1 py-0.5 text-right font-mono text-[9px] text-slate-600">
+                    <div className={`px-1 py-0.5 text-right font-mono font-bold text-[9px] ${claim.claimed > 0 && proven6m >= claim.claimed * 0.95 ? 'text-emerald-600' : 'text-rose-500'}`}>
                       {proven6m > 0 ? proven6m.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 }) : '-'}
                     </div>
                     <div className="px-1 py-0.5 text-right font-mono text-[9px] text-slate-500">
