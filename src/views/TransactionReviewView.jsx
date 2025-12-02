@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { CheckCircle2, MessageCircle, Search, Eye, EyeOff, ChevronDown } from 'lucide-react';
+import { CheckCircle2, MessageCircle, Search, Eye, EyeOff, ChevronDown, Download, FileText } from 'lucide-react';
+import { generateReviewPDF } from '../utils/pdfExport';
 
 /**
  * SearchableSelect Component
@@ -387,6 +388,11 @@ const TransactionReviewView = ({ transactions, categories = [], onUpdateTransact
     });
   };
 
+  // Handle PDF Export
+  const handleExportPDF = () => {
+    generateReviewPDF(filteredTransactions, 'Client Review');
+  };
+
   return (
     <div className="h-full flex flex-col bg-white">
       {/* Header Section */}
@@ -399,26 +405,38 @@ const TransactionReviewView = ({ transactions, categories = [], onUpdateTransact
             </p>
           </div>
           
-          {/* Progress Widget */}
-          <div className="bg-gray-50 rounded-xl p-4 min-w-[300px] border border-gray-100">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-600">
-                {progressStats.pending > 0 
-                  ? `${progressStats.pending} pending items`
-                  : 'All caught up!'}
-              </span>
-              <span className={`text-sm font-bold ${progressStats.percentage === 100 ? 'text-green-600' : 'text-blue-600'}`}>
-                {progressStats.percentage}% Verified
-              </span>
+          {/* Progress & Actions */}
+          <div className="flex items-center gap-4">
+            <div className="hidden md:block bg-gray-50 rounded-xl p-4 min-w-[240px] border border-gray-100">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-600">
+                  {progressStats.pending > 0 
+                    ? `${progressStats.pending} pending items`
+                    : 'All caught up!'}
+                </span>
+                <span className={`text-sm font-bold ${progressStats.percentage === 100 ? 'text-green-600' : 'text-blue-600'}`}>
+                  {progressStats.percentage}% Verified
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ease-out ${
+                    progressStats.percentage === 100 ? 'bg-green-500' : 'bg-blue-600'
+                  }`}
+                  style={{ width: `${progressStats.percentage}%` }}
+                />
+              </div>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all duration-500 ease-out ${
-                  progressStats.percentage === 100 ? 'bg-green-500' : 'bg-blue-600'
-                }`}
-                style={{ width: `${progressStats.percentage}%` }}
-              />
-            </div>
+
+            {/* Export Button */}
+            <button
+              onClick={handleExportPDF}
+              className="flex items-center gap-2 px-4 py-3 bg-slate-800 text-white text-sm font-medium rounded-lg hover:bg-slate-700 transition-colors shadow-sm"
+              title="Download interactive PDF for client"
+            >
+              <Download size={18} />
+              <span className="hidden md:inline">Export PDF</span>
+            </button>
           </div>
         </div>
 
@@ -480,13 +498,13 @@ const TransactionReviewView = ({ transactions, categories = [], onUpdateTransact
           ) : (
             <div className="flex flex-col items-center justify-center h-64 text-gray-400">
               <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
-                <CheckCircle2 size={32} className="text-gray-300" />
+                <FileText size={32} className="text-gray-300" />
               </div>
               <p className="text-lg font-medium text-gray-500">
                 {showPendingOnly ? 'All caught up!' : 'No transactions found'}
               </p>
               <p className="text-sm">
-                {showPendingOnly ? 'Great job, you have reviewed all pending items.' : 'Try adjusting your search terms.'}
+                {showPendingOnly ? 'Export the PDF to share with your client.' : 'Try adjusting your search terms.'}
               </p>
             </div>
           )}
