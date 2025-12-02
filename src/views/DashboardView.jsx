@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LabelList } from 'recharts';
 import { FileStack, Bell, AlertCircle, AlertTriangle, Flag, HelpCircle, FileQuestion, TrendingDown, Calendar, ArrowLeftRight, Scale, CheckCircle2, XCircle } from 'lucide-react';
 
@@ -166,6 +166,7 @@ const ClaimsComparisonChart = ({ claims, transactions, proofPeriod = '6M' }) => 
 
 // Proof Gauge - circular gauge showing overall proof percentage
 const ProofGauge = ({ claims, transactions, proofPeriod = '6M' }) => {
+  const [showTooltip, setShowTooltip] = useState(false);
   const proofMonths = proofPeriod === '3M' ? 3 : 6;
   const { totalClaimed, totalProven, percentage } = useMemo(() => {
     const totalClaimed = claims.reduce((sum, c) => sum + (c.claimed || 0), 0);
@@ -188,26 +189,40 @@ const ProofGauge = ({ claims, transactions, proofPeriod = '6M' }) => {
     return { totalClaimed, totalProven: Math.round(totalProven), percentage: Math.min(percentage, 100) };
   }, [claims, transactions, proofMonths]);
 
-  // Calculate color based on percentage (0-100 maps to hue 0-90) with reduced saturation for accessibility
-  const hue = (percentage / 100) * 90;
-  const color = `hsl(${hue}, 60%, 45%)`;
+  // Calculate color based on semantic thresholds
+  let color;
+  if (percentage <= 49) {
+    color = '#ef4444'; // Red/Danger (0-49%)
+  } else if (percentage <= 79) {
+    color = '#f97316'; // Orange/Warning (50-79%)
+  } else {
+    color = '#22c55e'; // Green/Success (80-100%)
+  }
   
   // SVG arc calculation
   const radius = 38;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (percentage / 100) * circumference;
 
+  const unprovenBalance = totalClaimed - totalProven;
+
   return (
-    <div className="bg-slate-50 rounded-lg p-2 flex flex-col items-center">
+    <div className="bg-slate-50 rounded-lg p-2 flex flex-col items-center justify-center">
       <div className="text-[9px] font-bold text-slate-500 uppercase mb-1">Overall Proof</div>
       <div className="relative">
-        <svg width="90" height="90" className="-rotate-90">
+        <svg
+          width="90"
+          height="90"
+          className="-rotate-90 cursor-pointer"
+          onMouseEnter={() => setShowTooltip(true)}
+          onMouseLeave={() => setShowTooltip(false)}
+        >
           <circle
             cx="45"
             cy="45"
             r={radius}
             fill="none"
-            stroke="#e2e8f0"
+            stroke="#E5E7EB"
             strokeWidth="8"
           />
           <circle
@@ -223,10 +238,22 @@ const ProofGauge = ({ claims, transactions, proofPeriod = '6M' }) => {
             className="transition-all duration-500"
           />
         </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-xl font-bold" style={{ color }}>{percentage}%</span>
-          <span className="text-[8px] text-slate-400">verified</span>
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+          <span className="text-2xl font-bold block" style={{ color }}>{percentage}%</span>
+          <span className="text-xs font-medium uppercase tracking-wider text-gray-500 block">PROVEN</span>
+          <span className="text-sm">
+            <span className="font-bold">{totalProven.toLocaleString()}</span>
+            <span className="text-gray-400"> / {totalClaimed.toLocaleString()}</span>
+          </span>
         </div>
+        {showTooltip && (
+          <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 bg-white border border-slate-200 rounded shadow-lg p-2 text-xs z-10 whitespace-nowrap">
+            <div className="font-bold text-slate-700 mb-1">Unproven Balance</div>
+            <div className="text-slate-600">
+              R {(totalClaimed - totalProven).toLocaleString()} Remaining
+            </div>
+          </div>
+        )}
       </div>
       <div className="text-[8px] text-slate-500 mt-1 text-center">
         R{totalProven.toLocaleString()} / R{totalClaimed.toLocaleString()}
