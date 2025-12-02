@@ -12,6 +12,7 @@ import Footer from './components/Footer';
 import FileUploadModal from './components/FileUploadModal';
 import SettingsModal, { FONT_SIZES, DENSITY_LEVELS } from './components/SettingsModal';
 import DashboardView from './views/DashboardView';
+import TransactionReviewView from './views/TransactionReviewView';
 import WorkbenchView from './views/WorkbenchView';
 import EvidenceLockerView from './views/EvidenceLockerView';
 
@@ -716,6 +717,7 @@ const App = () => {
         />
         <div className="flex-1 min-h-0 relative">
           {view === 'dashboard' && <DashboardView data={appData} transactions={transactions} claims={claims} proofPeriod={proofPeriod} />}
+          {view === 'review' && <TransactionReviewView transactions={transactions} categories={appData.categories} onUpdateTransaction={handleUpdateTransactionStatus} />}
           {view === 'workbench' && (
             <WorkbenchView
               data={appData}

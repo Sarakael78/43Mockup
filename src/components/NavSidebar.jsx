@@ -1,4 +1,4 @@
-import { PieChart, TableProperties, FileStack, Plus } from 'lucide-react';
+import { PieChart, CheckSquare, TableProperties, FileStack, Plus } from 'lucide-react';
 
 const NavSidebar = ({ view, setView, onAddEvidence }) => (
   <nav className="w-10 bg-slate-900 flex flex-col items-center py-1.5 space-y-2 shrink-0 z-20 shadow-xl relative">
@@ -8,6 +8,9 @@ const NavSidebar = ({ view, setView, onAddEvidence }) => (
     <div className="flex flex-col space-y-1 w-full items-center">
       <button onClick={() => setView('dashboard')} className={`w-7 h-7 rounded flex items-center justify-center transition-all ${view === 'dashboard' ? 'bg-slate-700 text-slate-300' : 'text-slate-500 hover:text-slate-300'}`} title="Dashboard">
         <PieChart size={14} />
+      </button>
+      <button onClick={() => setView('review')} className={`w-7 h-7 rounded flex items-center justify-center transition-all ${view === 'review' ? 'bg-slate-700 text-slate-300' : 'text-slate-500 hover:text-slate-300'}`} title="Transaction Review">
+        <CheckSquare size={14} />
       </button>
       <button onClick={() => setView('workbench')} className={`w-7 h-7 rounded flex items-center justify-center transition-all ${view === 'workbench' ? 'bg-slate-700 text-slate-300' : 'text-slate-500 hover:text-slate-300'}`} title="Reconciliation Workbench">
         <TableProperties size={14} />
