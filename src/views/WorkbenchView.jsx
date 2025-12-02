@@ -25,6 +25,7 @@ const EVIDENCE_STATUS_OPTIONS = [
 
 // Default column widths for transactions table (right panel)
 const DEFAULT_TX_COLUMN_WIDTHS = {
+  checkbox: 24,
   date: 70,
   description: 200,
   category: 100,
@@ -78,6 +79,7 @@ const WorkbenchView = ({
     return [...list].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
   }, [data.categories]);
   const [focusedCategory, setFocusedCategory] = useState(null);
+  const [selectedTxIds, setSelectedTxIds] = useState(new Set());
   const currentLeftPanelWidth = onLeftPanelWidthChange ? leftPanelWidth : internalLeftWidth;
   const currentRightPanelHeights = onRightPanelHeightsChange ? rightPanelHeights : internalRightHeights;
 
@@ -147,7 +149,65 @@ const WorkbenchView = ({
   }, [filteredTx, normalizedFocusedCategory]);
 
   const handleCategoryChange = (id, newCat) => {
-    setTransactions(prev => prev.map(t => t.id === id ? { ...t, cat: newCat } : t));
+    // If this transaction is selected and there are multiple selections, update all selected
+    if (selectedTxIds.has(id) && selectedTxIds.size > 1) {
+      setTransactions(prev => prev.map(t => 
+        selectedTxIds.has(t.id) ? { ...t, cat: newCat } : t
+      ));
+    } else {
+      // Just update the single transaction
+      setTransactions(prev => prev.map(t => t.id === id ? { ...t, cat: newCat } : t));
+    }
+  };
+
+  const handleTxSelect = (id, e) => {
+    if (e.shiftKey && selectedTxIds.size > 0) {
+      // Shift-click: select range
+      const displayedIds = displayedTx.map(tx => tx.id);
+      const lastSelectedId = Array.from(selectedTxIds).pop();
+      const lastIdx = displayedIds.indexOf(lastSelectedId);
+      const currentIdx = displayedIds.indexOf(id);
+      if (lastIdx !== -1 && currentIdx !== -1) {
+        const start = Math.min(lastIdx, currentIdx);
+        const end = Math.max(lastIdx, currentIdx);
+        const rangeIds = displayedIds.slice(start, end + 1);
+        setSelectedTxIds(prev => {
+          const newSet = new Set(prev);
+          rangeIds.forEach(rid => newSet.add(rid));
+          return newSet;
+        });
+        return;
+      }
+    }
+    
+    if (e.ctrlKey || e.metaKey) {
+      // Ctrl/Cmd-click: toggle selection
+      setSelectedTxIds(prev => {
+        const newSet = new Set(prev);
+        if (newSet.has(id)) {
+          newSet.delete(id);
+        } else {
+          newSet.add(id);
+        }
+        return newSet;
+      });
+    } else {
+      // Regular click: select only this one (or deselect if already only selection)
+      setSelectedTxIds(prev => {
+        if (prev.size === 1 && prev.has(id)) {
+          return new Set(); // Deselect
+        }
+        return new Set([id]);
+      });
+    }
+  };
+
+  const handleSelectAll = () => {
+    if (selectedTxIds.size === displayedTx.length) {
+      setSelectedTxIds(new Set());
+    } else {
+      setSelectedTxIds(new Set(displayedTx.map(tx => tx.id)));
+    }
   };
 
   const handleFocusClaim = (category) => {
@@ -333,7 +393,7 @@ const WorkbenchView = ({
   }, [colResizeState]);
 
   // Generate grid template from column widths
-  const txGridTemplate = `${txColumnWidths.date}px 1fr ${txColumnWidths.category}px ${txColumnWidths.amount}px ${txColumnWidths.evidence}px ${txColumnWidths.notes}px`;
+  const txGridTemplate = `${txColumnWidths.checkbox}px ${txColumnWidths.date}px 1fr ${txColumnWidths.category}px ${txColumnWidths.amount}px ${txColumnWidths.evidence}px ${txColumnWidths.notes}px`;
 
   return (
     <div ref={containerRef} className="flex flex-1 h-full overflow-hidden relative">
@@ -412,9 +472,10 @@ const WorkbenchView = ({
             <div 
               className="flex-1 overflow-auto custom-scroll"
               onClick={(e) => {
-                // Clear focus when clicking on whitespace (not on rows, buttons, or selects)
-                if (!e.target.closest('.transaction-row') && !e.target.closest('button') && !e.target.closest('select') && !e.target.closest('th')) {
+                // Clear focus and selection when clicking on whitespace (not on rows, buttons, selects, or inputs)
+                if (!e.target.closest('.transaction-row') && !e.target.closest('button') && !e.target.closest('select') && !e.target.closest('th') && !e.target.closest('input')) {
                   handleClearFocus();
+                  setSelectedTxIds(new Set());
                 }
               }}
             >
@@ -432,7 +493,31 @@ const WorkbenchView = ({
                   </button>
                 </div>
               )}
+              {selectedTxIds.size > 1 && (
+                <div className="px-1.5 py-1 text-[9px] bg-blue-50 border-b border-blue-100 flex items-center justify-between text-blue-800">
+                  <span>
+                    <span className="font-bold">{selectedTxIds.size}</span> items selected
+                    <span className="text-blue-500 ml-2">(Change category on any to update all)</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTxIds(new Set())}
+                    className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-100 hover:bg-blue-200 transition-colors"
+                  >
+                    Clear selection
+                  </button>
+                </div>
+              )}
               <div ref={tableRef} className="grid bg-slate-50 border-y border-slate-200 text-[7px] font-bold text-slate-500 uppercase tracking-wide py-0.5 px-1 sticky top-0 z-10" style={{ gridTemplateColumns: txGridTemplate }}>
+                <div className="flex items-center justify-center">
+                  <input
+                    type="checkbox"
+                    checked={displayedTx.length > 0 && selectedTxIds.size === displayedTx.length}
+                    onChange={handleSelectAll}
+                    className="w-3 h-3 rounded border-slate-300 text-amber-500 focus:ring-amber-400 cursor-pointer"
+                    title="Select all"
+                  />
+                </div>
                 <div className="flex items-center relative">
                   <button
                     onClick={() => handleSort('date')}
@@ -533,8 +618,27 @@ const WorkbenchView = ({
                   const safeClean = tx.clean ? String(tx.clean).replace(/[<>\"'&]/g, '') : '';
                   const normalizedStatus = normalizeStatusValue(tx.status);
                   const statusLabel = EVIDENCE_STATUS_OPTIONS.find(opt => opt.value === normalizedStatus)?.label || 'Pending';
+                  const isSelected = selectedTxIds.has(tx.id);
                   return (
-                    <div key={tx.id} className="transaction-row grid border-b border-slate-100 py-0.5 px-1 text-[9px] items-center hover:bg-amber-50 group transition-colors" style={{ gridTemplateColumns: txGridTemplate }}>
+                    <div 
+                      key={tx.id} 
+                      className={`transaction-row grid border-b border-slate-100 py-0.5 px-1 text-[9px] items-center group transition-colors cursor-pointer ${isSelected ? 'bg-amber-100 hover:bg-amber-150' : 'hover:bg-amber-50'}`} 
+                      style={{ gridTemplateColumns: txGridTemplate }}
+                      onClick={(e) => {
+                        // Don't trigger selection when clicking on interactive elements
+                        if (!e.target.closest('select') && !e.target.closest('button') && !e.target.closest('input')) {
+                          handleTxSelect(tx.id, e);
+                        }
+                      }}
+                    >
+                      <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={(e) => handleTxSelect(tx.id, { ctrlKey: true, metaKey: false, shiftKey: false })}
+                          className="w-3 h-3 rounded border-slate-300 text-amber-500 focus:ring-amber-400 cursor-pointer"
+                        />
+                      </div>
                       <div className="font-mono text-slate-500 text-[8px]">{tx.date || ''}</div>
                       <div className="pr-1">
                         <div className="font-bold text-slate-700 truncate text-[9px]">{safeClean}</div>
