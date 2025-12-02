@@ -125,7 +125,7 @@ const ClaimsComparisonChart = ({ claims, transactions, proofPeriod = '6M' }) => 
                 dataKey="claimed"
                 position="right"
                 fontSize={8}
-                formatter={(value) => value >= 1000 ? `R${(value/1000).toFixed(0)}k` : value > 0 ? '<R1k' : ''}
+                formatter={(value) => value >= 1000 ? `R${(value/1000).toFixed(1)}k` : value > 0 ? '<R1k' : ''}
                 fill="#64748b"
               />
             </Bar>
@@ -142,7 +142,7 @@ const ClaimsComparisonChart = ({ claims, transactions, proofPeriod = '6M' }) => 
                 dataKey="proven"
                 position="right"
                 fontSize={8}
-                formatter={(value) => value >= 1000 ? `R${(value/1000).toFixed(0)}k` : value > 0 ? '<R1k' : 'R0k'}
+                formatter={(value) => value >= 1000 ? `R${(value/1000).toFixed(1)}k` : value > 0 ? '<R1k' : 'R0k'}
                 fill="#64748b"
               />
             </Bar>
