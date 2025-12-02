@@ -739,21 +739,21 @@ const DocumentInventory = ({
                   />
                 </div>
                 <div className="px-1 py-0.5 text-right relative flex items-center justify-end">
-                  <span>Avg ({periodFilter})</span>
+                  <span>{periodFilter}</span>
                   <div
                     className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-amber-400 transition-colors"
                     onMouseDown={(e) => handleClaimColResizeStart('proven', e)}
                   />
                 </div>
                 <div className="px-1 py-0.5 text-right relative flex items-center justify-end">
-                  <span>Avg 3M</span>
+                  <span>3M</span>
                   <div
                     className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-amber-400 transition-colors"
                     onMouseDown={(e) => handleClaimColResizeStart('proven3m', e)}
                   />
                 </div>
                 <div className="px-1 py-0.5 text-right relative flex items-center justify-end">
-                  <span>Avg 6M</span>
+                  <span>6M</span>
                   <div
                     className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-amber-400 transition-colors"
                     onMouseDown={(e) => handleClaimColResizeStart('proven6m', e)}
