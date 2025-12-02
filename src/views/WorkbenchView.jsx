@@ -81,6 +81,7 @@ const WorkbenchView = ({
   const [focusedCategory, setFocusedCategory] = useState(null);
   const [selectedTxIds, setSelectedTxIds] = useState(new Set());
   const [selectionAnchor, setSelectionAnchor] = useState(null); // For shift+click range selection
+  const [descriptionSearch, setDescriptionSearch] = useState('');
   const currentLeftPanelWidth = onLeftPanelWidthChange ? leftPanelWidth : internalLeftWidth;
   const currentRightPanelHeights = onRightPanelHeightsChange ? rightPanelHeights : internalRightHeights;
 
@@ -106,6 +107,15 @@ const WorkbenchView = ({
   const filteredTx = useMemo(() => {
     let result = filterTransactionsByEntity(transactions, filterEntity, data.accounts);
     result = filterTransactionsByPeriod(result, periodFilter, latestTransactionDate);
+    
+    // Apply description search filter
+    if (descriptionSearch.trim()) {
+      const searchLower = descriptionSearch.toLowerCase().trim();
+      result = result.filter(tx => {
+        const desc = (tx.clean || tx.desc || '').toLowerCase();
+        return desc.includes(searchLower);
+      });
+    }
     
     // Apply sorting
     const sorted = [...result].sort((a, b) => {
@@ -142,7 +152,7 @@ const WorkbenchView = ({
     });
     
     return sorted;
-  }, [transactions, filterEntity, periodFilter, data.accounts, latestTransactionDate, sortColumn, sortDirection]);
+  }, [transactions, filterEntity, periodFilter, data.accounts, latestTransactionDate, sortColumn, sortDirection, descriptionSearch]);
   const normalizedFocusedCategory = focusedCategory ? focusedCategory.toLowerCase() : null;
   const displayedTx = useMemo(() => {
     if (!normalizedFocusedCategory) return filteredTx;
@@ -462,6 +472,24 @@ const WorkbenchView = ({
                 {['1M', '3M', '6M'].map(p => (
                   <button key={p} onClick={() => setPeriodFilter(p)} className={`px-1.5 py-0 text-[9px] font-bold rounded transition-all ${periodFilter === p ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>{p}</button>
                 ))}
+              </div>
+              <div className="flex items-center gap-1 flex-1">
+                <input
+                  type="text"
+                  value={descriptionSearch}
+                  onChange={(e) => setDescriptionSearch(e.target.value)}
+                  placeholder="Search description..."
+                  className="flex-1 max-w-xs text-[9px] px-1.5 py-0.5 border border-slate-200 rounded bg-white focus:outline-none focus:ring-1 focus:ring-amber-400 focus:border-amber-400"
+                />
+                {descriptionSearch && (
+                  <button
+                    onClick={() => setDescriptionSearch('')}
+                    className="text-[9px] text-slate-400 hover:text-slate-600 px-1"
+                    title="Clear search"
+                  >
+                    ×
+                  </button>
+                )}
               </div>
             </div>
           </div>
