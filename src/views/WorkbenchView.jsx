@@ -675,9 +675,21 @@ const WorkbenchView = ({
                         <div className="font-bold text-slate-700 truncate text-[9px]">{safeClean}</div>
                       </div>
                       <div>
-                        <select className={`text-[8px] px-0.5 py-0 rounded border border-slate-200 w-full outline-none focus:border-amber-400 ${tx.cat === 'Uncategorized' ? 'bg-slate-100 text-slate-500' : 'bg-white text-slate-700 font-medium'}`} value={tx.cat || 'Uncategorized'} onChange={(e) => handleCategoryChange(tx.id, e.target.value)}>
-                          {sortedCategories.map(c => <option key={c} value={c}>{c}</option>)}
-                        </select>
+                        {(() => {
+                          const currentCat = tx.cat || 'Uncategorized';
+                          const catInList = sortedCategories.includes(currentCat);
+                          const isOldCategory = !catInList && currentCat !== 'Uncategorized';
+                          return (
+                            <select 
+                              className={`text-[8px] px-0.5 py-0 rounded border w-full outline-none focus:border-amber-400 ${isOldCategory ? 'bg-amber-50 border-amber-300 text-amber-700' : tx.cat === 'Uncategorized' ? 'bg-slate-100 text-slate-500 border-slate-200' : 'bg-white text-slate-700 font-medium border-slate-200'}`} 
+                              value={currentCat} 
+                              onChange={(e) => handleCategoryChange(tx.id, e.target.value)}
+                            >
+                              {isOldCategory && <option value={currentCat}>{currentCat} (old)</option>}
+                              {sortedCategories.map(c => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                          );
+                        })()}
                       </div>
                       <div className={`font-mono font-bold text-right text-[9px] ${tx.type === 'income' ? 'text-emerald-600' : 'text-slate-700'}`}>
                         {tx.type === 'income' ? '+' : ''}{tx.amount ? Math.abs(tx.amount).toFixed(2) : '0.00'}
