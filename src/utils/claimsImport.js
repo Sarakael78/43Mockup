@@ -9,9 +9,10 @@ import { mapCategory } from './categoryMapper';
  * Create a claims import handler function
  * @param {Function} setClaims - State setter for claims
  * @param {Function} onError - Error callback function
+ * @param {Function} onCreateCategory - Optional callback to create new categories
  * @returns {Function} Claims import handler
  */
-export const createClaimsImportHandler = (setClaims, onError) => {
+export const createClaimsImportHandler = (setClaims, onError, onCreateCategory) => {
   return async (file) => {
     try {
       if (!file || !file.name) {
@@ -44,6 +45,12 @@ export const createClaimsImportHandler = (setClaims, onError) => {
         parsedClaims = await parseCSVClaims(file);
       } else {
         throw new Error('Unsupported file type. Please use CSV, DOCX, or PDF.');
+      }
+
+      // Add categories from claims to the category list (so they appear in transaction dropdown)
+      if (onCreateCategory) {
+        const newCategories = parsedClaims.map(c => c.category).filter(c => c && c !== 'Uncategorized');
+        newCategories.forEach(category => onCreateCategory(category));
       }
 
       // Add to claims state
